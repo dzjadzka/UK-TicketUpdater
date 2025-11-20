@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2024-11-20
+
+### Added
+
+- **JWT Authentication System**:
+  - User registration with invite-only tokens
+  - Email/password login with JWT token generation
+  - Token verification middleware for API endpoints
+  - Password strength validation (8+ chars, upper, lower, number)
+  - Email format validation
+  - Configurable token expiry (default 7 days)
+
+- **User Management**:
+  - Role-based access control (admin/user roles)
+  - Invite token generation and management (admin only)
+  - User account enable/disable functionality
+  - List all users endpoint for admins
+  - Password hashing with bcrypt (10 rounds)
+
+- **Credential Management**:
+  - Encrypted credential storage with AES-256-GCM
+  - Full CRUD API for ticket site credentials
+  - User-scoped credential access
+  - Label support for organizing multiple credentials
+
+- **Custom Device Profiles**:
+  - User-defined device profiles with custom user agents
+  - Viewport configuration per profile
+  - Proxy URL configuration
+  - Geolocation (latitude/longitude) support
+  - Timezone and locale customization per profile
+
+- **Enhanced Database Schema**:
+  - Updated users table with email, password_hash, role, locale, is_active
+  - New invite_tokens table with expiration tracking
+  - New credentials table with encrypted password storage
+  - New device_profiles table for user-specific configurations
+  - Database indexes for improved query performance
+
+- **Security Enhancements**:
+  - Environment variable support for JWT_SECRET and ENCRYPTION_KEY
+  - Example .env file with all configuration options
+  - Secure password storage (never plaintext)
+  - Encrypted credential storage at rest
+  - Protected admin endpoints with role checks
+
+- **Testing**:
+  - 45 new tests for authentication module
+  - Comprehensive integration tests for auth API endpoints
+  - Test coverage increased from 52 to 97 tests
+  - Tests for password hashing, JWT tokens, encryption, and validation
+
+- **Documentation**:
+  - Complete authentication flow documentation in README
+  - API endpoint reference with request/response examples
+  - Security features and password requirements documentation
+  - Bootstrap instructions for first admin user creation
+
+### Changed
+
+- Database schema updated to support authentication (backward compatible)
+- Users table now supports both legacy (username/password) and new (email/password_hash) fields
+- API endpoints now support both legacy API_TOKEN and new JWT authentication
+
+### Security
+
+- All passwords now hashed with bcrypt before storage
+- Ticket site credentials encrypted with AES-256-GCM
+- JWT tokens prevent unauthorized API access
+- Invite-only registration prevents open signups
+- Role-based access control limits admin operations
+
 ## [1.1.0] - 2024-11-20
 
 ### Added

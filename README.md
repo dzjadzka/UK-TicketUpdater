@@ -10,9 +10,12 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - 🎫 **Multi-user downloads** in one execution
 - 📱 **Device emulation** (desktop Chrome, Android, iPhone, iPad)
 - 💾 **Flexible storage** (JSON files or SQLite database)
-- 🔒 **Secure API** with bearer token authentication and rate limiting
+- 🔒 **Secure API** with JWT authentication, invite-only registration, and rate limiting
+- 👥 **User management** with role-based access control (admin/user roles)
+- 🔑 **Credential management** with encrypted storage for ticket site credentials
+- 🎨 **Custom device profiles** per user with proxy and geolocation support
 - ⚡ **Automated CI/CD** with GitHub Actions
-- 🧪 **Comprehensive test suite** (56% coverage, 52 tests)
+- 🧪 **Comprehensive test suite** (97 tests with extensive coverage)
 - 📝 **Well-documented** with JSDoc and contribution guidelines
 
 ## Prerequisites
@@ -139,6 +142,124 @@ Der neue Server (`src/server.js`) erwartet standardmäßig ein API-Token, damit 
 - Provide `Authorization: Bearer <API_TOKEN>` when `API_TOKEN` is set.
 
 Sollte der Betrieb ohne Token zwingend nötig sein (z. B. in einer geschlossenen Testumgebung), kann der Schutz mit `ALLOW_INSECURE=true` explizit deaktiviert werden. Ohne `API_TOKEN` **und** ohne `ALLOW_INSECURE=true` antwortet der Server mit HTTP 401.
+
+## Authentication & User Management (New in v1.2.0)
+
+The API now supports JWT-based authentication with invite-only registration and role-based access control.
+
+### Setup Authentication
+
+1. Configure environment variables (see `.env.example`):
+   ```bash
+   JWT_SECRET=your-secret-key-minimum-32-chars
+   ENCRYPTION_KEY=your-encryption-key-32-chars
+   ```
+
+2. Start the API server:
+   ```bash
+   JWT_SECRET=your-secret npm run api
+   ```
+
+### Authentication Flow
+
+1. **Admin creates invite token**:
+   ```bash
+   POST /admin/invites
+   Authorization: Bearer <admin-jwt-token>
+   Body: { "expiresInHours": 72 }
+   ```
+
+2. **User registers with invite token**:
+   ```bash
+   POST /auth/register
+   Body: {
+     "inviteToken": "received-token",
+     "email": "user@example.com",
+     "password": "StrongPassword123",
+     "locale": "en"
+   }
+   ```
+
+3. **User logs in**:
+   ```bash
+   POST /auth/login
+   Body: {
+     "email": "user@example.com",
+     "password": "StrongPassword123"
+   }
+   ```
+   Returns: JWT token to use in `Authorization: Bearer <token>` header
+
+### API Endpoints
+
+#### Public Endpoints
+- `POST /auth/register` - Register with invite token
+- `POST /auth/login` - Login and receive JWT token
+
+#### User Endpoints (JWT auth required)
+- `GET /credentials` - List user's credentials
+- `POST /credentials` - Create new credential set
+- `PUT /credentials/:id` - Update credential
+- `DELETE /credentials/:id` - Delete credential
+- `GET /device-profiles` - List user's custom device profiles
+- `POST /device-profiles` - Create custom device profile
+- `PUT /device-profiles/:id` - Update device profile
+- `DELETE /device-profiles/:id` - Delete device profile
+
+#### Admin Endpoints (admin role required)
+- `POST /admin/invites` - Generate invite token
+- `GET /admin/invites` - List invite tokens
+- `DELETE /admin/invites/:token` - Revoke invite token
+- `GET /admin/users` - List all users
+- `PUT /admin/users/:id/disable` - Disable user account
+
+#### Legacy Endpoints (API_TOKEN auth)
+- `POST /downloads` - Trigger ticket downloads
+- `GET /history` - List download history
+- `GET /tickets/:userId` - List user's tickets
+
+### Password Requirements
+
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+
+### Security Features
+
+- Passwords hashed with bcrypt (10 rounds)
+- Credentials encrypted with AES-256-GCM
+- JWT tokens with configurable expiry
+- Rate limiting (100 requests per 15 minutes)
+- Invite tokens expire after 72 hours (configurable)
+- Role-based access control (admin/user)
+
+### Creating the First Admin User
+
+To bootstrap the system, manually insert an admin user into the database:
+
+```bash
+node -e "
+const { createDatabase } = require('./src/db');
+const { hashPassword } = require('./src/auth');
+const crypto = require('crypto');
+
+(async () => {
+  const db = createDatabase('./data/app.db');
+  const hash = await hashPassword('YourAdminPassword123');
+  db.createUser({
+    id: crypto.randomUUID(),
+    email: 'admin@example.com',
+    passwordHash: hash,
+    role: 'admin',
+    locale: 'en',
+    isActive: 1
+  });
+  db.close();
+  console.log('Admin user created');
+})();
+"
+```
 
 ## Legacy scripts / Alte Skripte
 
