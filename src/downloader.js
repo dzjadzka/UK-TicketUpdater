@@ -31,53 +31,74 @@ async function preparePage(browser, deviceProfile) {
 }
 
 async function performLogin(page, username, password) {
-  await page.goto(TICKET_URL, { waitUntil: 'networkidle2' });
-  await page.type('#username', username);
-  await page.type('#password', password);
-  await Promise.all([
-    page.click('button[type="submit"]'),
-    page.waitForNavigation({ waitUntil: 'networkidle2' })
-  ]);
+  try {
+    await page.goto(TICKET_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+    
+    // Wait for the username field to be visible
+    await page.waitForSelector('#username', { timeout: 10000 });
+    await page.type('#username', username);
+    
+    await page.waitForSelector('#password', { timeout: 10000 });
+    await page.type('#password', password);
+    
+    await page.waitForSelector('button[type="submit"]', { timeout: 10000 });
+    await Promise.all([
+      page.click('button[type="submit"]'),
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 })
+    ]);
+  } catch (error) {
+    throw new Error(`Login failed: ${error.message}`);
+  }
 }
 
 async function downloadHtmlForSession(page) {
-  const bodyText = await page.evaluate(() => document.body.textContent || '');
+  try {
+    const bodyText = await page.evaluate(() => document.body.textContent || '');
 
-  const ticketTextExists = bodyText.includes('NVV-Semesterticket');
-  const privacyTextExists = bodyText.includes('Website of the semester ticket');
+    const ticketTextExists = bodyText.includes('NVV-Semesterticket');
+    const privacyTextExists = bodyText.includes('Website of the semester ticket');
 
-  if (ticketTextExists) {
-    return page.content();
-  }
-
-  if (privacyTextExists) {
-    const acceptButton = await page.$('input[type="submit"][value="Accept"]');
-    if (acceptButton) {
-      await Promise.all([
-        acceptButton.click(),
-        page.waitForNavigation({ waitUntil: 'networkidle2' })
-      ]);
+    if (ticketTextExists) {
       return page.content();
     }
-  }
 
-  return null;
+    if (privacyTextExists) {
+      const acceptButton = await page.$('input[type="submit"][value="Accept"]');
+      if (acceptButton) {
+        await Promise.all([
+          acceptButton.click(),
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 })
+        ]);
+        return page.content();
+      }
+    }
+
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to download HTML: ${error.message}`);
+  }
 }
 
 async function downloadTicketForUser(user, options = {}) {
   const { defaultDeviceProfile = 'desktop_chrome', outputRoot = './downloads', historyPath, db } = options;
+  
+  if (!user || !user.id || !user.username || !user.password) {
+    throw new Error('User object must contain id, username, and password');
+  }
+
   const deviceProfile = getDeviceProfile(user.deviceProfile || defaultDeviceProfile);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
-  });
-
+  let browser;
   let status = 'error';
   let filePath = null;
   let message = '';
 
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
+    });
+
     const page = await preparePage(browser, deviceProfile);
     await performLogin(page, user.username, user.password);
 
@@ -102,7 +123,11 @@ async function downloadTicketForUser(user, options = {}) {
     message = error.message;
     console.error(`Failed to download ticket for ${user.id}:`, error);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close().catch((err) => {
+        console.error(`Failed to close browser for ${user.id}:`, err);
+      });
+    }
     appendHistory(
       {
         userId: user.id,

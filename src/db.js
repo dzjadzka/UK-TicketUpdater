@@ -64,11 +64,34 @@ function createDatabase(dbPath) {
   const listTicketsByUserStmt = db.prepare('SELECT * FROM tickets WHERE user_id = ? ORDER BY id DESC');
 
   return {
-    getUsers: () => getUsersStmt.all(),
-    getUsersByIds: (ids) => getUsersByIdsStmt.all({ ids: JSON.stringify(ids) }),
+    getUsers: () => {
+      try {
+        return getUsersStmt.all();
+      } catch (error) {
+        console.error('Failed to get users from database:', error);
+        throw error;
+      }
+    },
+    getUsersByIds: (ids) => {
+      try {
+        if (!Array.isArray(ids)) {
+          throw new Error('ids must be an array');
+        }
+        return getUsersByIdsStmt.all({ ids: JSON.stringify(ids) });
+      } catch (error) {
+        console.error('Failed to get users by IDs from database:', error);
+        throw error;
+      }
+    },
     upsertUsers: (users) => {
+      if (!Array.isArray(users)) {
+        throw new Error('users must be an array');
+      }
       const insertMany = db.transaction((items) => {
         items.forEach((user) => {
+          if (!user.id || !user.username || !user.password) {
+            throw new Error('Each user must have id, username, and password');
+          }
           upsertUserStmt.run({
             id: user.id,
             username: user.username,
@@ -79,15 +102,56 @@ function createDatabase(dbPath) {
           });
         });
       });
-      insertMany(users);
+      try {
+        insertMany(users);
+      } catch (error) {
+        console.error('Failed to upsert users:', error);
+        throw error;
+      }
     },
-    recordRun: ({ userId, status, deviceProfile, filePath, message, timestamp }) =>
-      recordRunStmt.run(userId, status, deviceProfile, filePath, message, timestamp),
-    recordTicket: ({ userId, filePath, status = 'success', createdAt }) =>
-      recordTicketStmt.run(userId, filePath, status, createdAt),
-    listHistory: (limit = 50) => listHistoryStmt.all(limit),
-    listTicketsByUser: (userId) => listTicketsByUserStmt.all(userId),
-    close: () => db.close(),
+    recordRun: ({ userId, status, deviceProfile, filePath, message, timestamp }) => {
+      try {
+        return recordRunStmt.run(userId, status, deviceProfile, filePath, message, timestamp);
+      } catch (error) {
+        console.error('Failed to record run:', error);
+        throw error;
+      }
+    },
+    recordTicket: ({ userId, filePath, status = 'success', createdAt }) => {
+      try {
+        return recordTicketStmt.run(userId, filePath, status, createdAt);
+      } catch (error) {
+        console.error('Failed to record ticket:', error);
+        throw error;
+      }
+    },
+    listHistory: (limit = 50) => {
+      try {
+        return listHistoryStmt.all(limit);
+      } catch (error) {
+        console.error('Failed to list history:', error);
+        throw error;
+      }
+    },
+    listTicketsByUser: (userId) => {
+      try {
+        if (!userId) {
+          throw new Error('userId is required');
+        }
+        return listTicketsByUserStmt.all(userId);
+      } catch (error) {
+        console.error('Failed to list tickets by user:', error);
+        throw error;
+      }
+    },
+    close: () => {
+      try {
+        db.close();
+      } catch (error) {
+        console.error('Failed to close database:', error);
+        throw error;
+      }
+    },
     db
   };
 }

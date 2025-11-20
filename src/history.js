@@ -21,17 +21,30 @@ function readHistory(historyPath = DEFAULT_HISTORY_PATH) {
 }
 
 function appendHistory(entry, historyPath = DEFAULT_HISTORY_PATH, db) {
-  if (db && typeof db.recordRun === 'function') {
-    db.recordRun({ ...entry, timestamp: entry.timestamp || new Date().toISOString() });
+  if (!entry || !entry.userId) {
+    console.error('Cannot append history: entry must contain userId');
     return;
   }
 
-  const historyDir = path.dirname(historyPath);
-  ensureDirExists(historyDir);
+  if (db && typeof db.recordRun === 'function') {
+    try {
+      db.recordRun({ ...entry, timestamp: entry.timestamp || new Date().toISOString() });
+    } catch (error) {
+      console.error('Failed to record run in database:', error);
+    }
+    return;
+  }
 
-  const history = readHistory(historyPath);
-  history.push({ ...entry, timestamp: new Date().toISOString() });
-  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
+  try {
+    const historyDir = path.dirname(historyPath);
+    ensureDirExists(historyDir);
+
+    const history = readHistory(historyPath);
+    history.push({ ...entry, timestamp: new Date().toISOString() });
+    fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
+  } catch (error) {
+    console.error('Failed to append history to file:', error);
+  }
 }
 
 module.exports = { appendHistory, readHistory, DEFAULT_HISTORY_PATH };

@@ -53,6 +53,17 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   app.post('/downloads', async (req, res) => {
     try {
       const { userIds, deviceProfile, outputDir } = req.body || {};
+      
+      // Validate userIds if provided
+      if (userIds !== undefined && !Array.isArray(userIds)) {
+        return res.status(400).json({ error: 'userIds must be an array' });
+      }
+      
+      // Validate deviceProfile if provided
+      if (deviceProfile && typeof deviceProfile !== 'string') {
+        return res.status(400).json({ error: 'deviceProfile must be a string' });
+      }
+      
       const users = Array.isArray(userIds) && userIds.length ? db.getUsersByIds(userIds) : db.getUsers();
       if (!users.length) return res.status(400).json({ error: 'No users available' });
 
@@ -70,13 +81,29 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   app.get('/history', (req, res) => {
-    const limit = Number.parseInt(req.query.limit, 10) || 50;
-    res.json({ history: db.listHistory(limit) });
+    try {
+      const limit = Number.parseInt(req.query.limit, 10) || 50;
+      if (limit < 1 || limit > 1000) {
+        return res.status(400).json({ error: 'limit must be between 1 and 1000' });
+      }
+      res.json({ history: db.listHistory(limit) });
+    } catch (error) {
+      console.error('Failed to retrieve history', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get('/tickets/:userId', (req, res) => {
-    const { userId } = req.params;
-    res.json({ tickets: db.listTicketsByUser(userId) });
+    try {
+      const { userId } = req.params;
+      if (!userId || typeof userId !== 'string') {
+        return res.status(400).json({ error: 'userId must be a non-empty string' });
+      }
+      res.json({ tickets: db.listTicketsByUser(userId) });
+    } catch (error) {
+      console.error('Failed to retrieve tickets', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.use((err, req, res, next) => {
