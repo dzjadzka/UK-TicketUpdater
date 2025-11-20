@@ -64,23 +64,17 @@ async function main() {
       console.log(`[${userId}] status=${result.status} device=${result.deviceProfile} file=${result.filePath || 'n/a'} message=${result.message}`);
     });
   } finally {
-    if (db && typeof db.close === 'function') {
+    if (db) {
       db.close();
     }
   }
 }
 
 if (require.main === module) {
-  main()
-    .catch((error) => {
-      console.error('Failed to download tickets:', error);
-      process.exit(1);
-    })
-    .finally(() => {
-      if (process.argv.includes('--db') && typeof db?.close === 'function') {
-        db.close();
-      }
-    });
+  main().catch((error) => {
+    console.error('Failed to download tickets:', error);
+    process.exit(1);
+  });
 }
 
 module.exports = { parseArgs, loadUsers, main };
