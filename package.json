@@ -1,0 +1,19 @@
+{
+  "name": "uk-ticket-updater",
+  "version": "1.1.0",
+  "description": "Multi-user NVV semester ticket downloader with device emulation",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "download": "node src/index.js --users ./config/users.json",
+    "download:sample": "node src/index.js --users ./config/users.sample.json",
+    "setup:db": "node src/setupDb.js --source ./config/users.json --db ./data/app.db",
+    "download:db": "node src/index.js --db ./data/app.db",
+    "api": "node src/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "express": "^4.19.2",
+    "puppeteer": "^22.15.0"
+  }
+}

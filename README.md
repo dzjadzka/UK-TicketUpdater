@@ -1,59 +1,92 @@
 # UK-TicketUpdater
-Ein kleines Script zum automatisieren des monatlichen Downloads des Semstertickets.
 
-Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die Datei `ticket-uploader.sh` ist ein Beispiel, wie man das Ticket nach dem Download automatisch in eine Cloud laden kann. Ich nutze dafür NextCloud, es sollte aber ohne Probleme an jede andere Cloud anpassbar sein (ChatGPT/Copilot/... ist dein Freund). Alternativ zu einem eigenen Upload-Script kann auch [rclone](https://rclone.org/) genutzt werden.
+Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` with device-profile emulation. Tickets and run history can be stored in JSON or SQLite; an optional legacy uploader script remains for reference but is not maintained.
 
-Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
+## Features
+- Run downloads for multiple users in one execution.
+- Emulate common device types (desktop, Android, iPhone, iPad) via user-agent and viewport settings.
+- Store per-user tickets under `downloads/<user-id>/` (configurable per user) and append a run history to `data/history.json` or SQLite.
+- Simple CLI flags to pick config paths, default device profile, output directories, or a SQLite database.
+- Optional Express API to trigger downloads and read history/tickets from the database.
 
-Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
+## Prerequisites
+- Node.js (>=18 recommended) and npm.
+- Puppeteer dependency installed with Chromium available. To skip the Chromium download during install, set `PUPPETEER_SKIP_DOWNLOAD=1` and ensure a system Chromium/Chrome is present.
+- Network access to `https://ticket.astakassel.de`.
 
-Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
-# Update 09.2025!
-Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
-Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
-# Update 01.2025!
-Sollte Puppeteer beim Ausführen des Skripts einen Fehler anzeigen, dass der Browser nicht gestartet werden konnte, kann das unter Debian 12 daran liegen, dass die Bibliothek `libnss3` fehlt, diese lässt sich einfach allerdings einfach nachinstallieren:
-```
-apt-get install libnss3
-```
+## Setup
+1. Install dependencies (skip browser download if you already have Chromium):
+   ```bash
+   PUPPETEER_SKIP_DOWNLOAD=1 npm install
+   ```
+2. Create a users config from the sample and fill in credentials (kept locally):
+   ```bash
+   cp config/users.sample.json config/users.json
+   # edit config/users.json with your accounts, deviceProfile, and optional outputDir
+   ```
 
-## Wie installiere ich nodejs unter Debian 12?
-Auf einem neuen Debian 12:
-```
-apt update && apt upgrade -y
-apt install nodejs npm
-apt install firefox-esr
-```
+3. (Optional) Initialize SQLite and import users:
+   ```bash
+   npm run setup:db
+   ```
+   By default this creates `data/app.db` and imports users from `config/users.json` when it exists.
 
-Danach noch einen Benutzer für nodejs anlegen:
-```
-adduser nodejs
-```
+## Running downloads
+- Using your config:
+  ```bash
+  npm run download
+  ```
+- Against the sample config (placeholders only):
+  ```bash
+  npm run download:sample
+  ```
+- Using SQLite (reads users from `data/app.db`):
+  ```bash
+  npm run download:db
+  ```
+- CLI flags (optional):
+  - `--users <path>`: path to users config (default `./config/users.json`).
+  - `--output <path>`: base output directory (default `./downloads`).
+  - `--device <profile>`: default device profile if a user entry does not specify one (default `desktop_chrome`).
+  - `--history <path>`: where to store the run history JSON (default `./data/history.json`). Ignored when using SQLite.
+  - `--db <path>`: path to SQLite database. When provided, users and history/tickets are read/written there.
 
-Zum neuen Nutzer wechseln:
-```
-su nodejs
-cd ~
-```
+Each user entry results in one ticket file named `ticket-<timestamp>.html` saved to its configured directory. History entries contain user id, device profile, status, message, and file path (if any).
 
-Und puppeteer installieren:
+## Users config format
+`config/users.json` should be an array of user objects:
+```json
+[
+  {
+    "id": "user-1",
+    "username": "Your-UK-Number",
+    "password": "Your-UK-Password",
+    "deviceProfile": "desktop_chrome",
+    "outputDir": "./downloads/user-1"
+  }
+]
 ```
-npm install puppeteer
-```
+- `deviceProfile` options: `desktop_chrome`, `mobile_android`, `iphone_13`, `tablet_ipad`.
+- `outputDir` is optional; falls back to `<output base>/<user-id>`.
 
-Das Script sollte nun mit dem nodejs Benutzer ausführbar sein.
+## API server (SQLite-backed)
+- Start the API (uses `data/app.db` by default):
+  ```bash
+  API_TOKEN=choose-a-token npm run api
+  ```
+- Endpoints:
+  - `POST /downloads` with optional body `{ "userIds": ["user-1"], "deviceProfile": "mobile_android", "outputDir": "./downloads" }` to trigger downloads for all or selected users.
+  - `GET /history?limit=50` to list recent runs from the DB.
+  - `GET /tickets/:userId` to list stored tickets for a user.
+- Provide `Authorization: Bearer <API_TOKEN>` when `API_TOKEN` is set; otherwise the API is open (not recommended).
 
-## Wie erstelle ich einen Cronjob?
-(Anmerkung: Jeder Benutzer hat seine eigene crontab-Datei, der Cronjob muss also auf dem nodejs Benutzer erstellt werden!)
+## Legacy scripts
+- `ticket-downloader.js`: original single-user downloader (Firefox-based). Retained for reference.
+- `ticket-uploader.sh`: example Nextcloud/WebDAV uploader. Currently not part of the main flow.
 
-Die crontab-Datei öffnen und mit dem Editor deiner Wahl barbeiten:
+## Cron example
+Run the multi-user downloader on the 1st of each month, hours 0–10 (once per hour):
+```cron
+0 0-10 1 * * /usr/bin/node /path/to/repo/src/index.js --users /path/to/config/users.json --output /path/to/downloads
 ```
-crontab -e
-```
-
-Am Ende der Datei folgende Zeile hinzufügen:
-```
-0 0-10 1 * * /Path/To/Script.sh
-```
-
-Jetzt wird das Script immer am ersten des Monats von 0 bis 10 Uhr zu jeder vollen Stunde einmal ausgeführt (Falls die Uni Server ausnahmweise mal Probleme machen sollten).
+Ensure the configured user has permission to write into the output and history directories.

@@ -1,0 +1,7 @@
+node_modules
+config/users.json
+data/history.json
+data/*.db
+downloads
+npm-debug.log*
+.DS_Store
