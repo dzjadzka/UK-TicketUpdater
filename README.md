@@ -7,11 +7,31 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
-Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
-# Update 09.2025!
+Für die Automatisierung genügt es, die Zugangsdaten in der `users.json` und ein Ausgabeverzeichnis zu hinterlegen (siehe unten).
+
+### Neue CLI-Optionen
+Die automatisierten Tests erwarten eine `users.json` mit folgendem Aufbau:
+
+```
+[
+  { "username": "Your-UK-Number", "password": "Your-UK-Password" }
+]
+```
+
+Wichtige Parameter des Download-Skripts (alle optional, Standardwerte in Klammern):
+
+- `--users=/pfad/zur/users.json` (`./users.json`)
+- `--output=/pfad/zum/zielordner` (aktuelles Arbeitsverzeichnis)
+- `--file=filename.html` (`ticket.html`)
+- `--db=/pfad/zur/download-history.json` (`./download-history.json`)
+- `--product=firefox` (Browser-Engine für Puppeteer)
+- `--headful` (deaktiviert headless-Betrieb)
+
+## Update 09.2025!
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
 Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
-# Update 01.2025!
+
+## Update 01.2025!
 Sollte Puppeteer beim Ausführen des Skripts einen Fehler anzeigen, dass der Browser nicht gestartet werden konnte, kann das unter Debian 12 daran liegen, dass die Bibliothek `libnss3` fehlt, diese lässt sich einfach allerdings einfach nachinstallieren:
 ```
 apt-get install libnss3
@@ -57,3 +77,18 @@ Am Ende der Datei folgende Zeile hinzufügen:
 ```
 
 Jetzt wird das Script immer am ersten des Monats von 0 bis 10 Uhr zu jeder vollen Stunde einmal ausgeführt (Falls die Uni Server ausnahmweise mal Probleme machen sollten).
+
+## Entwicklung
+
+### Lokale Installation
+```
+npm ci
+```
+
+### Wichtige Befehle
+- `npm run lint` – führt ESLint mit der Prettier-Integration aus.
+- `npm test` – führt die Jest-Tests aus (inklusive Puppeteer-Mocks).
+- `npm run test:api` – führt die API-/Integrations-Tests aus.
+
+### Continuous Integration
+GitHub Actions führt bei jedem Push und Pull Request automatisch `npm ci`, `npm run lint` und `npm test` aus (siehe `.github/workflows/ci.yml`).
