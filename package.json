@@ -1,0 +1,16 @@
+{
+  "name": "uk-ticketupdater",
+  "version": "1.0.0",
+  "description": "CLI and API utilities for managing downloaded ticket files with retention policies.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/api.js",
+    "cli": "node src/index.js"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.6"
+  }
+}

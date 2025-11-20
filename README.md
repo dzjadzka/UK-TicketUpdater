@@ -8,6 +8,36 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
 Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
+
+## Retention/Cleanup
+
+Neben dem Download-Script gibt es nun eine kleine Verwaltungsschicht für die erzeugten Dateien. Die SQLite-Datenbank (per Voreinstellung `data/tickets.db`) besitzt eine Tabelle `files` mit folgenden Spalten:
+
+- `userId`
+- `path`
+- `createdAt`
+- `status`
+
+Der Standard-TTL beträgt 720 Stunden (30 Tage) und kann über die Umgebungsvariable `DEFAULT_TTL_HOURS` angepasst werden.
+
+### CLI
+
+Der neue CLI-Einstiegspunkt liegt unter `src/index.js` (Start per `npm run cli -- <command>`):
+
+- `register --user <id> --path <pfad> [--status <status>]`: legt einen Eintrag in der `files`-Tabelle an.
+- `list [--user <id>]`: gibt die gespeicherten Dateien aus.
+- `download --ids 1,2 --output ./zielverzeichnis`: kopiert selektierte Dateien anhand ihrer IDs in ein Zielverzeichnis.
+- `cleanup [--ttl <stunden>]`: löscht Dateien und DB-Einträge, die älter als der TTL sind (Standard 720 Stunden).
+- `remove <id>`: entfernt einen einzelnen Eintrag und löscht die Datei, falls vorhanden.
+
+### API
+
+Über `npm start` wird ein kleiner HTTP-Server gestartet (Standard-Port 3000), der folgende Endpunkte bereitstellt:
+
+- `GET /files[?userId=<id>]`: listet die gespeicherten Dateien.
+- `POST /files` mit Payload `{ "userId": "...", "path": "...", "status": "optional" }`: legt einen Eintrag an.
+- `DELETE /files/expired[?ttlHours=72]`: löscht abgelaufene Einträge/Dateien anhand des TTL (Fallback auf `DEFAULT_TTL_HOURS`).
+- `DELETE /files/:id`: entfernt einen einzelnen Eintrag samt Datei.
 # Update 09.2025!
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
 Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
