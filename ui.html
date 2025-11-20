@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Download Console</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Ticket Download Console</h1>
+      <p>Trigger downloads, monitor history, and manage stored ticket files.</p>
+    </header>
+
+    <section class="card">
+      <h2>Download Tickets</h2>
+      <p>Trigger downloads per credential/device or run a bulk sync to refresh everything.</p>
+      <form id="single-download-form" class="form-grid">
+        <label>
+          User ID
+          <input type="text" name="userId" placeholder="user-123" required />
+        </label>
+        <label>
+          Device
+          <input type="text" name="device" placeholder="device-01" />
+        </label>
+        <label>
+          Output override
+          <input type="text" name="output" placeholder="/tmp/tickets" />
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="force" /> Force refresh
+        </label>
+        <button type="submit">Download for user</button>
+      </form>
+
+      <form id="bulk-download-form" class="form-grid">
+        <label>
+          Device override
+          <input type="text" name="device" placeholder="shared-device" />
+        </label>
+        <label>
+          Output override
+          <input type="text" name="output" placeholder="/var/lib/tickets" />
+        </label>
+        <label class="textarea">
+          User IDs (comma separated)
+          <textarea name="userIds" rows="3" placeholder="user-1, user-2"></textarea>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="force" /> Force refresh
+        </label>
+        <button type="submit">Run bulk download</button>
+      </form>
+      <div id="download-status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-header">
+        <div>
+          <h2>Download History</h2>
+          <p>Status updates with pagination and lazy loading.</p>
+        </div>
+        <div class="paginator">
+          <button id="prev-page" disabled>Previous</button>
+          <span id="page-label">Page 1</span>
+          <button id="next-page">Next</button>
+        </div>
+      </div>
+      <div class="table-wrapper" id="history-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Timestamp</th>
+              <th>Device</th>
+              <th>Message</th>
+              <th>User</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="lazy-trigger" id="lazy-trigger">Scroll to load more…</div>
+      <div id="history-status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Ticket Files</h2>
+      <p>Render or download ticket files with graceful handling when files are missing.</p>
+      <form id="ticket-lookup-form" class="form-grid">
+        <label>
+          User ID
+          <input type="text" name="userId" placeholder="user-123" required />
+        </label>
+        <button type="submit">Lookup tickets</button>
+      </form>
+      <div id="ticket-files" class="file-list"></div>
+      <div id="ticket-status" class="status"></div>
+    </section>
+
+    <section class="card admin">
+      <h2>Admin Housekeeping</h2>
+      <p>Cleanup downloaded files and set TTL for automatic expiry.</p>
+      <form id="cleanup-form" class="form-grid">
+        <label>
+          TTL (hours)
+          <input type="number" name="ttl" min="1" placeholder="24" />
+        </label>
+        <button type="submit">Apply TTL</button>
+      </form>
+      <button id="purge-button" class="danger">Run cleanup now</button>
+      <div id="admin-status" class="status"></div>
+    </section>
+  </main>
+  <script src="ui.js"></script>
+</body>
+</html>
