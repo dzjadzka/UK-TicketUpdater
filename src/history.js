@@ -10,7 +10,9 @@ function ensureDirExists(dirPath) {
 }
 
 function readHistory(historyPath = DEFAULT_HISTORY_PATH) {
-  if (!fs.existsSync(historyPath)) return [];
+  if (!fs.existsSync(historyPath)) {
+    return [];
+  }
   try {
     const content = fs.readFileSync(historyPath, 'utf-8');
     return JSON.parse(content);

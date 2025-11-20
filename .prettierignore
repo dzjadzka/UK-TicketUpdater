@@ -1,0 +1,6 @@
+node_modules
+coverage
+downloads
+data/*.db
+*.log
+package-lock.json

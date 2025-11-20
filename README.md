@@ -3,6 +3,7 @@
 Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` with device-profile emulation. Tickets and run history can be stored in JSON or SQLite; an optional legacy uploader script remains for reference but is not maintained.
 
 ## Features
+
 - Run downloads for multiple users in one execution.
 - Emulate common device types (desktop, Android, iPhone, iPad) via user-agent and viewport settings.
 - Store per-user tickets under `downloads/<user-id>/` (configurable per user) and append a run history to `data/history.json` or SQLite.
@@ -10,16 +11,19 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - Optional Express API to trigger downloads and read history/tickets from the database.
 
 ## Prerequisites
+
 - Node.js (>=18 recommended) and npm.
 - Puppeteer dependency installed with Chromium available. To skip the Chromium download during install, set `PUPPETEER_SKIP_DOWNLOAD=1` and ensure a system Chromium/Chrome is present.
 - Network access to `https://ticket.astakassel.de`.
 
 ## Setup
+
 1. Install dependencies (skip browser download if you already have Chromium):
    ```bash
    PUPPETEER_SKIP_DOWNLOAD=1 npm install
    ```
 2. Create a users config from the sample and fill in credentials (kept locally):
+
    ```bash
    cp config/users.sample.json config/users.json
    # edit config/users.json with your accounts, deviceProfile, and optional outputDir
@@ -32,6 +36,7 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
    By default this creates `data/app.db` and imports users from `config/users.json` when it exists.
 
 ## Running downloads
+
 - Using your config:
   ```bash
   npm run download
@@ -54,7 +59,9 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 Each user entry results in one ticket file named `ticket-<timestamp>.html` saved to its configured directory. History entries contain user id, device profile, status, message, and file path (if any).
 
 ## Users config format
+
 `config/users.json` should be an array of user objects:
+
 ```json
 [
   {
@@ -66,11 +73,14 @@ Each user entry results in one ticket file named `ticket-<timestamp>.html` saved
   }
 ]
 ```
+
 - `deviceProfile` options: `desktop_chrome`, `mobile_android`, `iphone_13`, `tablet_ipad`.
 - `outputDir` is optional; falls back to `<output base>/<user-id>`.
 
 ## API server (SQLite-backed)
+
 ### API-Zugriff absichern
+
 Der neue Server (`src/server.js`) erwartet standardmäßig ein API-Token, damit nur berechtigte Clients auf die Endpunkte zugreifen können. Setze vor dem Start die Umgebungsvariable `API_TOKEN` und sende das Token anschließend als `Authorization: Bearer <Token>` im Request-Header.
 
 - Start the API (uses `data/app.db` by default):
@@ -89,6 +99,7 @@ Der neue Server (`src/server.js`) erwartet standardmäßig ein API-Token, damit 
 Sollte der Betrieb ohne Token zwingend nötig sein (z. B. in einer geschlossenen Testumgebung), kann der Schutz mit `ALLOW_INSECURE=true` explizit deaktiviert werden. Ohne `API_TOKEN` **und** ohne `ALLOW_INSECURE=true` antwortet der Server mit HTTP 401.
 
 ## Legacy scripts / Alte Skripte
+
 Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die Datei `ticket-uploader.sh` ist ein Beispiel, wie man das Ticket nach dem Download automatisch in eine Cloud laden kann. Ich nutze dafür NextCloud, es sollte aber ohne Probleme an jede andere Cloud anpassbar sein (ChatGPT/Copilot/... ist dein Freund). Alternativ zu einem eigenen Upload-Script kann auch [rclone](https://rclone.org/) genutzt werden.
 
 Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
@@ -97,23 +108,31 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 - `ticket-uploader.sh`: example Nextcloud/WebDAV uploader. Currently not part of the main flow.
 
 ## Cron example
+
 Run the multi-user downloader on the 1st of each month, hours 0–10 (once per hour):
+
 ```cron
 0 0-10 1 * * /usr/bin/node /path/to/repo/src/index.js --users /path/to/config/users.json --output /path/to/downloads
 ```
+
 Ensure the configured user has permission to write into the output and history directories.
 
 ### Update 09.2025!
+
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13. Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
 
 ### Update 01.2025!
+
 Sollte Puppeteer beim Ausführen des Skripts einen Fehler anzeigen, dass der Browser nicht gestartet werden konnte, kann das unter Debian 12 daran liegen, dass die Bibliothek `libnss3` fehlt, diese lässt sich einfach allerdings einfach nachinstallieren:
+
 ```bash
 apt-get install libnss3
 ```
 
 ## Wie installiere ich nodejs unter Debian 12?
+
 Auf einem neuen Debian 12:
+
 ```bash
 apt update && apt upgrade -y
 apt install nodejs npm
@@ -121,17 +140,20 @@ apt install firefox-esr
 ```
 
 Danach noch einen Benutzer für nodejs anlegen:
+
 ```bash
 adduser nodejs
 ```
 
 Zum neuen Nutzer wechseln:
+
 ```bash
 su nodejs
 cd ~
 ```
 
 Und puppeteer installieren:
+
 ```bash
 npm install puppeteer
 ```
@@ -139,14 +161,17 @@ npm install puppeteer
 Das Script sollte nun mit dem nodejs Benutzer ausführbar sein.
 
 ## Wie erstelle ich einen Cronjob?
+
 (Anmerkung: Jeder Benutzer hat seine eigene crontab-Datei, der Cronjob muss also auf dem nodejs Benutzer erstellt werden!)
 
 Die crontab-Datei öffnen und mit dem Editor deiner Wahl bearbeiten:
+
 ```bash
 crontab -e
 ```
 
 Am Ende der Datei folgende Zeile hinzufügen:
+
 ```cron
 0 0-10 1 * * /Path/To/Script.sh
 ```

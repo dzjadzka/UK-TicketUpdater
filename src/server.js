@@ -53,19 +53,21 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   app.post('/downloads', async (req, res) => {
     try {
       const { userIds, deviceProfile, outputDir } = req.body || {};
-      
+
       // Validate userIds if provided
       if (userIds !== undefined && !Array.isArray(userIds)) {
         return res.status(400).json({ error: 'userIds must be an array' });
       }
-      
+
       // Validate deviceProfile if provided
       if (deviceProfile && typeof deviceProfile !== 'string') {
         return res.status(400).json({ error: 'deviceProfile must be a string' });
       }
-      
+
       const users = Array.isArray(userIds) && userIds.length ? db.getUsersByIds(userIds) : db.getUsers();
-      if (!users.length) return res.status(400).json({ error: 'No users available' });
+      if (!users.length) {
+        return res.status(400).json({ error: 'No users available' });
+      }
 
       const results = await downloadTickets(users, {
         defaultDeviceProfile: deviceProfile || DEFAULT_DEVICE,

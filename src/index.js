@@ -61,7 +61,9 @@ async function main() {
 
     results.forEach((result, index) => {
       const userId = users[index].id;
-      console.log(`[${userId}] status=${result.status} device=${result.deviceProfile} file=${result.filePath || 'n/a'} message=${result.message}`);
+      console.log(
+        `[${userId}] status=${result.status} device=${result.deviceProfile} file=${result.filePath || 'n/a'} message=${result.message}`
+      );
     });
   } finally {
     if (db) {

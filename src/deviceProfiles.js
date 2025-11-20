@@ -30,7 +30,9 @@ const DEVICE_PROFILES = {
 };
 
 function getDeviceProfile(name) {
-  if (!name) return DEVICE_PROFILES.desktop_chrome;
+  if (!name) {
+    return DEVICE_PROFILES.desktop_chrome;
+  }
   return DEVICE_PROFILES[name] || DEVICE_PROFILES.desktop_chrome;
 }
 

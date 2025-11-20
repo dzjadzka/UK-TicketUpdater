@@ -33,14 +33,14 @@ async function preparePage(browser, deviceProfile) {
 async function performLogin(page, username, password) {
   try {
     await page.goto(TICKET_URL, { waitUntil: 'networkidle2', timeout: 30000 });
-    
+
     // Wait for the username field to be visible
     await page.waitForSelector('#username', { timeout: 10000 });
     await page.type('#username', username);
-    
+
     await page.waitForSelector('#password', { timeout: 10000 });
     await page.type('#password', password);
-    
+
     await page.waitForSelector('button[type="submit"]', { timeout: 10000 });
     await Promise.all([
       page.click('button[type="submit"]'),
@@ -81,7 +81,7 @@ async function downloadHtmlForSession(page) {
 
 async function downloadTicketForUser(user, options = {}) {
   const { defaultDeviceProfile = 'desktop_chrome', outputRoot = './downloads', historyPath, db } = options;
-  
+
   if (!user || !user.id || !user.username || !user.password) {
     throw new Error('User object must contain id, username, and password');
   }
