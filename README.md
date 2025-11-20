@@ -8,6 +8,45 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
 Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
+
+## Frontend-Entwicklung
+
+Für die lokale Entwicklung des React-Frontends wird [Vite](https://vitejs.dev/) verwendet.
+
+1. Abhängigkeiten installieren:
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. Entwicklungsserver starten (läuft standardmäßig auf Port 5173):
+
+   ```bash
+   npm run dev -- --host
+   ```
+
+   Alternativ können die Root-Skripte verwendet werden:
+
+   ```bash
+   npm run dev:frontend
+   ```
+
+3. Produktionsbuild erstellen:
+
+   ```bash
+   npm run build
+   # oder aus dem Repo-Root
+   npm run build:frontend
+   ```
+
+4. Linting ausführen:
+
+   ```bash
+   npm run lint
+   # oder aus dem Repo-Root
+   npm run lint:frontend
+   ```
 # Update 09.2025!
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
 Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
