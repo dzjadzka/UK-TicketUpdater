@@ -1,0 +1,19 @@
+{
+  "credentials": {
+    "username": "Your-UK-Number",
+    "password": "Your-UK-Password"
+  },
+  "output": {
+    "directory": "./downloads",
+    "fileName": "ticket.html"
+  },
+  "browser": {
+    "product": "firefox",
+    "headless": true,
+    "deviceProfile": "Desktop Chrome",
+    "geolocation": null
+  },
+  "network": {
+    "proxy": null
+  }
+}

@@ -5,9 +5,50 @@ Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die
 
 Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
 
+## Konfiguration (Pseudo-DB)
+Die Konfiguration wird in `db/config.json` gehalten und dient als kleine, dateibasierte „DB“. Hier werden Zugangsdaten, Ausgabeort, Device-Profile sowie optionale Netzwerkparameter hinterlegt:
+
+```json
+{
+  "credentials": {
+    "username": "Your-UK-Number",
+    "password": "Your-UK-Password"
+  },
+  "output": {
+    "directory": "./downloads",
+    "fileName": "ticket.html"
+  },
+  "browser": {
+    "product": "firefox",
+    "headless": true,
+    "deviceProfile": "Desktop Chrome",
+    "geolocation": null
+  },
+  "network": {
+    "proxy": null
+  }
+}
+```
+
+- `browser.deviceProfile` akzeptiert die eingebauten Puppeteer/Chrome DevTools Presets (z. B. `Desktop Chrome`, `iPhone 12 Pro`, `Pixel 5`, `iPad Mini`, `Galaxy S9+`, `iPhone SE`).
+- Proxy (`network.proxy`) und Geolocation (`browser.geolocation`) lassen sich auch über die CLI überschreiben (siehe unten).
+
+## CLI-Parameter
+`ticket-downloader.js` akzeptiert optionale Parameter:
+
+- `--proxy <url>`: Aktiviert den Download über einen Proxy (http/https/socks4/socks5). Eingaben werden validiert.
+- `--geolocation <lat,lon>`: Setzt eine Geolocation für die Browser-Session (Breiten-/Längengrad, jeweils dezimal). Werte werden auf gültige Bereiche geprüft.
+- `--list-devices`: Gibt alle verfügbaren Device-Profile aus den eingebauten Puppeteer/Chrome DevTools Presets aus.
+
+Die CLI-Werte überschreiben die Werte aus `db/config.json`.
+
+## Verlauf & Metadaten
+Jeder Lauf wird mit dem verwendeten Device-Profile sowie Proxy/Geolocation in `data/history.json` protokolliert. Zusätzlich wird neben der heruntergeladenen Datei eine Metadatei `<Dateiname>.meta.json` abgelegt.
+
+## Ablauf
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
-Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
+Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` sowie Ausgabeort/Dateiname in `db/config.json` anzupassen!
 # Update 09.2025!
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
 Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
