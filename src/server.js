@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const { downloadTickets } = require('./downloader');
 const { createDatabase } = require('./db');
 const { DEFAULT_HISTORY_PATH } = require('./history');
@@ -11,6 +12,30 @@ const DEFAULT_DEVICE = process.env.DEFAULT_DEVICE || 'desktop_chrome';
 const API_TOKEN = process.env.API_TOKEN;
 const ALLOW_INSECURE = process.env.ALLOW_INSECURE === 'true';
 
+/**
+ * Request logging middleware
+ * Adds unique request ID and logs incoming requests
+ */
+function requestLogger(req, res, next) {
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  req.requestId = requestId;
+  res.setHeader('X-Request-ID', requestId);
+
+  const start = Date.now();
+  console.log(`[${requestId}] ${req.method} ${req.path}`);
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${requestId}] ${res.statusCode} ${duration}ms`);
+  });
+
+  next();
+}
+
+/**
+ * Authentication middleware
+ * Validates API token or allows insecure access if configured
+ */
 function authMiddleware(req, res, next) {
   // If no API_TOKEN is set and ALLOW_INSECURE is not explicitly enabled, reject
   if (!API_TOKEN && !ALLOW_INSECURE) {
@@ -39,11 +64,38 @@ function authMiddleware(req, res, next) {
   return next();
 }
 
+/**
+ * Creates and configures Express application
+ * @param {Object} options - Configuration options
+ * @param {string} [options.dbPath] - Path to SQLite database
+ * @param {string} [options.outputRoot] - Base output directory for downloads
+ * @returns {Object} Object with app and db instances
+ */
 function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {}) {
   const app = express();
   const db = createDatabase(path.resolve(dbPath));
 
+  // Rate limiting to prevent abuse
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: { error: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+
+  // Security headers
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+  });
+
   app.use(express.json({ limit: '1mb' }));
+  app.use(requestLogger);
+  app.use(limiter);
   app.use(authMiddleware);
 
   app.get('/health', (req, res) => {
@@ -53,8 +105,21 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   app.post('/downloads', async (req, res) => {
     try {
       const { userIds, deviceProfile, outputDir } = req.body || {};
+
+      // Validate userIds if provided
+      if (userIds !== undefined && !Array.isArray(userIds)) {
+        return res.status(400).json({ error: 'userIds must be an array' });
+      }
+
+      // Validate deviceProfile if provided
+      if (deviceProfile && typeof deviceProfile !== 'string') {
+        return res.status(400).json({ error: 'deviceProfile must be a string' });
+      }
+
       const users = Array.isArray(userIds) && userIds.length ? db.getUsersByIds(userIds) : db.getUsers();
-      if (!users.length) return res.status(400).json({ error: 'No users available' });
+      if (!users.length) {
+        return res.status(400).json({ error: 'No users available' });
+      }
 
       const results = await downloadTickets(users, {
         defaultDeviceProfile: deviceProfile || DEFAULT_DEVICE,
@@ -70,13 +135,29 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   app.get('/history', (req, res) => {
-    const limit = Number.parseInt(req.query.limit, 10) || 50;
-    res.json({ history: db.listHistory(limit) });
+    try {
+      const limit = Number.parseInt(req.query.limit, 10) || 50;
+      if (limit < 1 || limit > 1000) {
+        return res.status(400).json({ error: 'limit must be between 1 and 1000' });
+      }
+      res.json({ history: db.listHistory(limit) });
+    } catch (error) {
+      console.error('Failed to retrieve history', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get('/tickets/:userId', (req, res) => {
-    const { userId } = req.params;
-    res.json({ tickets: db.listTicketsByUser(userId) });
+    try {
+      const { userId } = req.params;
+      if (!userId || typeof userId !== 'string') {
+        return res.status(400).json({ error: 'userId must be a non-empty string' });
+      }
+      res.json({ tickets: db.listTicketsByUser(userId) });
+    } catch (error) {
+      console.error('Failed to retrieve tickets', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.use((err, req, res, next) => {
@@ -108,4 +189,4 @@ if (require.main === module) {
   start();
 }
 
-module.exports = { createApp, start, authMiddleware };
+module.exports = { createApp, start, authMiddleware, requestLogger };

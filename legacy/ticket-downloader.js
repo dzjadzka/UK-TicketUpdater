@@ -6,28 +6,20 @@ const path = require('path');
   const browser = await puppeteer.launch({
     product: 'firefox', // Wichtig: Setzt den Browser auf Firefox
     headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--mute-audio'
-    ]
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
   });
   const page = await browser.newPage();
-  
+
   // goto with waitUntil options
   await page.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-  
+
   // enter user credentials
   await page.type('#username', 'Your-UK-Number');
   await page.type('#password', 'Your-UK-Password');
 
   // click on login-button
   await page.waitForSelector('button[type="submit"]');
-  await Promise.all([
-    page.click('button[type="submit"]'),
-    page.waitForNavigation({ waitUntil: 'networkidle2' }),
-  ]);
+  await Promise.all([page.click('button[type="submit"]'), page.waitForNavigation({ waitUntil: 'networkidle2' })]);
 
   // initialize output variable
   let html = '';
@@ -46,7 +38,7 @@ const path = require('path');
     const ticketTextExists = await page2.evaluate(() => {
       return document.body.textContent.includes('NVV-Semesterticket');
     });
-    
+
     if (ticketTextExists) {
       // download ticket-html
       html = await page2.content();
@@ -55,13 +47,13 @@ const path = require('path');
       await page2.waitForSelector('input[type="submit"][value="Accept"]');
       await Promise.all([
         page2.click('input[type="submit"][value="Accept"]'),
-        page2.waitForNavigation({ waitUntil: 'networkidle2' }),
+        page2.waitForNavigation({ waitUntil: 'networkidle2' })
       ]);
 
       // reopen ticket-website
       const page3 = await browser.newPage();
       await page3.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-      
+
       // download ticket-html
       html = await page3.content();
     } else {

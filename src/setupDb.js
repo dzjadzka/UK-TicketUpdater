@@ -8,7 +8,15 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const [key, value] = argv[i].split('=');
     if (key.startsWith('--')) {
-      args[key.replace(/^--/, '')] = value || true;
+      const normalizedKey = key.replace(/^--/, '');
+      if (value !== undefined) {
+        args[normalizedKey] = value;
+      } else if (argv[i + 1] && !argv[i + 1].startsWith('--')) {
+        args[normalizedKey] = argv[i + 1];
+        i += 1;
+      } else {
+        args[normalizedKey] = true;
+      }
     }
   }
   return args;

@@ -4,14 +4,29 @@ const puppeteer = require('puppeteer');
 const { getDeviceProfile } = require('./deviceProfiles');
 const { appendHistory } = require('./history');
 
+// Constants
 const TICKET_URL = 'https://ticket.astakassel.de';
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
+const SELECTOR_TIMEOUT = 10000; // 10 seconds
+const TICKET_TEXT_MARKER = 'NVV-Semesterticket';
+const PRIVACY_TEXT_MARKER = 'Website of the semester ticket';
 
+/**
+ * Ensures a directory exists, creating it recursively if needed
+ * @param {string} dirPath - The directory path to ensure exists
+ */
 function ensureDirExists(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
+/**
+ * Prepares a new browser page with device emulation settings
+ * @param {Object} browser - Puppeteer browser instance
+ * @param {Object} deviceProfile - Device profile configuration
+ * @returns {Promise<Object>} Configured Puppeteer page
+ */
 async function preparePage(browser, deviceProfile) {
   const page = await browser.newPage();
 
@@ -30,54 +45,100 @@ async function preparePage(browser, deviceProfile) {
   return page;
 }
 
+/**
+ * Performs login on the ticket website
+ * @param {Object} page - Puppeteer page instance
+ * @param {string} username - User's login username
+ * @param {string} password - User's login password
+ * @throws {Error} If login fails
+ */
 async function performLogin(page, username, password) {
-  await page.goto(TICKET_URL, { waitUntil: 'networkidle2' });
-  await page.type('#username', username);
-  await page.type('#password', password);
-  await Promise.all([
-    page.click('button[type="submit"]'),
-    page.waitForNavigation({ waitUntil: 'networkidle2' })
-  ]);
+  try {
+    await page.goto(TICKET_URL, { waitUntil: 'networkidle2', timeout: DEFAULT_TIMEOUT });
+
+    // Wait for the username field to be visible
+    await page.waitForSelector('#username', { timeout: SELECTOR_TIMEOUT });
+    await page.type('#username', username);
+
+    await page.waitForSelector('#password', { timeout: SELECTOR_TIMEOUT });
+    await page.type('#password', password);
+
+    await page.waitForSelector('button[type="submit"]', { timeout: SELECTOR_TIMEOUT });
+    await Promise.all([
+      page.click('button[type="submit"]'),
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: DEFAULT_TIMEOUT })
+    ]);
+  } catch (error) {
+    throw new Error(`Login failed: ${error.message}`);
+  }
 }
 
+/**
+ * Downloads the ticket HTML from the current session
+ * Handles privacy consent if required
+ * @param {Object} page - Puppeteer page instance
+ * @returns {Promise<string|null>} HTML content of the ticket, or null if not found
+ * @throws {Error} If download fails
+ */
 async function downloadHtmlForSession(page) {
-  const bodyText = await page.evaluate(() => document.body.textContent || '');
+  try {
+    const bodyText = await page.evaluate(() => document.body.textContent || '');
 
-  const ticketTextExists = bodyText.includes('NVV-Semesterticket');
-  const privacyTextExists = bodyText.includes('Website of the semester ticket');
+    const ticketTextExists = bodyText.includes(TICKET_TEXT_MARKER);
+    const privacyTextExists = bodyText.includes(PRIVACY_TEXT_MARKER);
 
-  if (ticketTextExists) {
-    return page.content();
-  }
-
-  if (privacyTextExists) {
-    const acceptButton = await page.$('input[type="submit"][value="Accept"]');
-    if (acceptButton) {
-      await Promise.all([
-        acceptButton.click(),
-        page.waitForNavigation({ waitUntil: 'networkidle2' })
-      ]);
+    if (ticketTextExists) {
       return page.content();
     }
-  }
 
-  return null;
+    if (privacyTextExists) {
+      const acceptButton = await page.$('input[type="submit"][value="Accept"]');
+      if (acceptButton) {
+        await Promise.all([
+          acceptButton.click(),
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: DEFAULT_TIMEOUT })
+        ]);
+        return page.content();
+      }
+    }
+
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to download HTML: ${error.message}`);
+  }
 }
 
+/**
+ * Downloads a ticket for a single user
+ * @param {Object} user - User object with id, username, password, and optional deviceProfile/outputDir
+ * @param {Object} options - Download options
+ * @param {string} [options.defaultDeviceProfile='desktop_chrome'] - Default device profile to use
+ * @param {string} [options.outputRoot='./downloads'] - Base output directory
+ * @param {string} [options.historyPath] - Path to history file
+ * @param {Object} [options.db] - Database instance for persistence
+ * @returns {Promise<Object>} Result object with status, filePath, deviceProfile, and message
+ * @throws {Error} If user object is invalid
+ */
 async function downloadTicketForUser(user, options = {}) {
   const { defaultDeviceProfile = 'desktop_chrome', outputRoot = './downloads', historyPath, db } = options;
+
+  if (!user || !user.id || !user.username || !user.password) {
+    throw new Error('User object must contain id, username, and password');
+  }
+
   const deviceProfile = getDeviceProfile(user.deviceProfile || defaultDeviceProfile);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
-  });
-
+  let browser;
   let status = 'error';
   let filePath = null;
   let message = '';
 
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
+    });
+
     const page = await preparePage(browser, deviceProfile);
     await performLogin(page, user.username, user.password);
 
@@ -102,7 +163,11 @@ async function downloadTicketForUser(user, options = {}) {
     message = error.message;
     console.error(`Failed to download ticket for ${user.id}:`, error);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close().catch((err) => {
+        console.error(`Failed to close browser for ${user.id}:`, err);
+      });
+    }
     appendHistory(
       {
         userId: user.id,
@@ -119,6 +184,12 @@ async function downloadTicketForUser(user, options = {}) {
   return { status, filePath, deviceProfile: deviceProfile.name, message };
 }
 
+/**
+ * Downloads tickets for multiple users sequentially
+ * @param {Array<Object>} users - Array of user objects
+ * @param {Object} options - Download options (same as downloadTicketForUser)
+ * @returns {Promise<Array<Object>>} Array of result objects
+ */
 async function downloadTickets(users, options = {}) {
   const results = [];
   for (const user of users) {

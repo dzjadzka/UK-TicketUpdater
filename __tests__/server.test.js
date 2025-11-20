@@ -6,7 +6,7 @@ describe('authMiddleware', () => {
   const originalEnv = { ...process.env };
   const testDbPath = path.join(__dirname, '../data/test-app.db');
   const withToken = (token) => ({
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${token}`
   });
 
   beforeEach(() => {
@@ -29,7 +29,7 @@ describe('authMiddleware', () => {
   const routes = [
     { method: 'post', path: '/downloads' },
     { method: 'get', path: '/history' },
-    { method: 'get', path: '/tickets/example-user' },
+    { method: 'get', path: '/tickets/example-user' }
   ];
 
   describe('when API_TOKEN is configured', () => {
@@ -41,9 +41,8 @@ describe('authMiddleware', () => {
     it('rejects requests without an Authorization header', async () => {
       const { createApp } = require('../src/server');
       const { app } = createApp({ dbPath: testDbPath });
-      
+
       for (const route of routes) {
-        // eslint-disable-next-line no-await-in-loop
         const response = await request(app)[route.method](route.path);
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/missing api token/i);
@@ -53,9 +52,8 @@ describe('authMiddleware', () => {
     it('rejects requests with an invalid token', async () => {
       const { createApp } = require('../src/server');
       const { app } = createApp({ dbPath: testDbPath });
-      
+
       for (const route of routes) {
-        // eslint-disable-next-line no-await-in-loop
         const response = await request(app)[route.method](route.path).set(withToken('invalid'));
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/invalid api token/i);
@@ -65,9 +63,8 @@ describe('authMiddleware', () => {
     it('allows requests with the correct token', async () => {
       const { createApp } = require('../src/server');
       const { app } = createApp({ dbPath: testDbPath });
-      
+
       for (const route of routes) {
-        // eslint-disable-next-line no-await-in-loop
         const response = await request(app)[route.method](route.path).set(withToken('secret-token'));
         // Auth passed if we don't get 401 or 403
         expect(response.status).not.toBe(401);
@@ -85,9 +82,8 @@ describe('authMiddleware', () => {
       delete process.env.ALLOW_INSECURE;
       const { createApp } = require('../src/server');
       const { app } = createApp({ dbPath: testDbPath });
-      
+
       for (const route of routes) {
-        // eslint-disable-next-line no-await-in-loop
         const response = await request(app)[route.method](route.path);
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/not configured/i);
@@ -98,9 +94,8 @@ describe('authMiddleware', () => {
       process.env.ALLOW_INSECURE = 'true';
       const { createApp } = require('../src/server');
       const { app } = createApp({ dbPath: testDbPath });
-      
+
       for (const route of routes) {
-        // eslint-disable-next-line no-await-in-loop
         const response = await request(app)[route.method](route.path);
         // Auth passed if we don't get 401 or 403
         expect(response.status).not.toBe(401);
