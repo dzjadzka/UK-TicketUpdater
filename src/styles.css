@@ -1,0 +1,104 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  color: #132c33;
+}
+
+body {
+  margin: 0;
+  background: #f4f8fb;
+}
+
+.layout {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.language-switcher,
+.auth-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  background: #0b7285;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button[aria-pressed='true'] {
+  background: #0d98ba;
+}
+
+button:hover,
+button:focus {
+  outline: 2px solid #0d98ba;
+}
+
+.card {
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin: 1.5rem 0;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+input[aria-invalid='true'] {
+  border-color: #c92a2a;
+}
+
+.error {
+  color: #c92a2a;
+  margin-bottom: 0.5rem;
+}
+
+.success {
+  color: #2b8a3e;
+  margin-bottom: 0.5rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0.75rem 0.5rem;
+}
+
+tr[role='button'] {
+  cursor: pointer;
+}
+
+tr[role='button']:focus {
+  outline: 2px solid #0b7285;
+  outline-offset: 2px;
+}

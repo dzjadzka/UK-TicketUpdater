@@ -43,6 +43,34 @@ npm install puppeteer
 
 Das Script sollte nun mit dem nodejs Benutzer ausführbar sein.
 
+## Frontend-Entwicklung
+
+Ein kleines Vite/React-Frontend ist enthalten, das `react-i18next` mit englischen und deutschen Namespaces nutzt und per Tastenbedienung/ARIA über Formulare und Tabellen navigierbar ist.
+
+### Setup und Entwicklung
+
+```bash
+npm install
+npm run dev
+```
+
+Der Dev-Server proxyt `http://localhost:3000/api` automatisch auf `VITE_API_URL` (Standard: `http://localhost:3001`). Eine Beispiel-Konfiguration liegt in `.env.frontend.example`. Der erwartete API-Startbefehl ist `npm run api` – der Proxy greift auf denselben Port zu.
+
+### Tests und Linting
+
+```bash
+npm run lint
+npm run test:frontend
+```
+
+### Build und Auslieferung
+
+```bash
+npm run build
+```
+
+Der Build landet in `dist/` (Assets unter `dist/static/`). Das Verzeichnis kann direkt von einem Webserver ausgeliefert oder in ein Backend-Static-Verzeichnis kopiert werden. Für lokale Vorab-Checks steht `npm run preview` zur Verfügung.
+
 ## Wie erstelle ich einen Cronjob?
 (Anmerkung: Jeder Benutzer hat seine eigene crontab-Datei, der Cronjob muss also auf dem nodejs Benutzer erstellt werden!)
 
