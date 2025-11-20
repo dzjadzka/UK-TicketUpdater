@@ -3,9 +3,18 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'default-dev-secret-change-in-production';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 const INVITE_TOKEN_EXPIRY_HOURS = 72; // 3 days
+
+// JWT_SECRET is required in production for security
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  // Only allow default in development/test
+  console.warn('WARNING: Using default JWT_SECRET. Set JWT_SECRET environment variable for production.');
+}
 
 /**
  * Hash a password using bcrypt
@@ -32,13 +41,14 @@ async function comparePassword(password, hash) {
  * @returns {string} JWT token
  */
 function generateToken(user) {
+  const secret = JWT_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION';
   return jwt.sign(
     {
       id: user.id,
       email: user.email,
       role: user.role
     },
-    JWT_SECRET,
+    secret,
     { expiresIn: JWT_EXPIRY }
   );
 }
@@ -51,7 +61,8 @@ function generateToken(user) {
  */
 function verifyToken(token) {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const secret = JWT_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION';
+    return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token has expired');

@@ -24,7 +24,16 @@ const DEFAULT_OUTPUT = process.env.OUTPUT_ROOT || './downloads';
 const DEFAULT_DEVICE = process.env.DEFAULT_DEVICE || 'desktop_chrome';
 const API_TOKEN = process.env.API_TOKEN;
 const ALLOW_INSECURE = process.env.ALLOW_INSECURE === 'true';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-encryption-key-change-in-production';
+
+// ENCRYPTION_KEY is required for credential storage
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ENCRYPTION_KEY environment variable is required in production');
+  }
+  // Only allow default in development/test
+  console.warn('WARNING: Using default ENCRYPTION_KEY. Set ENCRYPTION_KEY environment variable for production.');
+}
 
 /**
  * Request logging middleware
@@ -359,7 +368,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       }
 
       const id = crypto.randomUUID();
-      const encrypted = encrypt(loginPassword, ENCRYPTION_KEY);
+      const encryptionKey = ENCRYPTION_KEY || 'dev-key-DO-NOT-USE-IN-PRODUCTION';
+      const encrypted = encrypt(loginPassword, encryptionKey);
 
       db.createCredential({
         id,
@@ -389,7 +399,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         return res.status(404).json({ error: 'Credential not found' });
       }
 
-      const encrypted = loginPassword ? encrypt(loginPassword, ENCRYPTION_KEY) : existing.login_password_encrypted;
+      const encryptionKey = ENCRYPTION_KEY || 'dev-key-DO-NOT-USE-IN-PRODUCTION';
+      const encrypted = loginPassword ? encrypt(loginPassword, encryptionKey) : existing.login_password_encrypted;
 
       db.updateCredential({
         id,

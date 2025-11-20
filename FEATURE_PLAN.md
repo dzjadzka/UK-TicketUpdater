@@ -23,12 +23,12 @@ This document tracks all planned and in-progress features discovered from reposi
 | F007 | FRONTEND_IMPROVEMENT_PLAN.md | Frontend testing with Vitest/RTL and quality gates | planned | medium | medium |
 | F008 | FRONTEND_IMPROVEMENT_PLAN.md | Dev/prod configuration with environment variables | planned | low | high |
 | F009 | FRONTEND_IMPROVEMENT_PLAN.md | Component library and layout system with theming | planned | low | low |
-| F010 | MULTIUSER_EXPANSION_PLAN.md | Role-based access control (admin/user roles) | planned | high | high |
-| F011 | MULTIUSER_EXPANSION_PLAN.md | Invitation-only onboarding flow | planned | high | high |
-| F012 | MULTIUSER_EXPANSION_PLAN.md | Enhanced device emulation with proxy/geolocation support | planned | medium | medium |
+| F010 | MULTIUSER_EXPANSION_PLAN.md | Role-based access control (admin/user roles) | done | high | high |
+| F011 | MULTIUSER_EXPANSION_PLAN.md | Invitation-only onboarding flow | done | high | high |
+| F012 | MULTIUSER_EXPANSION_PLAN.md | Enhanced device emulation with proxy/geolocation support | in_progress | medium | medium |
 | F013 | MULTIUSER_EXPANSION_PLAN.md | Queue-driven job runner with BullMQ/Redis | planned | high | low |
-| F014 | MULTIUSER_EXPANSION_PLAN.md | Password encryption at rest with local key storage | planned | high | high |
-| F015 | REPOSITORY_ANALYSIS.md | Externalize credentials via environment variables/config | planned | high | high |
+| F014 | MULTIUSER_EXPANSION_PLAN.md | Password encryption at rest with local key storage | done | high | high |
+| F015 | REPOSITORY_ANALYSIS.md | Externalize credentials via environment variables/config | done | high | high |
 | F016 | REPOSITORY_ANALYSIS.md | Health checks for download success validation | planned | medium | medium |
 | F017 | REPOSITORY_ANALYSIS.md | Lightweight CLI with option parsing (yargs/commander) | planned | low | low |
 | F018 | REPOSITORY_ANALYSIS.md | Browser context reuse to reduce resource usage | planned | low | low |
@@ -628,4 +628,56 @@ CREATE TABLE device_profiles (
 
 ---
 
-**Status**: Feature discovery complete, ready to begin Phase 1 implementation
+## Implementation Progress
+
+### Completed Features
+
+#### F010: Role-based Access Control ✅
+- **Status**: Complete
+- **Date**: 2024-11-20
+- **Implementation**: 
+  - Added admin and user roles to database schema
+  - Implemented requireAdmin middleware for protected endpoints
+  - All admin endpoints enforce role checks
+  - Users can only access their own resources
+
+#### F011: Invitation-only Onboarding ✅
+- **Status**: Complete
+- **Date**: 2024-11-20
+- **Implementation**:
+  - Invite token generation with configurable expiration
+  - Admin-only invite management endpoints
+  - Registration validates invite tokens
+  - Tokens are single-use and expire after 72 hours (configurable)
+  - Tokens track who created them and who used them
+
+#### F014: Password Encryption at Rest ✅
+- **Status**: Complete
+- **Date**: 2024-11-20
+- **Implementation**:
+  - Bcrypt password hashing with 10 rounds
+  - AES-256-GCM encryption for credential storage
+  - Configurable encryption key via ENCRYPTION_KEY env var
+  - Password strength validation enforced
+  - All sensitive data encrypted before database storage
+
+#### F015: Externalized Credentials ✅
+- **Status**: Complete
+- **Date**: 2024-11-20
+- **Implementation**:
+  - .env.example file with all configuration options
+  - Support for JWT_SECRET, ENCRYPTION_KEY, API_TOKEN
+  - Encrypted credential storage in database
+  - Full CRUD API for credential management
+  - Credentials scoped to user accounts
+
+### In Progress Features
+
+#### F012: Enhanced Device Emulation
+- **Status**: Database schema complete, API endpoints implemented
+- **Remaining**: Integration with downloader.js to apply custom profiles
+- **Next Steps**: Update Puppeteer launch to support proxy URLs and geolocation
+
+---
+
+**Status**: Phase 1 complete (4/4 features), Phase 2 in progress (1/2 features)
