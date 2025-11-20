@@ -12,8 +12,8 @@ function initSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      username TEXT NOT NULL,
-      password TEXT NOT NULL,
+      username TEXT,
+      password TEXT,
       email TEXT,
       password_hash TEXT,
       role TEXT DEFAULT 'user',
