@@ -5,6 +5,17 @@ Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die
 
 Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
 
+## API-Zugriff absichern
+Der neue Server (`src/server.js`) erwartet standardmäßig ein API-Token, damit nur berechtigte Clients auf die Endpunkte zugreifen können. Setze vor dem Start die Umgebungsvariable `API_TOKEN` und sende das Token anschließend als `Authorization: Bearer <Token>` im Request-Header.
+
+Beispiel für lokale Entwicklung:
+```
+export API_TOKEN=mein-geheimes-token
+npm start
+```
+
+Sollte der Betrieb ohne Token zwingend nötig sein (z. B. in einer geschlossenen Testumgebung), kann der Schutz mit `ALLOW_INSECURE=true` explizit deaktiviert werden. Ohne `API_TOKEN` **und** ohne `ALLOW_INSECURE=true` antwortet der Server mit HTTP 401.
+
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
 Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
