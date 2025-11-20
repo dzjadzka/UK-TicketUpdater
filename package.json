@@ -12,7 +12,7 @@
     "download:db": "node src/index.js --db ./data/app.db",
     "api": "node src/server.js",
     "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --silent",
     "test:watch": "jest --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
