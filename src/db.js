@@ -55,10 +55,10 @@ function createDatabase(dbPath) {
     'SELECT * FROM users WHERE id IN (SELECT value FROM json_each(@ids)) ORDER BY id'
   );
   const recordRunStmt = db.prepare(
-    'INSERT INTO runs (user_id, status, device_profile, file_path, message, timestamp) VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime("now")))'
+    "INSERT INTO runs (user_id, status, device_profile, file_path, message, timestamp) VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))"
   );
   const recordTicketStmt = db.prepare(
-    'INSERT INTO tickets (user_id, file_path, status, created_at) VALUES (?, ?, ?, COALESCE(?, datetime("now")))'
+    "INSERT INTO tickets (user_id, file_path, status, created_at) VALUES (?, ?, ?, COALESCE(?, datetime('now')))"
   );
   const listHistoryStmt = db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT ?');
   const listTicketsByUserStmt = db.prepare('SELECT * FROM tickets WHERE user_id = ? ORDER BY id DESC');

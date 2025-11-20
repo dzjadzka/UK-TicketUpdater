@@ -9,17 +9,33 @@ const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
 const DEFAULT_OUTPUT = process.env.OUTPUT_ROOT || './downloads';
 const DEFAULT_DEVICE = process.env.DEFAULT_DEVICE || 'desktop_chrome';
 const API_TOKEN = process.env.API_TOKEN;
+const ALLOW_INSECURE = process.env.ALLOW_INSECURE === 'true';
 
 function authMiddleware(req, res, next) {
-  if (!API_TOKEN) return next();
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing token' });
+  // If no API_TOKEN is set and ALLOW_INSECURE is not explicitly enabled, reject
+  if (!API_TOKEN && !ALLOW_INSECURE) {
+    return res.status(401).json({ error: 'API token not configured. Set API_TOKEN or ALLOW_INSECURE=true to bypass.' });
   }
-  const token = header.replace('Bearer ', '');
-  if (token !== API_TOKEN) {
-    return res.status(403).json({ error: 'Invalid token' });
+
+  // If no API_TOKEN but ALLOW_INSECURE is enabled, allow access
+  if (!API_TOKEN && ALLOW_INSECURE) {
+    return next();
   }
+
+  // Check for authorization header
+  const authHeader = req.get('authorization');
+  const bearerPrefix = 'bearer ';
+
+  if (!authHeader || !authHeader.toLowerCase().startsWith(bearerPrefix)) {
+    return res.status(401).json({ error: 'Missing API token.' });
+  }
+
+  const providedToken = authHeader.slice(bearerPrefix.length);
+
+  if (providedToken !== API_TOKEN) {
+    return res.status(401).json({ error: 'Invalid API token.' });
+  }
+
   return next();
 }
 
@@ -92,4 +108,4 @@ if (require.main === module) {
   start();
 }
 
-module.exports = { createApp, start };
+module.exports = { createApp, start, authMiddleware };
