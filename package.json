@@ -1,18 +1,25 @@
 {
-  "name": "uk-ticketupdater",
-  "version": "1.0.0",
-  "description": "Ein kleines Script zum automatisieren des monatlichen Downloads des Semstertickets.",
-  "main": "src/server.js",
+  "name": "uk-ticket-updater",
+  "version": "1.1.0",
+  "description": "Multi-user NVV semester ticket downloader with device emulation",
+  "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
+    "download": "node src/index.js --users ./config/users.json",
+    "download:sample": "node src/index.js --users ./config/users.sample.json",
+    "setup:db": "node src/setupDb.js --source ./config/users.json --db ./data/app.db",
+    "download:db": "node src/index.js --db ./data/app.db",
+    "api": "node src/server.js",
     "test": "jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0"
+    "better-sqlite3": "^9.6.0",
+    "express": "^5.1.0",
+    "puppeteer": "^22.15.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
