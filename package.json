@@ -1,0 +1,20 @@
+{
+  "name": "uk-ticketupdater",
+  "version": "1.0.0",
+  "description": "Ein kleines Script zum automatisieren des monatlichen Downloads des Semstertickets.",
+  "main": "ticket-downloader.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup:db": "node src/db/migrate.js",
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "sqlite3": "^5.1.7"
+  }
+}

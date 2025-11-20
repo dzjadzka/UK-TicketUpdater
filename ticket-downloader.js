@@ -1,8 +1,40 @@
+require('dotenv').config();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const { loadUsersFromDatabase } = require('./src/index');
+const { logDownload } = require('./src/history');
 
-(async () => {
+async function resolveUserConfig() {
+  const users = await loadUsersFromDatabase();
+  if (!users.length) {
+    throw new Error('Keine Benutzer in der Datenbank gefunden. Bitte lege einen Benutzer mit Zugangsdaten an.');
+  }
+
+  const [user] = users;
+  const autoLogin = user.autoLoginDecrypted || {};
+  const username = autoLogin.username || process.env.UK_USERNAME;
+  const password = autoLogin.password || process.env.UK_PASSWORD;
+
+  if (!username || !password) {
+    throw new Error('Weder verschlüsselte noch Umgebungs-Zugangsdaten vorhanden.');
+  }
+
+  const devicePreferences = user.devicePreferences || {};
+  const downloadDir = devicePreferences.downloadPath || process.env.DOWNLOAD_PATH || '/tmp';
+  const filename = devicePreferences.filename || 'ticket.html';
+
+  return {
+    userId: user.id,
+    username,
+    password,
+    device: devicePreferences.device || 'default',
+    filePath: path.resolve(downloadDir, filename),
+  };
+}
+
+async function downloadTicket() {
+  const config = await resolveUserConfig();
   const browser = await puppeteer.launch({
     product: 'firefox', // Wichtig: Setzt den Browser auf Firefox
     headless: true,
@@ -14,13 +46,13 @@ const path = require('path');
     ]
   });
   const page = await browser.newPage();
-  
+
   // goto with waitUntil options
   await page.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-  
+
   // enter user credentials
-  await page.type('#username', 'Your-UK-Number');
-  await page.type('#password', 'Your-UK-Password');
+  await page.type('#username', config.username);
+  await page.type('#password', config.password);
 
   // click on login-button
   await page.waitForSelector('button[type="submit"]');
@@ -46,7 +78,7 @@ const path = require('path');
     const ticketTextExists = await page2.evaluate(() => {
       return document.body.textContent.includes('NVV-Semesterticket');
     });
-    
+
     if (ticketTextExists) {
       // download ticket-html
       html = await page2.content();
@@ -61,7 +93,7 @@ const path = require('path');
       // reopen ticket-website
       const page3 = await browser.newPage();
       await page3.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-      
+
       // download ticket-html
       html = await page3.content();
     } else {
@@ -82,12 +114,28 @@ const path = require('path');
       `;
     }
 
-    // save html in file
-    const filePath = path.resolve('/Path/To/File', 'Filename.html');
-    fs.writeFileSync(filePath, html);
+    fs.writeFileSync(config.filePath, html);
+    await logDownload({
+      userId: config.userId,
+      status: 'success',
+      device: config.device,
+      filePath: config.filePath,
+      timestamp: new Date(),
+    });
   } catch (error) {
     console.error('An error occurred:', error);
+    await logDownload({
+      userId: config.userId,
+      status: 'failure',
+      device: config.device,
+      filePath: config.filePath,
+      timestamp: new Date(),
+    });
   }
 
   await browser.close();
-})();
+}
+
+downloadTicket().catch((err) => {
+  console.error('Download abgebrochen:', err.message);
+});

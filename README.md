@@ -7,6 +7,20 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
 
+## Datenbankgestützte Benutzerverwaltung
+Das Projekt nutzt jetzt SQLite für Benutzer, Anmeldedaten und Download-Historie.
+
+1. Abhängigkeiten installieren:
+   ```
+   npm install
+   ```
+2. Datenbank initialisieren:
+   ```
+   npm run setup:db
+   ```
+3. Benutzer anlegen (z. B. durch eine `config/users.json` mit Benutzerobjekten oder per eigenem Script über `createUser`). Für automatischen Login kann ein `AUTOLOGIN_SECRET` in `.env` gesetzt werden, damit verschlüsselte Zugangsdaten gespeichert werden können.
+4. Ticket-Download ausführen: Das Skript lädt Benutzer aus der Datenbank und protokolliert den Download in der Tabelle `download_history`.
+
 Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
 # Update 09.2025!
 Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
