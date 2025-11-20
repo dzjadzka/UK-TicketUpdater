@@ -1,0 +1,12 @@
+{
+  "name": "uk-ticket-updater",
+  "version": "1.0.0",
+  "description": "Credential and device profile manager for ticket automation",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

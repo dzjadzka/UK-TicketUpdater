@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Credential & Device Profiles</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1 id="title">Credential Manager</h1>
+      <div class="language-switch">
+        <label for="language">Language / Sprache</label>
+        <select id="language">
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 id="credentialsHeading">Credentials</h2>
+            <p id="credentialsHelp" class="help"></p>
+          </div>
+          <button id="newCredential" class="secondary">New</button>
+        </div>
+        <form id="credentialForm" class="form-grid">
+          <div class="form-control">
+            <label for="credName" id="credNameLabel"></label>
+            <input type="text" id="credName" name="name" />
+            <span class="help" id="credNameHelp"></span>
+            <span class="error" id="credNameError"></span>
+          </div>
+          <div class="form-control">
+            <label for="credUsername" id="credUsernameLabel"></label>
+            <input type="text" id="credUsername" name="username" />
+            <span class="help" id="credUsernameHelp"></span>
+            <span class="error" id="credUsernameError"></span>
+          </div>
+          <div class="form-control">
+            <label for="credPassword" id="credPasswordLabel"></label>
+            <input type="password" id="credPassword" name="password" />
+            <span class="help" id="credPasswordHelp"></span>
+            <span class="error" id="credPasswordError"></span>
+          </div>
+          <div class="form-control full-width">
+            <label for="credNotes" id="credNotesLabel"></label>
+            <textarea id="credNotes" name="notes" rows="2"></textarea>
+            <span class="help" id="credNotesHelp"></span>
+          </div>
+          <div class="actions full-width">
+            <button type="submit" id="saveCredential"></button>
+            <button type="button" id="resetCredential" class="secondary"></button>
+          </div>
+        </form>
+
+        <table id="credentialsTable">
+          <thead>
+            <tr>
+              <th id="credNameCol"></th>
+              <th id="credUsernameCol"></th>
+              <th id="credCreatedCol"></th>
+              <th id="credActionsCol"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 id="profilesHeading">Device Profiles</h2>
+            <p id="profilesHelp" class="help"></p>
+          </div>
+          <button id="newProfile" class="secondary">New</button>
+        </div>
+        <form id="profileForm" class="form-grid">
+          <div class="form-control">
+            <label for="profileLabel" id="profileLabelLabel"></label>
+            <input type="text" id="profileLabel" name="label" />
+            <span class="help" id="profileLabelHelp"></span>
+            <span class="error" id="profileLabelError"></span>
+          </div>
+          <div class="form-control">
+            <label for="profileUserAgent" id="profileUserAgentLabel"></label>
+            <input type="text" id="profileUserAgent" name="userAgent" />
+            <span class="help" id="profileUserAgentHelp"></span>
+            <span class="error" id="profileUserAgentError"></span>
+          </div>
+          <div class="form-control inline">
+            <div>
+              <label for="viewportWidth" id="viewportWidthLabel"></label>
+              <input type="number" id="viewportWidth" name="viewportWidth" min="320" />
+              <span class="error" id="viewportWidthError"></span>
+            </div>
+            <div>
+              <label for="viewportHeight" id="viewportHeightLabel"></label>
+              <input type="number" id="viewportHeight" name="viewportHeight" min="480" />
+              <span class="error" id="viewportHeightError"></span>
+            </div>
+            <span class="help" id="viewportHelp"></span>
+          </div>
+          <div class="form-control">
+            <label for="proxy" id="proxyLabel"></label>
+            <input type="text" id="proxy" name="proxy" placeholder="http://proxy:8080" />
+            <span class="help" id="proxyHelp"></span>
+            <span class="error" id="proxyError"></span>
+          </div>
+          <div class="actions full-width">
+            <button type="submit" id="saveProfile"></button>
+            <button type="button" id="resetProfile" class="secondary"></button>
+          </div>
+        </form>
+
+        <div class="profiles-grid">
+          <div>
+            <h3 id="presetHeading"></h3>
+            <ul id="presetList" class="card-list"></ul>
+          </div>
+          <div>
+            <h3 id="customHeading"></h3>
+            <ul id="customList" class="card-list"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <template id="profileCardTemplate">
+      <li class="card">
+        <div class="card-content">
+          <div class="card-title"></div>
+          <div class="card-meta"></div>
+          <div class="card-body"></div>
+        </div>
+        <div class="card-actions"></div>
+      </li>
+    </template>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

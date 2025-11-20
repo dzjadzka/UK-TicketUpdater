@@ -3,6 +3,32 @@ Ein kleines Script zum automatisieren des monatlichen Downloads des Semsterticke
 
 Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die Datei `ticket-uploader.sh` ist ein Beispiel, wie man das Ticket nach dem Download automatisch in eine Cloud laden kann. Ich nutze dafür NextCloud, es sollte aber ohne Probleme an jede andere Cloud anpassbar sein (ChatGPT/Copilot/... ist dein Freund). Alternativ zu einem eigenen Upload-Script kann auch [rclone](https://rclone.org/) genutzt werden.
 
+## Weboberfläche für Zugangsdaten und Geräteprofile
+
+Eine kleine Express-Anwendung stellt nun Formulare bereit, um Zugangsdaten (CRUD) sowie Geräteprofile zu verwalten. Gerätevoreinstellungen kommen aus `src/deviceProfiles.js`; eigene Profile mit User-Agent, Viewport und optionalem Proxy können über die Oberfläche hinzugefügt, bearbeitet oder gelöscht werden.
+
+### Starten
+
+```bash
+npm install
+npm start
+```
+
+Die Anwendung läuft anschließend auf `http://localhost:3000`.
+
+### API-Endpoints
+
+* `GET /api/credentials` – Liste aller Zugangsdaten
+* `POST /api/credentials` – Zugangsdaten anlegen
+* `PUT /api/credentials/:id` – Zugangsdaten aktualisieren
+* `DELETE /api/credentials/:id` – Zugangsdaten löschen
+* `GET /api/device-profiles` – Gerätevoreinstellungen (Preset) plus eigene Profile
+* `POST /api/device-profiles` – eigenes Profil speichern
+* `PUT /api/device-profiles/:id` – eigenes Profil aktualisieren
+* `DELETE /api/device-profiles/:id` – eigenes Profil löschen (Presets sind schreibgeschützt)
+
+Alle Beschriftungen und Hilfetexte stehen in Englisch und Deutsch zur Verfügung; die Sprache lässt sich in der Oberfläche umstellen.
+
 Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
 
 Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
