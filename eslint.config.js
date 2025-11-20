@@ -60,7 +60,7 @@ module.exports = [
     }
   },
   {
-    files: ['src/downloader.js', 'ticket-downloader.js'],
+    files: ['src/downloader.js', 'legacy/ticket-downloader.js'],
     rules: {
       'no-undef': ['error', { typeof: true }]
     },
