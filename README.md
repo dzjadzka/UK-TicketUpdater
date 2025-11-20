@@ -1,20 +1,45 @@
 # UK-TicketUpdater
 
-Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` with device-profile emulation. Tickets and run history can be stored in JSON or SQLite; an optional legacy uploader script remains for reference but is not maintained.
+[![CI](https://github.com/dzjadzka/UK-TicketUpdater/actions/workflows/ci.yml/badge.svg)](https://github.com/dzjadzka/UK-TicketUpdater/actions/workflows/ci.yml)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
+Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` with device-profile emulation. Tickets and run history can be stored in JSON or SQLite; an optional Express API enables programmatic access.
 
 ## Features
 
-- Run downloads for multiple users in one execution.
-- Emulate common device types (desktop, Android, iPhone, iPad) via user-agent and viewport settings.
-- Store per-user tickets under `downloads/<user-id>/` (configurable per user) and append a run history to `data/history.json` or SQLite.
-- Simple CLI flags to pick config paths, default device profile, output directories, or a SQLite database.
-- Optional Express API to trigger downloads and read history/tickets from the database.
+- 🎫 **Multi-user downloads** in one execution
+- 📱 **Device emulation** (desktop Chrome, Android, iPhone, iPad)
+- 💾 **Flexible storage** (JSON files or SQLite database)
+- 🔒 **Secure API** with bearer token authentication and rate limiting
+- ⚡ **Automated CI/CD** with GitHub Actions
+- 🧪 **Comprehensive test suite** (56% coverage, 52 tests)
+- 📝 **Well-documented** with JSDoc and contribution guidelines
 
 ## Prerequisites
 
-- Node.js (>=18 recommended) and npm.
-- Puppeteer dependency installed with Chromium available. To skip the Chromium download during install, set `PUPPETEER_SKIP_DOWNLOAD=1` and ensure a system Chromium/Chrome is present.
-- Network access to `https://ticket.astakassel.de`.
+- **Node.js** >= 18 (LTS recommended) and npm
+- **Puppeteer** with Chromium - or skip download with `PUPPETEER_SKIP_DOWNLOAD=1` and provide system Chrome/Chromium
+- Network access to `https://ticket.astakassel.de`
+
+## Quick Start
+
+```bash
+# Install dependencies
+PUPPETEER_SKIP_DOWNLOAD=1 npm install
+
+# Configure users
+cp config/users.sample.json config/users.json
+# Edit config/users.json with your credentials
+
+# Download tickets
+npm run download
+
+# Run tests
+npm test
+
+# Start API server
+API_TOKEN=your-secret-token npm run api
+```
 
 ## Setup
 
@@ -76,6 +101,23 @@ Each user entry results in one ticket file named `ticket-<timestamp>.html` saved
 
 - `deviceProfile` options: `desktop_chrome`, `mobile_android`, `iphone_13`, `tablet_ipad`.
 - `outputDir` is optional; falls back to `<output base>/<user-id>`.
+
+## Development Commands
+
+```bash
+# Run tests
+npm test                    # Run all tests with linting
+npm run test:coverage       # Run tests with coverage report
+npm run test:watch          # Run tests in watch mode
+
+# Code quality
+npm run lint                # Check code with ESLint
+npm run lint:fix            # Auto-fix linting issues
+npm run format              # Format code with Prettier
+npm run format:check        # Check formatting without changes
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 
 ## API server (SQLite-backed)
 

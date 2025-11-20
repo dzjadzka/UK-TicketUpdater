@@ -26,6 +26,7 @@
   "dependencies": {
     "better-sqlite3": "^9.6.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
     "puppeteer": "^22.15.0"
   },
   "devDependencies": {
