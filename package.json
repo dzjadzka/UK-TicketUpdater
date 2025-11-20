@@ -1,0 +1,14 @@
+{
+  "name": "uk-ticketupdater-auth",
+  "version": "1.0.0",
+  "description": "Demo auth flow with invite acceptance and localization",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "express": "^4.18.2",
+    "uuid": "^9.0.1"
+  }
+}
