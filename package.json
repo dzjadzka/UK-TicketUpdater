@@ -1,0 +1,19 @@
+{
+  "name": "uk-ticketupdater",
+  "version": "1.0.0",
+  "description": "Automation tools for downloading and distributing semester tickets.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev:api": "node --watch src/server.js",
+    "cli": "node src/cli.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.15.0"
+  }
+}

@@ -1,59 +1,72 @@
 # UK-TicketUpdater
-Ein kleines Script zum automatisieren des monatlichen Downloads des Semstertickets.
 
-Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die Datei `ticket-uploader.sh` ist ein Beispiel, wie man das Ticket nach dem Download automatisch in eine Cloud laden kann. Ich nutze dafür NextCloud, es sollte aber ohne Probleme an jede andere Cloud anpassbar sein (ChatGPT/Copilot/... ist dein Freund). Alternativ zu einem eigenen Upload-Script kann auch [rclone](https://rclone.org/) genutzt werden.
+Ein kleines Script zum automatisieren des monatlichen Downloads des Semestertickets – jetzt wahlweise per CLI oder über eine kleine Express-API.
 
-Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein Upload an einen Ort erfolgen kann, von dem aus das Ticket genutzt werden soll (auf einem Raspberry Pi irgendwo in einer Ecke bringt das Ticket schließlich nichts...).
+## Installation
 
-Das Download-Script einfach auf einem Linux-System mit nodejs, puppeteer und chromium-browser ablegen und per Cronjob immer am Ersten des Monats ausführen lassen.
-
-Nicht vergessen die Felder `Your-UK-Number`, `Your-UK-Password` (oben im Script), sowie `/Path/To/File` und `Filename.html` (unten im Script) anzupassen!
-# Update 09.2025!
-Wechsel zu Firefox wegen fehlender Abhängigkeiten unter Debian 13
-Der Prozess sollte davon abgesehen auch unter Debian 13 weiter funktionieren.
-# Update 01.2025!
-Sollte Puppeteer beim Ausführen des Skripts einen Fehler anzeigen, dass der Browser nicht gestartet werden konnte, kann das unter Debian 12 daran liegen, dass die Bibliothek `libnss3` fehlt, diese lässt sich einfach allerdings einfach nachinstallieren:
-```
-apt-get install libnss3
+```bash
+npm install
 ```
 
-## Wie installiere ich nodejs unter Debian 12?
-Auf einem neuen Debian 12:
-```
-apt update && apt upgrade -y
-apt install nodejs npm
-apt install firefox-esr
+Optional können folgende Umgebungsvariablen gesetzt werden:
+
+- `PORT`: Port für die API (Standard `3000`).
+- `DOWNLOAD_DIRECTORY`: Speicherort für heruntergeladene Tickets (Standard `./downloads`).
+- `HISTORY_FILE`: Pfad zur History-Datei (Standard `./data/history.json`).
+- `BROWSER_PRODUCT`: Browser für Puppeteer (`firefox` oder `chrome`, Standard `firefox`).
+- `API_TOKENS`: JSON-Array für Token- und Rollen-Definitionen, z. B. `[{"token":"admin-token","role":"admin"},{"token":"user-token","role":"user","userId":"student1"}]`.
+
+## CLI
+
+Tickets lassen sich weiterhin direkt per CLI herunterladen. Der Download läuft interaktiv, fehlende Parameter werden abgefragt:
+
+```bash
+npm run cli -- --userId student1 --username Your-UK-Number --password Your-UK-Password --filename student1.html
 ```
 
-Danach noch einen Benutzer für nodejs anlegen:
-```
-adduser nodejs
+Der Download landet standardmäßig im Ordner `downloads/`.
+
+## API
+
+Die API startet mit:
+
+```bash
+npm run start
+# oder im Watch-Modus
+npm run dev:api
 ```
 
-Zum neuen Nutzer wechseln:
-```
-su nodejs
-cd ~
+### Authentifizierung & Autorisierung
+
+Jeder Request benötigt ein Token (HTTP Header `Authorization: Bearer <token>` oder `x-api-key`). Rollen werden per `API_TOKENS` gesetzt:
+
+- `admin`: darf alle Endpunkte aufrufen und beliebige Nutzer/innen starten.
+- `user`: darf nur für die eigene `userId` Downloads anstoßen und das eigene Ticket abrufen.
+
+### Endpunkte
+
+- `POST /downloads`
+  - Startet einen oder mehrere Downloads.
+  - Body: `{ "userId": "student1", "username": "Your-UK-Number", "password": "Your-UK-Password", "filename": "ticket.html" }`
+  - Alternativ mehrere Jobs: `{ "requests": [ { ... }, { ... } ] }`.
+  - Antwort enthält eine Ergebnisliste mit Status, Zeitstempeln und Pfad der Datei.
+
+- `GET /history`
+  - Nur für Admins.
+  - Liefert die komplette Download-Historie aus `data/history.json`.
+
+- `GET /tickets/:userId`
+  - Liefert das zuletzt erfolgreich geladene Ticket für die angegebene `userId`.
+  - `user`-Tokens dürfen nur die eigene `userId` abrufen.
+
+## Cronjob-Hinweis
+
+Das CLI-Script kann wie bisher per Cronjob ausgeführt werden. Beispiel:
+
+```cron
+0 0-10 1 * * cd /Path/To/UK-TicketUpdater && npm run cli -- --userId student1 --username Your-UK-Number --password Your-UK-Password --filename student1.html
 ```
 
-Und puppeteer installieren:
-```
-npm install puppeteer
-```
+## Legacy
 
-Das Script sollte nun mit dem nodejs Benutzer ausführbar sein.
-
-## Wie erstelle ich einen Cronjob?
-(Anmerkung: Jeder Benutzer hat seine eigene crontab-Datei, der Cronjob muss also auf dem nodejs Benutzer erstellt werden!)
-
-Die crontab-Datei öffnen und mit dem Editor deiner Wahl barbeiten:
-```
-crontab -e
-```
-
-Am Ende der Datei folgende Zeile hinzufügen:
-```
-0 0-10 1 * * /Path/To/Script.sh
-```
-
-Jetzt wird das Script immer am ersten des Monats von 0 bis 10 Uhr zu jeder vollen Stunde einmal ausgeführt (Falls die Uni Server ausnahmweise mal Probleme machen sollten).
+Die ursprüngliche Datei `ticket-downloader.js` bleibt als Referenz erhalten, die aktuelle Logik steckt jedoch in `src/downloader.js` und wird sowohl von CLI als auch von der API verwendet.
