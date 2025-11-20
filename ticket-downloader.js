@@ -1,71 +1,70 @@
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
+import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
+import { parseArgs, getDeviceProfile } from './src/cli.js';
+import { appendHistoryEntry } from './src/history.js';
+import { launchBrowser } from './src/browser.js';
 
 (async () => {
-  const browser = await puppeteer.launch({
-    product: 'firefox', // Wichtig: Setzt den Browser auf Firefox
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--mute-audio'
-    ]
+  const options = parseArgs(process.argv.slice(2));
+  const { outputPath, device, product, headless, historyFile } = options;
+
+  appendHistoryEntry(historyFile, { event: 'start', device, product });
+
+  const { browser, executablePath } = await launchBrowser(puppeteer, {
+    headless,
+    product,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
   });
+
+  appendHistoryEntry(historyFile, { event: 'launch', executablePath: executablePath || 'default', product });
+
   const page = await browser.newPage();
-  
-  // goto with waitUntil options
+  const profile = getDeviceProfile(device);
+  if (profile.viewport) {
+    await page.setViewport(profile.viewport);
+  }
+  if (profile.userAgent) {
+    await page.setUserAgent(profile.userAgent);
+  }
+
   await page.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-  
-  // enter user credentials
   await page.type('#username', 'Your-UK-Number');
   await page.type('#password', 'Your-UK-Password');
 
-  // click on login-button
   await page.waitForSelector('button[type="submit"]');
   await Promise.all([
     page.click('button[type="submit"]'),
-    page.waitForNavigation({ waitUntil: 'networkidle2' }),
+    page.waitForNavigation({ waitUntil: 'networkidle2' })
   ]);
 
-  // initialize output variable
   let html = '';
 
   try {
-    // reopen ticket-website
     const page2 = await browser.newPage();
     await page2.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
 
-    // check if puppeteer got redirected to "privacy policy-site"
     const privacyTextExists = await page2.evaluate(() => {
       return document.body.textContent.includes('Website of the semester ticket');
     });
 
-    // check if puppeteer got redirected to "ticket-site"
     const ticketTextExists = await page2.evaluate(() => {
       return document.body.textContent.includes('NVV-Semesterticket');
     });
-    
+
     if (ticketTextExists) {
-      // download ticket-html
       html = await page2.content();
     } else if (privacyTextExists) {
-      // click on accept on "privacy policy-site"
       await page2.waitForSelector('input[type="submit"][value="Accept"]');
       await Promise.all([
         page2.click('input[type="submit"][value="Accept"]'),
-        page2.waitForNavigation({ waitUntil: 'networkidle2' }),
+        page2.waitForNavigation({ waitUntil: 'networkidle2' })
       ]);
 
-      // reopen ticket-website
       const page3 = await browser.newPage();
       await page3.goto('https://ticket.astakassel.de', { waitUntil: 'networkidle2' });
-      
-      // download ticket-html
       html = await page3.content();
     } else {
-      // generate error html
       html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -82,10 +81,12 @@ const path = require('path');
       `;
     }
 
-    // save html in file
-    const filePath = path.resolve('/Path/To/File', 'Filename.html');
-    fs.writeFileSync(filePath, html);
+    const directory = path.dirname(outputPath);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(outputPath, html);
+    appendHistoryEntry(historyFile, { event: 'saved', path: outputPath, status: 'success' });
   } catch (error) {
+    appendHistoryEntry(historyFile, { event: 'error', message: error.message });
     console.error('An error occurred:', error);
   }
 

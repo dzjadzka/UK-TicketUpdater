@@ -1,0 +1,5 @@
+# Agent Notes
+
+- Run unit tests with `npm test` (includes the Puppeteer smoke test using a local Chromium and `PUPPETEER_SKIP_DOWNLOAD=1`).
+- Run linting with `npm run lint` (ESLint with Prettier compatibility).
+- The project uses Vitest for unit testing; Puppeteer relies on a system Chromium/Chrome available at `/usr/bin/google-chrome-stable` by default.

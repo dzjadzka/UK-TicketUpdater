@@ -1,0 +1,23 @@
+{
+  "name": "uk-ticketupdater",
+  "version": "1.0.0",
+  "description": "Ein kleines Script zum automatisieren des monatlichen Downloads des Semstertickets.",
+  "main": "ticket-downloader.js",
+  "scripts": {
+    "test": "PUPPETEER_SKIP_DOWNLOAD=1 CHROMIUM_PATH=/usr/bin/google-chrome-stable vitest run",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "puppeteer": "^24.31.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "vitest": "^4.0.12"
+  }
+}
