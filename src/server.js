@@ -16,22 +16,15 @@ const {
   isInviteExpired,
   isValidEmail,
   validatePassword,
-  encrypt
+  encrypt,
+  getEncryptionKey
 } = require('./auth');
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
 const DEFAULT_OUTPUT = process.env.OUTPUT_ROOT || './downloads';
 const DEFAULT_DEVICE = process.env.DEFAULT_DEVICE || 'desktop_chrome';
-// ENCRYPTION_KEY is required for credential storage
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-if (!ENCRYPTION_KEY) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('ENCRYPTION_KEY environment variable is required in production');
-  }
-  // Only allow default in development/test
-  console.warn('WARNING: Using default ENCRYPTION_KEY. Set ENCRYPTION_KEY environment variable for production.');
-}
+const ENCRYPTION_KEY = getEncryptionKey();
 
 /**
  * Request logging middleware
@@ -69,7 +62,28 @@ function jwtAuthMiddleware(req, res, next) {
 
   try {
     const decoded = verifyToken(token);
-    req.user = decoded;
+    const db = req.app?.locals?.db;
+    if (!db) {
+      req.user = decoded;
+      return next();
+    }
+
+    const user = db.getActiveUserById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found or deleted' });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'Account is disabled' });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      locale: user.locale,
+      auto_download_enabled: !!user.auto_download_enabled
+    };
     next();
   } catch (error) {
     return res.status(401).json({ error: error.message });
@@ -97,6 +111,24 @@ function requireAdmin(req, res, next) {
 function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {}) {
   const app = express();
   const db = createDatabase(path.resolve(dbPath));
+  app.locals.db = db;
+
+  function sanitizeUser(user) {
+    if (!user) {
+      return null;
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      locale: user.locale,
+      is_active: !!user.is_active,
+      auto_download_enabled: !!user.auto_download_enabled,
+      deleted_at: user.deleted_at || null,
+      invited_by: user.invited_by || null,
+      created_at: user.created_at
+    };
+  }
 
   // Rate limiting to prevent abuse
   const limiter = rateLimit({
@@ -128,7 +160,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   // Auth routes (no auth middleware)
   app.post('/auth/register', async (req, res) => {
     try {
-      const { inviteToken, email, password, locale } = req.body;
+      const { inviteToken, email, password, locale, autoDownloadEnabled } = req.body;
 
       // Validate input
       if (!inviteToken || !email || !password) {
@@ -176,7 +208,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         inviteToken,
         invitedBy: invite.created_by,
         locale: locale || 'en',
-        isActive: 1
+        isActive: 1,
+        autoDownloadEnabled
       });
 
       // Mark invite as used
@@ -188,7 +221,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       res.status(201).json({
         message: 'User created successfully',
         token,
-        user: { id: userId, email, role: 'user', locale: locale || 'en' }
+        user: sanitizeUser(db.getUserById(userId))
       });
     } catch (error) {
       console.error('Registration failed:', error);
@@ -226,12 +259,83 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       res.json({
         message: 'Login successful',
         token,
-        user: { id: user.id, email: user.email, role: user.role, locale: user.locale }
+        user: sanitizeUser(user)
       });
     } catch (error) {
       console.error('Login failed:', error);
       res.status(500).json({ error: 'Login failed' });
     }
+  });
+
+  app.post('/auth/logout', jwtAuthMiddleware, (req, res) => {
+    // JWTs are stateless; client should discard token
+    res.json({ message: 'Logged out' });
+  });
+
+  app.post('/auth/reset-password', (req, res) => {
+    res.status(202).json({ message: 'Password reset flow is not yet implemented. Please contact support.' });
+  });
+
+  // Current user routes
+  app.get('/me', jwtAuthMiddleware, (req, res) => {
+    const user = db.getUserById(req.user.id);
+    res.json({ user: sanitizeUser(user) });
+  });
+
+  app.patch('/me/auto-download', jwtAuthMiddleware, (req, res) => {
+    const { enabled } = req.body;
+    if (enabled === undefined || typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    db.setAutoDownload(req.user.id, enabled);
+    const updated = db.getUserById(req.user.id);
+    res.json({ user: sanitizeUser(updated) });
+  });
+
+  app.get('/me/credentials', jwtAuthMiddleware, (req, res) => {
+    const credential = db.getUserCredential(req.user.id);
+    if (!credential) {
+      return res.json({ credential: null });
+    }
+    res.json({
+      credential: {
+        uk_number: credential.uk_number,
+        has_password: !!credential.uk_password_encrypted,
+        last_login_status: credential.last_login_status || null,
+        last_login_error: credential.last_login_error || null,
+        last_login_at: credential.last_login_at || null,
+        updated_at: credential.updated_at
+      }
+    });
+  });
+
+  app.put('/me/credentials', jwtAuthMiddleware, (req, res) => {
+    const { ukNumber, ukPassword } = req.body || {};
+    if (!ukNumber || !ukPassword) {
+      return res.status(400).json({ error: 'ukNumber and ukPassword are required' });
+    }
+
+    const encrypted = encrypt(ukPassword, ENCRYPTION_KEY);
+    db.upsertUserCredential({
+      userId: req.user.id,
+      ukNumber,
+      ukPasswordEncrypted: encrypted
+    });
+
+    res.json({
+      message: 'Credentials saved',
+      credential: { uk_number: ukNumber, has_password: true }
+    });
+  });
+
+  app.get('/me/tickets', jwtAuthMiddleware, (req, res) => {
+    res.json({ tickets: db.listTicketsByUser(req.user.id) });
+  });
+
+  app.delete('/me', jwtAuthMiddleware, (req, res) => {
+    db.softDeleteUser(req.user.id);
+    res.json({ message: 'Account deleted' });
   });
 
   // Admin routes
@@ -277,18 +381,13 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
   app.get('/admin/users', jwtAuthMiddleware, requireAdmin, (req, res) => {
     try {
-      const users = db.getUsers();
-      // Remove sensitive fields
-      const sanitizedUsers = users.map((u) => ({
-        id: u.id,
-        email: u.email,
-        role: u.role,
-        locale: u.locale,
-        is_active: u.is_active,
-        created_at: u.created_at,
-        invited_by: u.invited_by
-      }));
-      res.json({ users: sanitizedUsers });
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const query = (req.query.q || '').toLowerCase();
+      const users = includeDeleted ? db.getUsers() : db.listActiveUsers();
+      const filtered = query
+        ? users.filter((u) => (u.email || '').toLowerCase().includes(query) || (u.id || '').toLowerCase().includes(query))
+        : users;
+      res.json({ users: filtered.map(sanitizeUser) });
     } catch (error) {
       console.error('Failed to list users:', error);
       res.status(500).json({ error: 'Failed to list users' });
@@ -303,6 +402,89 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     } catch (error) {
       console.error('Failed to disable user:', error);
       res.status(500).json({ error: 'Failed to disable user' });
+    }
+  });
+
+  app.delete('/admin/users/:id', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      db.softDeleteUser(id);
+      res.json({ message: 'User deleted' });
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
+
+  app.get('/admin/users/:id/credentials', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = db.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      const credential = db.getUserCredential(id);
+      if (!credential) {
+        return res.json({ user: sanitizeUser(user), credential: null });
+      }
+      res.json({
+        user: sanitizeUser(user),
+        credential: {
+          uk_number: credential.uk_number,
+          has_password: !!credential.uk_password_encrypted,
+          last_login_status: credential.last_login_status || null,
+          last_login_error: credential.last_login_error || null,
+          last_login_at: credential.last_login_at || null,
+          updated_at: credential.updated_at
+        }
+      });
+    } catch (error) {
+      console.error('Failed to get user credentials:', error);
+      res.status(500).json({ error: 'Failed to get user credentials' });
+    }
+  });
+
+  app.put('/admin/users/:id/credentials', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ukNumber, ukPassword } = req.body || {};
+      const user = db.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!ukNumber || !ukPassword) {
+        return res.status(400).json({ error: 'ukNumber and ukPassword are required' });
+      }
+
+      const encrypted = encrypt(ukPassword, ENCRYPTION_KEY);
+      db.upsertUserCredential({ userId: id, ukNumber, ukPasswordEncrypted: encrypted });
+
+      res.json({ message: 'Credentials updated', user: sanitizeUser(user) });
+    } catch (error) {
+      console.error('Failed to update user credentials:', error);
+      res.status(500).json({ error: 'Failed to update user credentials' });
+    }
+  });
+
+  app.get('/admin/users/:id/status', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = db.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      const credential = db.getUserCredential(id);
+      res.json({
+        user: sanitizeUser(user),
+        status: {
+          last_login_status: credential ? credential.last_login_status : null,
+          last_login_error: credential ? credential.last_login_error : null,
+          last_login_at: credential ? credential.last_login_at : null
+        }
+      });
+    } catch (error) {
+      console.error('Failed to get user status:', error);
+      res.status(500).json({ error: 'Failed to get user status' });
     }
   });
 
@@ -334,8 +516,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       }
 
       const id = crypto.randomUUID();
-      const encryptionKey = ENCRYPTION_KEY || 'dev-key-DO-NOT-USE-IN-PRODUCTION';
-      const encrypted = encrypt(loginPassword, encryptionKey);
+      const encrypted = encrypt(loginPassword, ENCRYPTION_KEY);
 
       db.createCredential({
         id,
@@ -365,8 +546,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         return res.status(404).json({ error: 'Credential not found' });
       }
 
-      const encryptionKey = ENCRYPTION_KEY || 'dev-key-DO-NOT-USE-IN-PRODUCTION';
-      const encrypted = loginPassword ? encrypt(loginPassword, encryptionKey) : existing.login_password_encrypted;
+      const encrypted = loginPassword ? encrypt(loginPassword, ENCRYPTION_KEY) : existing.login_password_encrypted;
 
       db.updateCredential({
         id,
