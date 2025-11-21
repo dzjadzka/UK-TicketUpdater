@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Credentials from './pages/Credentials';
 import DeviceProfiles from './pages/DeviceProfiles';
+import Downloads from './pages/Downloads';
 import History from './pages/History';
 import Tickets from './pages/Tickets';
 import Profile from './pages/Profile';
@@ -45,6 +46,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <DeviceProfiles />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/downloads"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Downloads />
                 </Layout>
               </ProtectedRoute>
             }

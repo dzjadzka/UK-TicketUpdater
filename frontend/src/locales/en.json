@@ -83,7 +83,8 @@
     "downloading": "Downloading...",
     "success": "Download completed successfully",
     "error": "Download failed",
-    "noCredentials": "No credentials available. Please add credentials first."
+    "noCredentials": "No credentials available. Please add credentials first.",
+    "placeholder": "Ticket download interface will be implemented here."
   },
   "history": {
     "title": "Download History",

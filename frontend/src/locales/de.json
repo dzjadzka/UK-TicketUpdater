@@ -83,7 +83,8 @@
     "success": "Download erfolgreich abgeschlossen",
     "error": "Download fehlgeschlagen",
     "noCredentials": "Keine Zugangsdaten verfügbar. Bitte fügen Sie zuerst Zugangsdaten hinzu.",
-    "description": "Laden Sie Ihre Semestertickets herunter"
+    "description": "Laden Sie Ihre Semestertickets herunter",
+    "placeholder": "Die Ticket-Download-Oberfläche wird hier implementiert."
   },
   "history": {
     "title": "Download-Verlauf",
