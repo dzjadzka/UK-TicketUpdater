@@ -1,19 +1,17 @@
 # UK-TicketUpdater
 
-Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. Tickets and run history can be written to JSON or SQLite, and an Express API exposes download and management endpoints. A Vite/React frontend scaffold exists but is not yet connected to the backend.
+Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. The supported product shape is a persistent backend service that polls the base ticket page, enqueues per-user downloads, and lets admins and users control their own runs and credentials. Tickets and run history can be written to JSON or SQLite through the backend.
 
 ## What this project does
-- Runs headless browser sessions per user to fetch the current semester ticket HTML and save it under `downloads/<user-id>/`.
+- Runs as a persistent backend that polls the base ticket for freshness, queues per-user downloads, and writes each ticket under `downloads/<user-id>/`.
 - Records run history (status/message/file path) in `data/history.json` or in SQLite when configured.
-- Provides an Express server with JWT-based auth (with invite tokens) for triggering downloads, viewing history, and managing credentials/device profiles.
-- Legacy single-user scripts remain in `legacy/` for reference only.
+- Exposes backend controls for admins and users to enqueue downloads and manage credentials/device profiles; legacy single-user scripts remain in `legacy/` for reference only.
 
 ## Architecture at a glance
-- **CLI entrypoint:** `src/index.js` orchestrates multi-user downloads (JSON config or SQLite users/history).
+- **Persistent server:** `src/server.js` hosts the API and runs the polling loop to enqueue downloads per user.
 - **Downloader:** `src/downloader.js` handles Puppeteer interactions with device-profile presets from `src/deviceProfiles.js`.
-- **Persistence:** `src/history.js` (JSON history) and `src/db.js` (SQLite users/credentials/history/tickets, invite tokens).
-- **API server:** `src/server.js` exposes `/auth`, `/credentials`, `/device-profiles`, `/admin/*`, `/downloads`, `/history`, and `/tickets/:userId` with JWT protection.
-- **Frontend:** `frontend/` is a Vite/React/Tailwind scaffold with placeholder scripts; no production UI is implemented.
+- **Persistence:** `src/history.js` (JSON history) and `src/db.js` (SQLite users/credentials/history/tickets).
+- **Control surface:** API routes under `/downloads`, `/history`, `/tickets/:userId`, `/credentials`, and `/device-profiles` handle admin/user controls.
 
 ## Prerequisites
 - Node.js 18+ and npm.
@@ -21,8 +19,6 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - Network access to `https://ticket.astakassel.de`.
 
 ## Configuration (environment variables)
-- `JWT_SECRET` (recommended): Secret for signing JWTs (required in production); falls back to a dev default otherwise.
-- `JWT_EXPIRY` (optional): JWT expiry, defaults to `7d`.
 - `ENCRYPTION_KEY` (recommended): 32-byte key for encrypting stored credentials (required in production).
 - `DB_PATH` (optional): SQLite path for the API/CLI (default `./data/app.db`).
 - `OUTPUT_ROOT` (optional): Base output directory for downloads (default `./downloads`).
@@ -63,13 +59,15 @@ CLI flags:
 
 ## API server
 ```bash
-JWT_SECRET=strong-secret ENCRYPTION_KEY=32-byte-key npm run api
+# Start the persistent server (polling loop + API)
+ENCRYPTION_KEY=32-byte-key npm run api
 ```
 Key routes (see `src/server.js` for full logic):
-- `POST /auth/register` (invite required) and `POST /auth/login` for JWTs.
-- `GET/POST/PUT/DELETE /credentials` for ticket-site credentials (encrypted at rest).
-- `GET/POST/PUT/DELETE /device-profiles` for per-user device presets.
-- Admin-only: `POST/GET/DELETE /admin/invites`, `GET /admin/users`, `PUT /admin/users/:id/disable`, `POST /downloads`, `GET /history`, `GET /tickets/:userId`.
+- `POST /downloads`: enqueue downloads for all active users.
+- `GET /history`: view run history (from JSON or SQLite).
+- `GET /tickets/:userId`: retrieve the latest ticket for a user.
+- `GET/POST/PUT/DELETE /credentials`: manage ticket-site credentials (encrypted at rest).
+- `GET/POST/PUT/DELETE /device-profiles`: manage per-user device presets.
 
 ## Legacy components
 - `legacy/ticket-downloader.js`: Original single-user Firefox/Puppeteer script.
@@ -79,11 +77,9 @@ These are archived for reference and are not part of the main supported flow.
 ## Limitations and cautions
 - Downloads run sequentially per user; there is no job queue or concurrency control.
 - Error reporting is primarily console-based; structured logging/metrics are limited.
-- Frontend is a placeholder and not wired to the API.
 - No automated CI is configured; Jest/ESLint scripts exist but may require manual setup.
 
 ## Roadmap / next steps
-- Update documentation set (architecture, operations, legacy notes) to match the backend-centric flow.
 - Harden secrets/logging and add retries/concurrency limits for the downloader.
 - Expand automated tests (unit + API integration + Puppeteer smoke) and wire a simple CI workflow.
-- Revisit frontend implementation once backend is hardened.
+- Tighten admin/user controls for the persistent queue.
