@@ -19,6 +19,7 @@ const {
   encrypt,
   getEncryptionKey
 } = require('./auth');
+const { createJobSystem } = require('./jobs');
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
@@ -112,6 +113,12 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   const app = express();
   const db = createDatabase(path.resolve(dbPath));
   app.locals.db = db;
+  const jobSystem = createJobSystem({
+    db,
+    defaults: { outputRoot, defaultDeviceProfile: DEFAULT_DEVICE, historyPath: DEFAULT_HISTORY_PATH }
+  });
+  app.locals.jobQueue = jobSystem.queue;
+  app.locals.jobScheduler = jobSystem.scheduler;
 
   function sanitizeUser(user) {
     if (!user) {
@@ -783,23 +790,39 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
+  app.post('/admin/jobs/check-base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    const queue = req.app?.locals?.jobQueue;
+    if (!queue) {
+      return res.status(500).json({ error: 'Job queue not configured' });
+    }
+    queue.enqueue('checkBaseTicket');
+    res.json({ message: 'Base ticket check enqueued' });
+  });
+
   app.use((err, req, res, next) => {
     console.error('Unhandled error', err);
     res.status(500).json({ error: 'Unexpected server error' });
     next();
   });
 
-  return { app, db };
+  return { app, db, jobQueue: jobSystem.queue, jobScheduler: jobSystem.scheduler };
 }
 
 function start() {
-  const { app, db } = createApp();
+  const { app, db, jobScheduler } = createApp();
   const server = app.listen(PORT, () => {
     console.log(`API listening on port ${PORT}`);
   });
 
+  if (jobScheduler && process.env.JOBS_SCHEDULER_ENABLED !== 'false') {
+    jobScheduler.start();
+  }
+
   const shutdown = () => {
     server.close(() => {
+      if (jobScheduler) {
+        jobScheduler.stop();
+      }
       db.close();
       process.exit(0);
     });

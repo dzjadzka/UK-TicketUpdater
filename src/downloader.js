@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
+const crypto = require('crypto');
 const { getDeviceProfile } = require('./deviceProfiles');
 const { appendHistory } = require('./history');
 const { decrypt, getEncryptionKey } = require('./auth');
@@ -235,8 +236,11 @@ async function downloadTicketForUser(user, options = {}) {
       status = 'success';
       message = 'Ticket downloaded';
 
+      const contentHash = crypto.createHash('sha256').update(html).digest('hex');
+      const ticketVersion = contentHash;
+
       if (db && typeof db.recordTicket === 'function') {
-        db.recordTicket({ userId: user.id, filePath, status });
+        db.recordTicket({ userId: user.id, filePath, status, ticketVersion, contentHash });
       }
     } else {
       message = 'Ticket content not found';
@@ -283,5 +287,8 @@ async function downloadTickets(users, options = {}) {
 
 module.exports = {
   downloadTicketForUser,
-  downloadTickets
+  downloadTickets,
+  preparePage,
+  performLogin,
+  downloadHtmlForSession
 };
