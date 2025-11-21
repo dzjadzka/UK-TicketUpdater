@@ -20,6 +20,9 @@ function initSchema(db) {
       invite_token TEXT,
       invited_by TEXT,
       locale TEXT DEFAULT 'en',
+      is_active INTEGER DEFAULT 1,
+      auto_download_enabled INTEGER DEFAULT 0,
+      deleted_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       email TEXT,
@@ -42,6 +45,18 @@ function initSchema(db) {
       user_id TEXT NOT NULL,
       uk_number TEXT NOT NULL,
       password_encrypted TEXT NOT NULL,
+      last_login_status TEXT,
+      last_login_error TEXT,
+      last_login_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_credentials (
+      user_id TEXT PRIMARY KEY,
+      uk_number TEXT NOT NULL,
+      uk_password_encrypted TEXT NOT NULL,
       last_login_status TEXT,
       last_login_error TEXT,
       last_login_at TEXT,
@@ -119,8 +134,6 @@ function initSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_device_profiles_user ON device_profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_user_credentials_user ON user_credentials(user_id);
-    CREATE INDEX IF NOT EXISTS idx_tickets_user_version ON tickets(user_id, ticket_version);
-    CREATE INDEX IF NOT EXISTS idx_download_history_user ON download_history(user_id);
   `);
 }
 
@@ -132,6 +145,7 @@ function createDatabase(dbPath) {
   initSchema(db);
 
   const getUsersStmt = db.prepare('SELECT * FROM users ORDER BY id');
+  const getActiveUsersStmt = db.prepare('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC');
   const upsertUserStmt = db.prepare(
     `INSERT INTO users (id, login, role, flags, device_profile, output_dir, invite_token, invited_by, locale, created_at, updated_at, email, password_hash, username, is_active)
     VALUES (@id, @login, @role, @flags, @device_profile, @output_dir, @invite_token, @invited_by, @locale, COALESCE(@created_at, datetime('now')), COALESCE(@updated_at, datetime('now')), @email, @password_hash, @username, COALESCE(@is_active, 1))
@@ -200,13 +214,20 @@ function createDatabase(dbPath) {
   const getBaseTicketStateStmt = db.prepare('SELECT * FROM base_ticket_state WHERE id = 1');
 
   // Auth-related prepared statements
-  const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ?');
+  const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL');
   const getUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ?');
+  const getActiveUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL');
   const createUserStmt = db.prepare(
-    'INSERT INTO users (id, login, email, password_hash, role, invite_token, invited_by, locale, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO users (id, email, password_hash, role, invite_token, invited_by, locale, is_active, auto_download_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   );
   const updateUserStmt = db.prepare("UPDATE users SET updated_at = datetime('now') WHERE id = ?");
   const disableUserStmt = db.prepare("UPDATE users SET is_active = 0, updated_at = datetime('now') WHERE id = ?");
+  const setAutoDownloadStmt = db.prepare(
+    "UPDATE users SET auto_download_enabled = ?, updated_at = datetime('now') WHERE id = ?"
+  );
+  const softDeleteUserStmt = db.prepare(
+    "UPDATE users SET is_active = 0, deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+  );
 
   // Invite token statements
   const createInviteTokenStmt = db.prepare(
@@ -230,16 +251,23 @@ function createDatabase(dbPath) {
   );
   const deleteCredentialStmt = db.prepare('DELETE FROM credentials WHERE id = ? AND user_id = ?');
 
-  const createUserCredentialStmt = db.prepare(
-    `INSERT INTO user_credentials (id, user_id, uk_number, password_encrypted, last_login_status, last_login_error, last_login_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`
+  // User credential (UK) statements
+  const upsertUserCredentialStmt = db.prepare(
+    `INSERT INTO user_credentials (user_id, uk_number, uk_password_encrypted)
+     VALUES (?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       uk_number = excluded.uk_number,
+       uk_password_encrypted = excluded.uk_password_encrypted,
+       updated_at = datetime('now')`
   );
-  const updateUserCredentialLoginResultStmt = db.prepare(
-    `UPDATE user_credentials SET last_login_status = ?, last_login_error = ?, last_login_at = ?, updated_at = datetime('now')
-    WHERE id = ?`
-  );
-  const getUserCredentialsStmt = db.prepare(
-    'SELECT * FROM user_credentials WHERE user_id = ? ORDER BY created_at DESC'
+  const getUserCredentialStmt = db.prepare('SELECT * FROM user_credentials WHERE user_id = ?');
+  const updateCredentialStatusStmt = db.prepare(
+    `UPDATE user_credentials SET
+       last_login_status = ?,
+       last_login_error = ?,
+       last_login_at = ?,
+       updated_at = datetime('now')
+     WHERE user_id = ?`
   );
 
   // Device profiles statements
@@ -264,6 +292,14 @@ function createDatabase(dbPath) {
         return getUsersStmt.all();
       } catch (error) {
         console.error('Failed to get users from database:', error);
+        throw error;
+      }
+    },
+    listActiveUsers: () => {
+      try {
+        return getActiveUsersStmt.all();
+      } catch (error) {
+        console.error('Failed to get active users from database:', error);
         throw error;
       }
     },
@@ -492,7 +528,18 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
-    createUser: ({ id, login, email, passwordHash, role, inviteToken, invitedBy, locale, isActive }) => {
+    getActiveUserById: (id) => {
+      try {
+        if (!id) {
+          throw new Error('id is required');
+        }
+        return getActiveUserByIdStmt.get(id);
+      } catch (error) {
+        console.error('Failed to get active user by id:', error);
+        throw error;
+      }
+    },
+    createUser: ({ id, email, passwordHash, role, inviteToken, invitedBy, locale, isActive, autoDownloadEnabled }) => {
       try {
         const resolvedLogin = login || email;
         if (!resolvedLogin) {
@@ -507,7 +554,8 @@ function createDatabase(dbPath) {
           inviteToken || null,
           invitedBy || null,
           locale || 'en',
-          isActive !== undefined ? isActive : 1
+          isActive !== undefined ? isActive : 1,
+          autoDownloadEnabled ? 1 : 0
         );
       } catch (error) {
         console.error('Failed to create user:', error);
@@ -527,6 +575,22 @@ function createDatabase(dbPath) {
         return disableUserStmt.run(id);
       } catch (error) {
         console.error('Failed to disable user:', error);
+        throw error;
+      }
+    },
+    setAutoDownload: (id, enabled) => {
+      try {
+        return setAutoDownloadStmt.run(enabled ? 1 : 0, id);
+      } catch (error) {
+        console.error('Failed to update auto download flag:', error);
+        throw error;
+      }
+    },
+    softDeleteUser: (id) => {
+      try {
+        return softDeleteUserStmt.run(id);
+      } catch (error) {
+        console.error('Failed to soft delete user:', error);
         throw error;
       }
     },
@@ -615,58 +679,27 @@ function createDatabase(dbPath) {
       }
     },
 
-    // User credential lifecycle (NVV login details)
-    createUserCredential: ({
-      id,
-      userId,
-      ukNumber,
-      passwordEncrypted,
-      lastLoginStatus,
-      lastLoginError,
-      lastLoginAt
-    }) => {
-      if (!id || !userId || !ukNumber || !passwordEncrypted) {
-        throw new Error('id, userId, ukNumber, and passwordEncrypted are required');
-      }
+    upsertUserCredential: ({ userId, ukNumber, ukPasswordEncrypted }) => {
       try {
-        return createUserCredentialStmt.run(
-          id,
-          userId,
-          ukNumber,
-          passwordEncrypted,
-          lastLoginStatus || null,
-          lastLoginError || null,
-          lastLoginAt || null
-        );
+        return upsertUserCredentialStmt.run(userId, ukNumber, ukPasswordEncrypted);
       } catch (error) {
-        console.error('Failed to create user credential:', error);
+        console.error('Failed to upsert user credential:', error);
         throw error;
       }
     },
-    updateUserCredentialLoginResult: ({ id, status, error, loggedAt }) => {
-      if (!id) {
-        throw new Error('id is required');
-      }
+    getUserCredential: (userId) => {
       try {
-        return updateUserCredentialLoginResultStmt.run(
-          status || null,
-          error || null,
-          loggedAt || new Date().toISOString(),
-          id
-        );
-      } catch (updateError) {
-        console.error('Failed to update user credential login result:', updateError);
-        throw updateError;
+        return getUserCredentialStmt.get(userId);
+      } catch (error) {
+        console.error('Failed to get user credential:', error);
+        throw error;
       }
     },
-    getUserCredentials: (userId) => {
-      if (!userId) {
-        throw new Error('userId is required');
-      }
+    updateUserCredentialStatus: ({ userId, status, error: errorMessage, loggedInAt }) => {
       try {
-        return getUserCredentialsStmt.all(userId);
+        return updateCredentialStatusStmt.run(status || null, errorMessage || null, loggedInAt || null, userId);
       } catch (error) {
-        console.error('Failed to read user credentials:', error);
+        console.error('Failed to update user credential status:', error);
         throw error;
       }
     },

@@ -16,6 +16,10 @@ if (!JWT_SECRET) {
   console.warn('WARNING: Using default JWT_SECRET. Set JWT_SECRET environment variable for production.');
 }
 
+function getJwtSecret() {
+  return JWT_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION';
+}
+
 /**
  * Hash a password using bcrypt
  * @param {string} password - Plain text password
@@ -41,14 +45,13 @@ async function comparePassword(password, hash) {
  * @returns {string} JWT token
  */
 function generateToken(user) {
-  const secret = JWT_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION';
   return jwt.sign(
     {
       id: user.id,
       email: user.email,
       role: user.role
     },
-    secret,
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRY }
   );
 }
@@ -61,8 +64,7 @@ function generateToken(user) {
  */
 function verifyToken(token) {
   try {
-    const secret = JWT_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION';
-    return jwt.verify(token, secret);
+    return jwt.verify(token, getJwtSecret());
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token has expired');
@@ -176,6 +178,18 @@ function decrypt(encryptedData, key) {
   return decrypted;
 }
 
+function getEncryptionKey() {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY environment variable is required in production');
+    }
+    console.warn('WARNING: Using default ENCRYPTION_KEY. Set ENCRYPTION_KEY environment variable for production.');
+    return 'dev-key-DO-NOT-USE-IN-PRODUCTION';
+  }
+  return key;
+}
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -188,5 +202,6 @@ module.exports = {
   validatePassword,
   encrypt,
   decrypt,
+  getEncryptionKey,
   INVITE_TOKEN_EXPIRY_HOURS
 };
