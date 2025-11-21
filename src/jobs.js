@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const fs = require('fs');
 const { downloadTicketForUser } = require('./downloader');
 const { getEncryptionKey } = require('./auth');
 
@@ -380,7 +381,6 @@ class JobQueue {
    * Calculate content hash for a file
    */
   calculateContentHash(filePath) {
-    const fs = require('fs');
     if (!fs.existsSync(filePath)) {
       return null;
     }
