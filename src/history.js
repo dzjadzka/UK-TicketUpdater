@@ -1,6 +1,6 @@
 /**
  * History tracking module for ticket download operations
- * Supports both file-based (JSON) and database storage
+ * Prefers database persistence; JSON file fallback remains for isolated dev/test usage.
  * @module history
  */
 
@@ -9,22 +9,12 @@ const path = require('path');
 
 const DEFAULT_HISTORY_PATH = path.resolve(__dirname, '../data/history.json');
 
-/**
- * Ensures a directory exists, creating it recursively if needed
- * @private
- * @param {string} dirPath - The directory path to ensure exists
- */
 function ensureDirExists(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
-/**
- * Reads history from a JSON file
- * @param {string} [historyPath] - Path to history file, defaults to DEFAULT_HISTORY_PATH
- * @returns {Array<Object>} Array of history entries, or empty array if file doesn't exist or is invalid
- */
 function readHistory(historyPath = DEFAULT_HISTORY_PATH) {
   if (!fs.existsSync(historyPath)) {
     return [];
@@ -38,18 +28,6 @@ function readHistory(historyPath = DEFAULT_HISTORY_PATH) {
   }
 }
 
-/**
- * Appends a history entry to file or database
- * Automatically adds timestamp if not present
- * @param {Object} entry - History entry object
- * @param {string} entry.userId - User ID (required)
- * @param {string} [entry.deviceProfile] - Device profile used
- * @param {string} [entry.status] - Status of the operation
- * @param {string} [entry.filePath] - Path to downloaded file
- * @param {string} [entry.message] - Status message
- * @param {string} [historyPath] - Path to history file (ignored if db is provided)
- * @param {Object} [db] - Database instance with recordRun method
- */
 function appendHistory(entry, historyPath = DEFAULT_HISTORY_PATH, db) {
   if (!entry || !entry.userId) {
     console.error('Cannot append history: entry must contain userId');
@@ -77,4 +55,52 @@ function appendHistory(entry, historyPath = DEFAULT_HISTORY_PATH, db) {
   }
 }
 
-module.exports = { appendHistory, readHistory, DEFAULT_HISTORY_PATH };
+function getUserHistory(userId, { limit = 50, historyPath = DEFAULT_HISTORY_PATH, db } = {}) {
+  if (!userId) {
+    throw new Error('userId is required to read history');
+  }
+
+  if (db && typeof db.getTicketHistory === 'function') {
+    return db.getTicketHistory(userId, limit);
+  }
+
+  const history = readHistory(historyPath);
+  return history.filter((entry) => entry.userId === userId).slice(-limit).reverse();
+}
+
+function summarizeHistory(userId, { historyPath = DEFAULT_HISTORY_PATH, db } = {}) {
+  if (!userId) {
+    throw new Error('userId is required to summarize history');
+  }
+
+  if (db && typeof db.getTicketStats === 'function') {
+    return db.getTicketStats(userId);
+  }
+
+  const history = readHistory(historyPath).filter((entry) => entry.userId === userId);
+  return history.reduce(
+    (acc, entry) => {
+      const key = entry.status || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    { success: 0, error: 0 }
+  );
+}
+
+function shouldDownloadTicket({ userId, ticketVersion, contentHash, db }) {
+  if (!db || typeof db.isTicketVersionNew !== 'function') {
+    return true; // No database, assume download is needed
+  }
+
+  return db.isTicketVersionNew({ userId, ticketVersion, contentHash });
+}
+
+module.exports = {
+  appendHistory,
+  readHistory,
+  DEFAULT_HISTORY_PATH,
+  getUserHistory,
+  summarizeHistory,
+  shouldDownloadTicket
+};

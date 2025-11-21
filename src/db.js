@@ -12,19 +12,20 @@ function initSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      username TEXT,
-      password TEXT,
-      email TEXT,
-      password_hash TEXT,
+      login TEXT NOT NULL UNIQUE,
       role TEXT DEFAULT 'user',
+      flags TEXT DEFAULT '{}',
       device_profile TEXT,
       output_dir TEXT,
       invite_token TEXT,
       invited_by TEXT,
       locale TEXT DEFAULT 'en',
-      is_active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
+      updated_at TEXT DEFAULT (datetime('now')),
+      email TEXT,
+      password_hash TEXT,
+      username TEXT,
+      is_active INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS invite_tokens (
@@ -36,12 +37,14 @@ function initSchema(db) {
       FOREIGN KEY (created_by) REFERENCES users(id)
     );
 
-    CREATE TABLE IF NOT EXISTS credentials (
+    CREATE TABLE IF NOT EXISTS user_credentials (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
-      login_name TEXT NOT NULL,
-      login_password_encrypted TEXT NOT NULL,
-      label TEXT,
+      uk_number TEXT NOT NULL,
+      password_encrypted TEXT NOT NULL,
+      last_login_status TEXT,
+      last_login_error TEXT,
+      last_login_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -64,29 +67,60 @@ function initSchema(db) {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
-    CREATE TABLE IF NOT EXISTS runs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
-      status TEXT,
-      device_profile TEXT,
-      file_path TEXT,
-      message TEXT,
-      timestamp TEXT DEFAULT (datetime('now'))
-    );
-
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
+      user_id TEXT NOT NULL,
+      ticket_version TEXT NOT NULL,
+      content_hash TEXT,
       file_path TEXT,
+      downloaded_at TEXT DEFAULT (datetime('now')),
       status TEXT DEFAULT 'success',
+      error_message TEXT,
       validation_status TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, ticket_version),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS download_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      device_profile TEXT,
+      ticket_version TEXT,
+      status TEXT,
+      message TEXT,
+      error_message TEXT,
+      file_path TEXT,
+      downloaded_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS base_ticket_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      base_ticket_hash TEXT,
+      effective_from TEXT,
+      last_checked_at TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS credentials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      login_name TEXT NOT NULL,
+      login_password_encrypted TEXT NOT NULL,
+      label TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
     CREATE INDEX IF NOT EXISTS idx_invite_tokens_expires ON invite_tokens(expires_at);
     CREATE INDEX IF NOT EXISTS idx_credentials_user ON credentials(user_id);
     CREATE INDEX IF NOT EXISTS idx_device_profiles_user ON device_profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_user_credentials_user ON user_credentials(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tickets_user_version ON tickets(user_id, ticket_version);
+    CREATE INDEX IF NOT EXISTS idx_download_history_user ON download_history(user_id);
   `);
 }
 
@@ -99,25 +133,77 @@ function createDatabase(dbPath) {
 
   const getUsersStmt = db.prepare('SELECT * FROM users ORDER BY id');
   const upsertUserStmt = db.prepare(
-    'INSERT INTO users (id, username, password, role, device_profile, output_dir) VALUES (@id, @username, @password, @role, @device_profile, @output_dir)\n    ON CONFLICT(id) DO UPDATE SET username=excluded.username, password=excluded.password, role=excluded.role, device_profile=excluded.device_profile, output_dir=excluded.output_dir'
+    `INSERT INTO users (id, login, role, flags, device_profile, output_dir, invite_token, invited_by, locale, created_at, updated_at, email, password_hash, username, is_active)
+    VALUES (@id, @login, @role, @flags, @device_profile, @output_dir, @invite_token, @invited_by, @locale, COALESCE(@created_at, datetime('now')), COALESCE(@updated_at, datetime('now')), @email, @password_hash, @username, COALESCE(@is_active, 1))
+    ON CONFLICT(id) DO UPDATE SET
+      login=excluded.login,
+      role=excluded.role,
+      flags=excluded.flags,
+      device_profile=COALESCE(excluded.device_profile, users.device_profile),
+      output_dir=COALESCE(excluded.output_dir, users.output_dir),
+      invite_token=COALESCE(excluded.invite_token, users.invite_token),
+      invited_by=COALESCE(excluded.invited_by, users.invited_by),
+      locale=COALESCE(excluded.locale, users.locale),
+      updated_at=datetime('now'),
+      email=COALESCE(excluded.email, users.email),
+      password_hash=COALESCE(excluded.password_hash, users.password_hash),
+      username=COALESCE(excluded.username, users.username),
+      is_active=COALESCE(excluded.is_active, users.is_active)`
   );
   const getUsersByIdsStmt = db.prepare(
     'SELECT * FROM users WHERE id IN (SELECT value FROM json_each(@ids)) ORDER BY id'
   );
-  const recordRunStmt = db.prepare(
-    "INSERT INTO runs (user_id, status, device_profile, file_path, message, timestamp) VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))"
+  const recordDownloadAttemptStmt = db.prepare(
+    "INSERT INTO download_history (user_id, device_profile, ticket_version, status, message, error_message, file_path, downloaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))"
   );
   const recordTicketStmt = db.prepare(
-    "INSERT INTO tickets (user_id, file_path, status, created_at) VALUES (?, ?, ?, COALESCE(?, datetime('now')))"
+    `INSERT INTO tickets (user_id, ticket_version, content_hash, file_path, downloaded_at, status, error_message)
+    VALUES (@userId, @ticketVersion, @contentHash, @filePath, COALESCE(@downloadedAt, datetime('now')), @status, @errorMessage)
+    ON CONFLICT(user_id, ticket_version) DO UPDATE SET
+      content_hash=excluded.content_hash,
+      file_path=excluded.file_path,
+      downloaded_at=excluded.downloaded_at,
+      status=excluded.status,
+      error_message=excluded.error_message`
   );
-  const listHistoryStmt = db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT ?');
-  const listTicketsByUserStmt = db.prepare('SELECT * FROM tickets WHERE user_id = ? ORDER BY id DESC');
+  const listHistoryStmt = db.prepare(
+    'SELECT * FROM download_history ORDER BY downloaded_at DESC, id DESC LIMIT ?'
+  );
+  const listTicketsByUserStmt = db.prepare(
+    'SELECT * FROM tickets WHERE user_id = ? ORDER BY downloaded_at DESC, id DESC'
+  );
+  const getTicketByVersionStmt = db.prepare(
+    'SELECT * FROM tickets WHERE user_id = ? AND ticket_version = ?'
+  );
+  const getTicketByHashStmt = db.prepare(
+    'SELECT * FROM tickets WHERE user_id = ? AND content_hash = ? ORDER BY downloaded_at DESC LIMIT 1'
+  );
+  const getLatestTicketStmt = db.prepare(
+    'SELECT * FROM tickets WHERE user_id = ? ORDER BY downloaded_at DESC, id DESC LIMIT 1'
+  );
+  const getHistoryByUserStmt = db.prepare(
+    'SELECT * FROM download_history WHERE user_id = ? ORDER BY downloaded_at DESC, id DESC LIMIT ?'
+  );
+  const aggregateStatsStmt = db.prepare(
+    'SELECT status, COUNT(*) AS count FROM download_history WHERE user_id = ? GROUP BY status'
+  );
+
+  const setBaseTicketStateStmt = db.prepare(
+    `INSERT INTO base_ticket_state (id, base_ticket_hash, effective_from, last_checked_at, updated_at)
+    VALUES (1, @base_ticket_hash, @effective_from, @last_checked_at, COALESCE(@updated_at, datetime('now')))
+    ON CONFLICT(id) DO UPDATE SET
+      base_ticket_hash=excluded.base_ticket_hash,
+      effective_from=excluded.effective_from,
+      last_checked_at=excluded.last_checked_at,
+      updated_at=datetime('now')`
+  );
+  const getBaseTicketStateStmt = db.prepare('SELECT * FROM base_ticket_state WHERE id = 1');
 
   // Auth-related prepared statements
   const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ?');
   const getUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ?');
   const createUserStmt = db.prepare(
-    'INSERT INTO users (id, email, password_hash, role, invite_token, invited_by, locale, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO users (id, login, email, password_hash, role, invite_token, invited_by, locale, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   );
   const updateUserStmt = db.prepare("UPDATE users SET updated_at = datetime('now') WHERE id = ?");
   const disableUserStmt = db.prepare("UPDATE users SET is_active = 0, updated_at = datetime('now') WHERE id = ?");
@@ -143,6 +229,18 @@ function createDatabase(dbPath) {
     "UPDATE credentials SET login_name = ?, login_password_encrypted = ?, label = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?"
   );
   const deleteCredentialStmt = db.prepare('DELETE FROM credentials WHERE id = ? AND user_id = ?');
+
+  const createUserCredentialStmt = db.prepare(
+    `INSERT INTO user_credentials (id, user_id, uk_number, password_encrypted, last_login_status, last_login_error, last_login_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  const updateUserCredentialLoginResultStmt = db.prepare(
+    `UPDATE user_credentials SET last_login_status = ?, last_login_error = ?, last_login_at = ?, updated_at = datetime('now')
+    WHERE id = ?`
+  );
+  const getUserCredentialsStmt = db.prepare(
+    'SELECT * FROM user_credentials WHERE user_id = ? ORDER BY created_at DESC'
+  );
 
   // Device profiles statements
   const createDeviceProfileStmt = db.prepare(
@@ -186,16 +284,25 @@ function createDatabase(dbPath) {
       }
       const insertMany = db.transaction((items) => {
         items.forEach((user) => {
-          if (!user.id || !user.username || !user.password) {
-            throw new Error('Each user must have id, username, and password');
+          if (!user.id || (!user.login && !user.username)) {
+            throw new Error('Each user must have id and login');
           }
           upsertUserStmt.run({
             id: user.id,
-            username: user.username,
-            password: user.password,
+            login: user.login || user.username,
             role: user.role || 'user',
+            flags: JSON.stringify(user.flags || {}),
             device_profile: user.deviceProfile || user.device_profile || null,
-            output_dir: user.outputDir || user.output_dir || null
+            output_dir: user.outputDir || user.output_dir || null,
+            invite_token: user.invite_token || user.inviteToken || null,
+            invited_by: user.invited_by || user.invitedBy || null,
+            locale: user.locale || 'en',
+            email: user.email || null,
+            password_hash: user.password_hash || null,
+            username: user.username || null,
+            created_at: user.created_at || null,
+            updated_at: user.updated_at || null,
+            is_active: user.is_active !== undefined ? user.is_active : 1
           });
         });
       });
@@ -206,17 +313,45 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
-    recordRun: ({ userId, status, deviceProfile, filePath, message, timestamp }) => {
+    recordRun: ({ userId, status, ticketVersion, deviceProfile, message, errorMessage, filePath, timestamp }) => {
       try {
-        return recordRunStmt.run(userId, status, deviceProfile, filePath, message, timestamp);
+        return recordDownloadAttemptStmt.run(
+          userId,
+          deviceProfile || null,
+          ticketVersion || null,
+          status,
+          message || null,
+          errorMessage || null,
+          filePath || null,
+          timestamp
+        );
       } catch (error) {
         console.error('Failed to record run:', error);
         throw error;
       }
     },
-    recordTicket: ({ userId, filePath, status = 'success', createdAt }) => {
+    recordTicket: ({
+      userId,
+      ticketVersion,
+      contentHash,
+      filePath,
+      status = 'success',
+      errorMessage = null,
+      downloadedAt
+    }) => {
+      if (!userId || !ticketVersion) {
+        throw new Error('userId and ticketVersion are required to record a ticket');
+      }
       try {
-        return recordTicketStmt.run(userId, filePath, status, createdAt);
+        return recordTicketStmt.run({
+          userId,
+          ticketVersion,
+          contentHash: contentHash || null,
+          filePath: filePath || null,
+          status,
+          errorMessage,
+          downloadedAt
+        });
       } catch (error) {
         console.error('Failed to record ticket:', error);
         throw error;
@@ -238,6 +373,90 @@ function createDatabase(dbPath) {
         return listTicketsByUserStmt.all(userId);
       } catch (error) {
         console.error('Failed to list tickets by user:', error);
+        throw error;
+      }
+    },
+    isTicketVersionNew: ({ userId, ticketVersion, contentHash }) => {
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      if (!ticketVersion && !contentHash) {
+        throw new Error('ticketVersion or contentHash is required');
+      }
+      try {
+        if (ticketVersion) {
+          const existing = getTicketByVersionStmt.get(userId, ticketVersion);
+          if (existing) {
+            return false;
+          }
+        }
+        if (contentHash) {
+          const existingByHash = getTicketByHashStmt.get(userId, contentHash);
+          if (existingByHash) {
+            return false;
+          }
+        }
+        return true;
+      } catch (error) {
+        console.error('Failed to determine ticket version status:', error);
+        throw error;
+      }
+    },
+    getLatestTicketVersion: (userId) => {
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      try {
+        return getLatestTicketStmt.get(userId);
+      } catch (error) {
+        console.error('Failed to get latest ticket:', error);
+        throw error;
+      }
+    },
+    getTicketHistory: (userId, limit = 50) => {
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      try {
+        return getHistoryByUserStmt.all(userId, limit);
+      } catch (error) {
+        console.error('Failed to fetch ticket history:', error);
+        throw error;
+      }
+    },
+    getTicketStats: (userId) => {
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      try {
+        const rows = aggregateStatsStmt.all(userId);
+        return rows.reduce(
+          (acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }),
+          { success: 0, error: 0 }
+        );
+      } catch (error) {
+        console.error('Failed to aggregate ticket stats:', error);
+        throw error;
+      }
+    },
+    setBaseTicketState: ({ baseTicketHash, effectiveFrom, lastCheckedAt }) => {
+      try {
+        return setBaseTicketStateStmt.run({
+          base_ticket_hash: baseTicketHash || null,
+          effective_from: effectiveFrom || null,
+          last_checked_at: lastCheckedAt || null,
+          updated_at: null
+        });
+      } catch (error) {
+        console.error('Failed to persist base ticket state:', error);
+        throw error;
+      }
+    },
+    getBaseTicketState: () => {
+      try {
+        return getBaseTicketStateStmt.get();
+      } catch (error) {
+        console.error('Failed to read base ticket state:', error);
         throw error;
       }
     },
@@ -273,10 +492,15 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
-    createUser: ({ id, email, passwordHash, role, inviteToken, invitedBy, locale, isActive }) => {
+    createUser: ({ id, login, email, passwordHash, role, inviteToken, invitedBy, locale, isActive }) => {
       try {
+        const resolvedLogin = login || email;
+        if (!resolvedLogin) {
+          throw new Error('login is required to create a user');
+        }
         return createUserStmt.run(
           id,
+          resolvedLogin,
           email,
           passwordHash,
           role || 'user',
@@ -387,6 +611,62 @@ function createDatabase(dbPath) {
         return deleteCredentialStmt.run(id, userId);
       } catch (error) {
         console.error('Failed to delete credential:', error);
+        throw error;
+      }
+    },
+
+    // User credential lifecycle (NVV login details)
+    createUserCredential: ({
+      id,
+      userId,
+      ukNumber,
+      passwordEncrypted,
+      lastLoginStatus,
+      lastLoginError,
+      lastLoginAt
+    }) => {
+      if (!id || !userId || !ukNumber || !passwordEncrypted) {
+        throw new Error('id, userId, ukNumber, and passwordEncrypted are required');
+      }
+      try {
+        return createUserCredentialStmt.run(
+          id,
+          userId,
+          ukNumber,
+          passwordEncrypted,
+          lastLoginStatus || null,
+          lastLoginError || null,
+          lastLoginAt || null
+        );
+      } catch (error) {
+        console.error('Failed to create user credential:', error);
+        throw error;
+      }
+    },
+    updateUserCredentialLoginResult: ({ id, status, error, loggedAt }) => {
+      if (!id) {
+        throw new Error('id is required');
+      }
+      try {
+        return updateUserCredentialLoginResultStmt.run(
+          status || null,
+          error || null,
+          loggedAt || new Date().toISOString(),
+          id
+        );
+      } catch (updateError) {
+        console.error('Failed to update user credential login result:', updateError);
+        throw updateError;
+      }
+    },
+    getUserCredentials: (userId) => {
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      try {
+        return getUserCredentialsStmt.all(userId);
+      } catch (error) {
+        console.error('Failed to read user credentials:', error);
         throw error;
       }
     },
