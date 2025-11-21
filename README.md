@@ -11,7 +11,55 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - **API server:** `src/server.js` hosts the JWT-protected routes. Downloads run when invoked (no scheduler/polling loop yet).
 - **Downloader:** `src/downloader.js` handles Puppeteer interactions with device-profile presets from `src/deviceProfiles.js`.
 - **Persistence:** `src/history.js` (JSON history) and `src/db.js` (SQLite users/credentials/history/tickets).
-- **Control surface:** API routes under `/downloads`, `/history`, `/tickets/:userId`, `/credentials`, and `/device-profiles` handle admin/user controls.
+- **Job queue:** `src/jobs.js` provides background job processing for base ticket checks and per-user downloads (Phase 2).
+- **Control surface:** API routes under `/downloads`, `/history`, `/tickets/:userId`, `/credentials`, `/device-profiles`, and `/admin/jobs` handle admin/user controls.
+
+## Phase 2: Background Jobs & Ticket Lifecycle
+
+Phase 2 adds automated ticket lifecycle management:
+
+- **Base ticket monitoring**: Admin account checks the semester ticket periodically
+- **Automatic user downloads**: When base ticket changes, downloads triggered for users with `auto_download_enabled=1`
+- **Job queue**: In-memory queue processes downloads with retry logic and concurrency control
+- **Admin API**: Endpoints to manually trigger jobs and monitor status
+
+### Job Management API
+
+All job endpoints require JWT authentication with admin role:
+
+- `POST /admin/jobs/check-base-ticket` - Trigger base ticket check (requires `adminUserId` in body)
+- `POST /admin/jobs/download-all-users` - Trigger downloads for all auto-enabled users
+- `POST /admin/jobs/download-user` - Trigger download for specific user (requires `userId` in body)
+- `GET /admin/jobs?type=<type>&status=<status>&limit=<limit>` - List jobs with filtering
+- `GET /admin/jobs/:jobId` - Get job details
+
+### Usage Example
+
+```bash
+# 1. Configure admin UK credentials
+curl -X PUT http://localhost:3000/admin/users/<admin-id>/credentials \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"ukNumber": "12345", "ukPassword": "secret"}'
+
+# 2. Enable auto-download for users
+curl -X PUT http://localhost:3000/admin/users/<user-id>/auto-download \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+
+# 3. Trigger base ticket check
+curl -X POST http://localhost:3000/admin/jobs/check-base-ticket \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"adminUserId": "<admin-id>"}'
+
+# 4. Monitor job status
+curl -X GET http://localhost:3000/admin/jobs/<job-id> \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+See [PHASE2_IMPLEMENTATION_SUMMARY.md](PHASE2_IMPLEMENTATION_SUMMARY.md) for detailed documentation.
 
 ## Prerequisites
 - Node.js 18+ and npm.
