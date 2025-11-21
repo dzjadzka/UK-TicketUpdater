@@ -110,7 +110,7 @@ const Register = () => {
                 placeholder={t('auth.password')}
               />
               <p className="mt-1 text-xs text-gray-500">
-                Minimum 8 characters, including uppercase, lowercase, and number
+                {t('auth.passwordRequirements')}
               </p>
             </div>
             <div>

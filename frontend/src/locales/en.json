@@ -30,10 +30,12 @@
     "registrationSuccess": "Registration successful! Please sign in.",
     "logout": "Logout",
     "logoutConfirm": "Are you sure you want to logout?",
-    "locale": "Language"
+    "locale": "Language",
+    "passwordRequirements": "Minimum 8 characters, including uppercase, lowercase, and number"
   },
   "credentials": {
     "title": "Ticket Site Credentials",
+    "description": "Manage your ticket site login credentials",
     "add": "Add Credential",
     "edit": "Edit Credential",
     "delete": "Delete Credential",
@@ -49,6 +51,7 @@
   },
   "devices": {
     "title": "Device Profiles",
+    "description": "Configure device profiles for downloads",
     "add": "Add Device Profile",
     "edit": "Edit Device Profile",
     "delete": "Delete Device Profile",
@@ -67,10 +70,13 @@
     "deleteConfirm": "Are you sure you want to delete this device profile?",
     "presets": "System Presets",
     "custom": "Custom Profiles",
-    "noProfiles": "No custom profiles found. Use system presets or create a custom profile."
+    "noProfiles": "No custom profiles found. Use system presets or create a custom profile.",
+    "placeholder": "Device profiles management interface will be implemented here.",
+    "presetsAvailable": "Available presets: desktop_chrome, mobile_android, iphone_13, tablet_ipad"
   },
   "downloads": {
     "title": "Download Tickets",
+    "description": "Download your semester tickets",
     "trigger": "Start Download",
     "selectCredential": "Select Credential",
     "selectDevice": "Select Device Profile",
@@ -81,6 +87,7 @@
   },
   "history": {
     "title": "Download History",
+    "description": "View download history and results",
     "user": "User",
     "device": "Device",
     "status": "Status",
@@ -97,11 +104,13 @@
   },
   "tickets": {
     "title": "My Tickets",
+    "description": "Access your downloaded tickets",
     "download": "Download",
     "view": "View",
     "date": "Date",
     "noTickets": "No tickets found",
-    "viewTicket": "View Ticket"
+    "viewTicket": "View Ticket",
+    "placeholder": "Your downloaded tickets will appear here."
   },
   "admin": {
     "title": "Administration",
@@ -120,7 +129,8 @@
     "inactive": "Inactive",
     "expiresInHours": "Expires in (hours)",
     "createInviteSuccess": "Invite token created successfully",
-    "revokeConfirm": "Are you sure you want to revoke this invite token?"
+    "revokeConfirm": "Are you sure you want to revoke this invite token?",
+    "placeholder": "Admin panel for managing users and invite tokens will be implemented here."
   },
   "profile": {
     "title": "My Profile",

@@ -8,7 +8,7 @@ const Tickets = () => {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('tickets.title')}</h1>
       <div className="bg-white shadow rounded-lg p-6">
         <p className="text-gray-600">
-          Your downloaded tickets will appear here.
+          {t('tickets.placeholder')}
         </p>
       </div>
     </div>

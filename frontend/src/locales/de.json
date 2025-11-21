@@ -30,7 +30,8 @@
     "registrationSuccess": "Registrierung erfolgreich! Bitte melden Sie sich an.",
     "logout": "Abmelden",
     "logoutConfirm": "Möchten Sie sich wirklich abmelden?",
-    "locale": "Sprache"
+    "locale": "Sprache",
+    "passwordRequirements": "Mindestens 8 Zeichen, darunter Groß-, Kleinbuchstaben und Zahl"
   },
   "credentials": {
     "title": "Ticket-Website Zugangsdaten",
@@ -45,7 +46,8 @@
     "deleteConfirm": "Möchten Sie diese Zugangsdaten wirklich löschen?",
     "created": "Erstellt",
     "updated": "Aktualisiert",
-    "noCredentials": "Keine Zugangsdaten gefunden. Fügen Sie Ihre ersten Zugangsdaten hinzu."
+    "noCredentials": "Keine Zugangsdaten gefunden. Fügen Sie Ihre ersten Zugangsdaten hinzu.",
+    "description": "Verwalten Sie Ihre Ticket-Website Zugangsdaten"
   },
   "devices": {
     "title": "Geräteprofile",
@@ -67,7 +69,10 @@
     "deleteConfirm": "Möchten Sie dieses Geräteprofil wirklich löschen?",
     "presets": "System-Voreinstellungen",
     "custom": "Benutzerdefinierte Profile",
-    "noProfiles": "Keine benutzerdefinierten Profile gefunden. Verwenden Sie System-Voreinstellungen oder erstellen Sie ein benutzerdefiniertes Profil."
+    "noProfiles": "Keine benutzerdefinierten Profile gefunden. Verwenden Sie System-Voreinstellungen oder erstellen Sie ein benutzerdefiniertes Profil.",
+    "description": "Geräteprofile für Downloads konfigurieren",
+    "placeholder": "Die Verwaltungsoberfläche für Geräteprofile wird hier implementiert.",
+    "presetsAvailable": "Verfügbare Voreinstellungen: desktop_chrome, mobile_android, iphone_13, tablet_ipad"
   },
   "downloads": {
     "title": "Tickets herunterladen",
@@ -77,7 +82,8 @@
     "downloading": "Wird heruntergeladen...",
     "success": "Download erfolgreich abgeschlossen",
     "error": "Download fehlgeschlagen",
-    "noCredentials": "Keine Zugangsdaten verfügbar. Bitte fügen Sie zuerst Zugangsdaten hinzu."
+    "noCredentials": "Keine Zugangsdaten verfügbar. Bitte fügen Sie zuerst Zugangsdaten hinzu.",
+    "description": "Laden Sie Ihre Semestertickets herunter"
   },
   "history": {
     "title": "Download-Verlauf",
@@ -93,7 +99,8 @@
     "filter": "Filter",
     "all": "Alle",
     "succeeded": "Erfolgreich",
-    "search": "Suchen..."
+    "search": "Suchen...",
+    "description": "Download-Verlauf und Ergebnisse anzeigen"
   },
   "tickets": {
     "title": "Meine Tickets",
@@ -101,7 +108,9 @@
     "view": "Ansehen",
     "date": "Datum",
     "noTickets": "Keine Tickets gefunden",
-    "viewTicket": "Ticket ansehen"
+    "viewTicket": "Ticket ansehen",
+    "description": "Auf Ihre heruntergeladenen Tickets zugreifen",
+    "placeholder": "Ihre heruntergeladenen Tickets werden hier angezeigt."
   },
   "admin": {
     "title": "Verwaltung",
@@ -120,7 +129,8 @@
     "inactive": "Inaktiv",
     "expiresInHours": "Läuft ab in (Stunden)",
     "createInviteSuccess": "Einladungs-Token erfolgreich erstellt",
-    "revokeConfirm": "Möchten Sie diesen Einladungs-Token wirklich widerrufen?"
+    "revokeConfirm": "Möchten Sie diesen Einladungs-Token wirklich widerrufen?",
+    "placeholder": "Admin-Panel zur Verwaltung von Benutzern und Einladungs-Tokens wird hier implementiert."
   },
   "profile": {
     "title": "Mein Profil",

@@ -16,35 +16,35 @@ const Dashboard = () => {
   const cards = [
     {
       title: t('nav.credentials'),
-      description: 'Manage your ticket site login credentials',
+      description: t('credentials.description'),
       icon: KeyIcon,
       link: '/credentials',
       color: 'bg-blue-500'
     },
     {
       title: t('nav.devices'),
-      description: 'Configure device profiles for downloads',
+      description: t('devices.description'),
       icon: DevicePhoneMobileIcon,
       link: '/devices',
       color: 'bg-green-500'
     },
     {
       title: t('downloads.title'),
-      description: 'Download your semester tickets',
+      description: t('downloads.description'),
       icon: ArrowDownTrayIcon,
       link: '/downloads',
       color: 'bg-purple-500'
     },
     {
       title: t('nav.history'),
-      description: 'View download history and results',
+      description: t('history.description'),
       icon: ClockIcon,
       link: '/history',
       color: 'bg-yellow-500'
     },
     {
       title: t('nav.tickets'),
-      description: 'Access your downloaded tickets',
+      description: t('tickets.description'),
       icon: TicketIcon,
       link: '/tickets',
       color: 'bg-red-500'
