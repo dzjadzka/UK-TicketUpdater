@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { TicketIcon } from '@heroicons/react/24/outline';
 
 const Register = () => {
   const { t, i18n } = useTranslation();
@@ -46,110 +47,156 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {t('app.title')}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t('auth.registerTitle')}
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-800">{error}</div>
+    <div className="min-h-screen hero bg-base-200">
+      <div className="hero-content flex-col lg:flex-row-reverse max-w-6xl w-full">
+        {/* Right side - Register Form */}
+        <div className="card flex-shrink-0 w-full max-w-md shadow-2xl bg-base-100">
+          <div className="card-body">
+            <div className="text-center mb-4">
+              <div className="flex justify-center mb-4">
+                <div className="avatar placeholder">
+                  <div className="bg-secondary text-secondary-content rounded-full w-16">
+                    <TicketIcon className="h-8 w-8" />
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold">{t('app.title')}</h2>
+              <p className="text-base-content/70 mt-2">{t('auth.registerTitle')}</p>
             </div>
-          )}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="inviteToken" className="block text-sm font-medium text-gray-700">
-                {t('auth.inviteToken')}
-              </label>
-              <input
-                id="inviteToken"
-                name="inviteToken"
-                type="text"
-                required
-                value={formData.inviteToken}
-                onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder={t('auth.inviteToken')}
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                {t('auth.email')}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder={t('auth.email')}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                {t('auth.password')}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder={t('auth.password')}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {t('auth.passwordRequirements')}
+
+            <form onSubmit={handleSubmit}>
+              {error && (
+                <div className="alert alert-error mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">{t('auth.inviteToken')}</span>
+                </label>
+                <input
+                  id="inviteToken"
+                  name="inviteToken"
+                  type="text"
+                  required
+                  value={formData.inviteToken}
+                  onChange={handleChange}
+                  placeholder="XXXX-XXXX-XXXX"
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control mt-4">
+                <label className="label">
+                  <span className="label-text">{t('auth.email')}</span>
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control mt-4">
+                <label className="label">
+                  <span className="label-text">{t('auth.password')}</span>
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="input input-bordered"
+                />
+                <label className="label">
+                  <span className="label-text-alt">{t('auth.passwordRequirements')}</span>
+                </label>
+              </div>
+
+              <div className="form-control mt-4">
+                <label className="label">
+                  <span className="label-text">{t('auth.locale')}</span>
+                </label>
+                <select
+                  id="locale"
+                  name="locale"
+                  value={formData.locale}
+                  onChange={handleChange}
+                  className="select select-bordered"
+                >
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </div>
+
+              <div className="form-control mt-6">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-primary"
+                >
+                  {loading && <span className="loading loading-spinner"></span>}
+                  {loading ? t('common.loading') : t('auth.registerButton')}
+                </button>
+              </div>
+
+              <div className="divider">OR</div>
+
+              <p className="text-center text-sm">
+                {t('auth.hasAccount')}{' '}
+                <Link to="/login" className="link link-primary font-semibold">
+                  {t('auth.login')}
+                </Link>
               </p>
-            </div>
-            <div>
-              <label htmlFor="locale" className="block text-sm font-medium text-gray-700">
-                {t('auth.locale')}
-              </label>
-              <select
-                id="locale"
-                name="locale"
-                value={formData.locale}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="en">English</option>
-                <option value="de">Deutsch</option>
-                <option value="ru">Русский</option>
-              </select>
-            </div>
+            </form>
           </div>
+        </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? t('common.loading') : t('auth.registerButton')}
-            </button>
+        {/* Left side - Hero Content */}
+        <div className="text-center lg:text-left max-w-md">
+          <h1 className="text-5xl font-bold">Join Our Community</h1>
+          <p className="py-6 text-lg">
+            Get started with automated ticket management. Register with your invite code.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="badge badge-secondary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Invite-Only Access</h3>
+                <p className="text-sm text-base-content/70">Exclusive community for verified users</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="badge badge-secondary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Multi-language</h3>
+                <p className="text-sm text-base-content/70">Available in English, German & Russian</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="badge badge-secondary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Get Started Fast</h3>
+                <p className="text-sm text-base-content/70">Easy setup in just a few minutes</p>
+              </div>
+            </div>
           </div>
-
-          <div className="text-center">
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              {t('auth.hasAccount')} {t('auth.login')}
-            </Link>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

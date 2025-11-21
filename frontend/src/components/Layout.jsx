@@ -1,27 +1,22 @@
-import { Fragment } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Menu, Transition } from '@headlessui/react';
 import {
-  Bars3Icon,
-  XMarkIcon,
   HomeIcon,
   KeyIcon,
   DevicePhoneMobileIcon,
   ClockIcon,
   TicketIcon,
   UserCircleIcon,
-  ArrowRightOnRectangleIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { useState } from 'react';
 
 const Layout = ({ children }) => {
   const { t, i18n } = useTranslation();
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   const navigation = [
     { name: t('nav.dashboard'), href: '/', icon: HomeIcon },
@@ -45,206 +40,135 @@ const Layout = ({ children }) => {
     localStorage.setItem('language', lng);
   };
 
+  const isActive = (path) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const languageLabels = {
+    en: 'English',
+    de: 'Deutsch',
+    ru: 'Русский'
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between">
-            <div className="flex">
-              <div className="flex flex-shrink-0 items-center">
-                <span className="text-xl font-bold text-blue-600">
-                  {t('app.title')}
-                </span>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-900 hover:border-blue-500 hover:text-blue-600"
-                  >
-                    <item.icon className="mr-2 h-5 w-5" />
+    <div className="min-h-screen bg-base-200">
+      {/* Navbar */}
+      <div className="navbar bg-base-100 shadow-lg">
+        <div className="navbar-start">
+          <div className="dropdown">
+            <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
+            </div>
+            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+              {navigation.map((item) => (
+                <li key={item.name}>
+                  <Link to={item.href} className={isActive(item.href) ? 'active' : ''}>
+                    <item.icon className="h-5 w-5" />
                     {item.name}
                   </Link>
-                ))}
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-              {/* Language Switcher */}
-              <Menu as="div" className="relative">
-                <Menu.Button className="flex items-center text-sm text-gray-700 hover:text-gray-900">
-                  <span className="uppercase font-medium">{i18n.language}</span>
-                </Menu.Button>
-                <Transition
-                  as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
-                >
-                  <Menu.Items className="absolute right-0 z-10 mt-2 w-32 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => changeLanguage('en')}
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                        >
-                          English
-                        </button>
-                      )}
-                    </Menu.Item>
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => changeLanguage('de')}
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                        >
-                          Deutsch
-                        </button>
-                      )}
-                    </Menu.Item>
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => changeLanguage('ru')}
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                        >
-                          Русский
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
-
-              {/* User Menu */}
-              <Menu as="div" className="relative">
-                <Menu.Button className="flex items-center text-sm">
-                  <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                </Menu.Button>
-                <Transition
-                  as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
-                >
-                  <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="px-4 py-2 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">{user?.email}</p>
-                      <p className="text-xs text-gray-500">{user?.role}</p>
-                    </div>
-                    <Menu.Item>
-                      {({ active }) => (
-                        <Link
-                          to="/profile"
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block px-4 py-2 text-sm text-gray-700`}
-                        >
-                          <UserCircleIcon className="inline-block h-4 w-4 mr-2" />
-                          {t('nav.profile')}
-                        </Link>
-                      )}
-                    </Menu.Item>
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={handleLogout}
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block w-full text-left px-4 py-2 text-sm text-gray-700`}
-                        >
-                          <ArrowRightOnRectangleIcon className="inline-block h-4 w-4 mr-2" />
-                          {t('nav.logout')}
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
-            </div>
-            <div className="-mr-2 flex items-center sm:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-              >
-                {mobileMenuOpen ? (
-                  <XMarkIcon className="block h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="block h-6 w-6" />
-                )}
-              </button>
-            </div>
+                </li>
+              ))}
+            </ul>
           </div>
+          <Link to="/" className="btn btn-ghost text-xl">
+            <TicketIcon className="h-6 w-6" />
+            {t('app.title')}
+          </Link>
         </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden">
-            <div className="space-y-1 pb-3 pt-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-600 hover:border-blue-500 hover:bg-gray-50 hover:text-gray-800"
-                >
-                  <item.icon className="inline-block h-5 w-5 mr-2" />
+        
+        <div className="navbar-center hidden lg:flex">
+          <ul className="menu menu-horizontal px-1">
+            {navigation.map((item) => (
+              <li key={item.name}>
+                <Link to={item.href} className={isActive(item.href) ? 'active' : ''}>
+                  <item.icon className="h-5 w-5" />
                   {item.name}
                 </Link>
-              ))}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="navbar-end gap-2">
+          {/* Language Dropdown */}
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
+              <GlobeAltIcon className="h-5 w-5" />
             </div>
-            <div className="border-t border-gray-200 pb-3 pt-4">
-              <div className="flex items-center px-4">
-                <div className="flex-shrink-0">
-                  <UserCircleIcon className="h-10 w-10 text-gray-400" />
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">{user?.email}</div>
-                  <div className="text-sm font-medium text-gray-500">{user?.role}</div>
+            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-40">
+              {['en', 'de', 'ru'].map((lng) => (
+                <li key={lng}>
+                  <button
+                    onClick={() => changeLanguage(lng)}
+                    className={i18n.language === lng ? 'active' : ''}
+                  >
+                    {languageLabels[lng]}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* User Dropdown */}
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+              <div className="avatar placeholder">
+                <div className="bg-neutral text-neutral-content rounded-full w-10">
+                  <span className="text-sm">{user?.email?.charAt(0).toUpperCase()}</span>
                 </div>
               </div>
-              <div className="mt-3 space-y-1">
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                >
+            </div>
+            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+              <li className="menu-title">
+                <span>{user?.email}</span>
+                <span className="badge badge-sm badge-primary">{user?.role}</span>
+              </li>
+              <li>
+                <Link to="/profile">
+                  <UserCircleIcon className="h-4 w-4" />
                   {t('nav.profile')}
                 </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                >
+              </li>
+              <li>
+                <button onClick={handleLogout} className="text-error">
                   {t('nav.logout')}
                 </button>
-              </div>
-            </div>
+              </li>
+            </ul>
           </div>
-        )}
-      </nav>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <main className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
+      <main className="container mx-auto p-4 lg:p-8">
+        {children}
       </main>
+
+      {/* Footer */}
+      <footer className="footer footer-center p-10 bg-base-100 text-base-content mt-auto">
+        <aside>
+          <TicketIcon className="h-12 w-12 text-primary" />
+          <p className="font-bold">
+            {t('app.title')}
+          </p>
+          <p>{t('app.description')}</p>
+          <p>Copyright © {new Date().getFullYear()} - All rights reserved</p>
+        </aside>
+        <nav>
+          <div className="grid grid-flow-col gap-4">
+            <a href="https://github.com/dzjadzka/UK-TicketUpdater" target="_blank" rel="noopener noreferrer" className="link link-hover">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="fill-current">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+            </a>
+          </div>
+        </nav>
+      </footer>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { TicketIcon } from '@heroicons/react/24/outline';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -39,76 +40,120 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {t('app.title')}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t('auth.loginTitle')}
-          </p>
+    <div className="min-h-screen hero bg-base-200">
+      <div className="hero-content flex-col lg:flex-row-reverse max-w-6xl w-full">
+        {/* Right side - Login Form */}
+        <div className="card flex-shrink-0 w-full max-w-md shadow-2xl bg-base-100">
+          <div className="card-body">
+            <div className="text-center mb-4">
+              <div className="flex justify-center mb-4">
+                <div className="avatar placeholder">
+                  <div className="bg-primary text-primary-content rounded-full w-16">
+                    <TicketIcon className="h-8 w-8" />
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold">{t('app.title')}</h2>
+              <p className="text-base-content/70 mt-2">{t('auth.loginTitle')}</p>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              {error && (
+                <div className="alert alert-error mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">{t('auth.email')}</span>
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control mt-4">
+                <label className="label">
+                  <span className="label-text">{t('auth.password')}</span>
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control mt-6">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-primary"
+                >
+                  {loading && <span className="loading loading-spinner"></span>}
+                  {loading ? t('common.loading') : t('auth.loginButton')}
+                </button>
+              </div>
+
+              <div className="divider">OR</div>
+
+              <p className="text-center text-sm">
+                {t('auth.noAccount')}{' '}
+                <Link to="/register" className="link link-primary font-semibold">
+                  {t('auth.register')}
+                </Link>
+              </p>
+            </form>
+          </div>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-800">{error}</div>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                {t('auth.email')}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder={t('auth.email')}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                {t('auth.password')}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder={t('auth.password')}
-              />
-            </div>
-          </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? t('common.loading') : t('auth.loginButton')}
-            </button>
+        {/* Left side - Hero Content */}
+        <div className="text-center lg:text-left max-w-md">
+          <h1 className="text-5xl font-bold">{t('app.title')}</h1>
+          <p className="py-6 text-lg">
+            {t('app.description')}
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="badge badge-primary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Multi-user Support</h3>
+                <p className="text-sm text-base-content/70">Manage multiple accounts with ease</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="badge badge-primary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Device Emulation</h3>
+                <p className="text-sm text-base-content/70">Custom profiles for different devices</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="badge badge-primary badge-lg">✓</div>
+              <div className="text-left">
+                <h3 className="font-semibold">Secure & Private</h3>
+                <p className="text-sm text-base-content/70">Encrypted credentials and JWT auth</p>
+              </div>
+            </div>
           </div>
-
-          <div className="text-center">
-            <Link
-              to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              {t('auth.noAccount')} {t('auth.register')}
-            </Link>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );
