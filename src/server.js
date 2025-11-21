@@ -6,6 +6,8 @@ const { downloadTickets } = require('./downloader');
 const { createDatabase } = require('./db');
 const { DEFAULT_HISTORY_PATH } = require('./history');
 const { validateDeviceProfile } = require('./deviceProfiles');
+const { logger } = require('./logger');
+const { ApiError, asyncHandler, errorHandler } = require('./errors');
 const {
   hashPassword,
   comparePassword,
@@ -31,16 +33,23 @@ const ENCRYPTION_KEY = getEncryptionKey();
  * Adds unique request ID and logs incoming requests
  */
 function requestLogger(req, res, next) {
-  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = crypto.randomUUID();
   req.requestId = requestId;
   res.setHeader('X-Request-ID', requestId);
 
+  const requestLoggerInstance = logger.child({ request_id: requestId, route: req.path, method: req.method });
+  req.logger = requestLoggerInstance;
+
   const start = Date.now();
-  console.log(`[${requestId}] ${req.method} ${req.path}`);
+  requestLoggerInstance.info('request_started', { ip: req.ip, user_agent: req.get('user-agent') });
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${requestId}] ${res.statusCode} ${duration}ms`);
+    requestLoggerInstance.info('request_completed', {
+      status: res.statusCode,
+      duration_ms: duration,
+      user_id: req.user?.id
+    });
   });
 
   next();
@@ -55,7 +64,7 @@ function jwtAuthMiddleware(req, res, next) {
   const bearerPrefix = 'bearer ';
 
   if (!authHeader || !authHeader.toLowerCase().startsWith(bearerPrefix)) {
-    return res.status(401).json({ error: 'Missing authentication token.' });
+    return next(ApiError.unauthorized('missing_token', 'Missing authentication token.'));
   }
 
   const token = authHeader.slice(bearerPrefix.length);
@@ -70,11 +79,11 @@ function jwtAuthMiddleware(req, res, next) {
 
     const user = db.getActiveUserById(decoded.id);
     if (!user) {
-      return res.status(401).json({ error: 'User not found or deleted' });
+      return next(ApiError.unauthorized('user_not_found', 'User not found or deleted'));
     }
 
     if (!user.is_active) {
-      return res.status(403).json({ error: 'Account is disabled' });
+      return next(ApiError.forbidden('account_disabled', 'Account is disabled'));
     }
 
     req.user = {
@@ -86,7 +95,7 @@ function jwtAuthMiddleware(req, res, next) {
     };
     next();
   } catch (error) {
-    return res.status(401).json({ error: error.message });
+    return next(ApiError.unauthorized('invalid_token', error.message));
   }
 }
 
@@ -96,7 +105,7 @@ function jwtAuthMiddleware(req, res, next) {
  */
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required.' });
+    return next(ApiError.forbidden('admin_required', 'Admin access required.'));
   }
   next();
 }
@@ -150,6 +159,23 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
   app.use(express.json({ limit: '1mb' }));
   app.use(requestLogger);
+  app.use((req, res, next) => {
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+      if (body && typeof body.error === 'string') {
+        const statusCode = res.statusCode || 500;
+        body = {
+          error: {
+            code: statusCode >= 500 ? 'internal_error' : 'bad_request',
+            message: body.error,
+            request_id: req.requestId
+          }
+        };
+      }
+      return originalJson(body);
+    };
+    next();
+  });
   app.use(limiter);
 
   // Public routes (no auth required)
@@ -158,42 +184,42 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Auth routes (no auth middleware)
-  app.post('/auth/register', async (req, res) => {
+  app.post('/auth/register', asyncHandler(async (req, res, next) => {
     try {
       const { inviteToken, email, password, locale, autoDownloadEnabled } = req.body;
 
       // Validate input
       if (!inviteToken || !email || !password) {
-        return res.status(400).json({ error: 'inviteToken, email, and password are required' });
+        return next(ApiError.badRequest('missing_fields', 'inviteToken, email, and password are required'));
       }
 
       if (!isValidEmail(email)) {
-        return res.status(400).json({ error: 'Invalid email format' });
+        return next(ApiError.badRequest('invalid_email', 'Invalid email format'));
       }
 
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.isValid) {
-        return res.status(400).json({ error: passwordValidation.message });
+        return next(ApiError.badRequest('weak_password', passwordValidation.message));
       }
 
       // Check invite token
       const invite = db.getInviteToken(inviteToken);
       if (!invite) {
-        return res.status(400).json({ error: 'Invalid invite token' });
+        return next(ApiError.badRequest('invalid_invite', 'Invalid invite token'));
       }
 
       if (invite.used_by) {
-        return res.status(400).json({ error: 'Invite token already used' });
+        return next(ApiError.badRequest('invite_used', 'Invite token already used'));
       }
 
       if (isInviteExpired(invite.expires_at)) {
-        return res.status(400).json({ error: 'Invite token has expired' });
+        return next(ApiError.badRequest('invite_expired', 'Invite token has expired'));
       }
 
       // Check if email already exists
       const existingUser = db.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ error: 'Email already registered' });
+        return next(ApiError.badRequest('email_exists', 'Email already registered'));
       }
 
       // Create user
@@ -224,36 +250,36 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         user: sanitizeUser(db.getUserById(userId))
       });
     } catch (error) {
-      console.error('Registration failed:', error);
-      res.status(500).json({ error: 'Registration failed' });
+      req.logger?.error('registration_failed', { error });
+      next(ApiError.internal('registration_failed', 'Registration failed', error));
     }
-  });
+  }));
 
-  app.post('/auth/login', async (req, res) => {
+  app.post('/auth/login', asyncHandler(async (req, res, next) => {
     try {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({ error: 'email and password are required' });
+        return next(ApiError.badRequest('missing_fields', 'email and password are required'));
       }
 
       const user = db.getUserByEmail(email);
       if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return next(ApiError.unauthorized('invalid_credentials', 'Invalid credentials'));
       }
 
       if (!user.is_active) {
-        return res.status(403).json({ error: 'Account is disabled' });
+        return next(ApiError.forbidden('account_disabled', 'Account is disabled'));
       }
 
       if (!user.password_hash) {
-        return res.status(401).json({ error: 'Account needs password reset under new auth scheme' });
+        return next(ApiError.unauthorized('password_reset_required', 'Account needs password reset under new auth scheme'));
       }
 
       const isValid = await comparePassword(password, user.password_hash);
 
       if (!isValid) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return next(ApiError.unauthorized('invalid_credentials', 'Invalid credentials'));
       }
 
       const token = generateToken({ id: user.id, email: user.email, role: user.role });
@@ -264,10 +290,10 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         user: sanitizeUser(user)
       });
     } catch (error) {
-      console.error('Login failed:', error);
-      res.status(500).json({ error: 'Login failed' });
+      req.logger?.error('login_failed', { error });
+      next(ApiError.internal('login_failed', 'Login failed', error));
     }
-  });
+  }));
 
   app.post('/auth/logout', jwtAuthMiddleware, (req, res) => {
     // JWTs are stateless; client should discard token
@@ -707,40 +733,40 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.delete('/device-profiles/:id', jwtAuthMiddleware, (req, res) => {
+  app.delete('/device-profiles/:id', jwtAuthMiddleware, asyncHandler(async (req, res, next) => {
     try {
       const { id } = req.params;
       const result = db.deleteDeviceProfile(id, req.user.id);
 
       if (result.changes === 0) {
-        return res.status(404).json({ error: 'Device profile not found' });
+        return next(ApiError.notFound('device_profile_not_found', 'Device profile not found'));
       }
 
       res.json({ message: 'Device profile deleted' });
     } catch (error) {
-      console.error('Failed to delete device profile:', error);
-      res.status(500).json({ error: 'Failed to delete device profile' });
+      req.logger?.error('device_profile_delete_failed', { error });
+      next(ApiError.internal('device_profile_delete_failed', 'Failed to delete device profile', error));
     }
-  });
+  }));
 
   // Protected operational routes (admin-only)
-  app.post('/downloads', jwtAuthMiddleware, requireAdmin, async (req, res) => {
+  app.post('/downloads', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
     try {
       const { userIds, deviceProfile, outputDir } = req.body || {};
 
       // Validate userIds if provided
       if (userIds !== undefined && !Array.isArray(userIds)) {
-        return res.status(400).json({ error: 'userIds must be an array' });
+        return next(ApiError.badRequest('invalid_user_ids', 'userIds must be an array'));
       }
 
       // Validate deviceProfile if provided
       if (deviceProfile && typeof deviceProfile !== 'string') {
-        return res.status(400).json({ error: 'deviceProfile must be a string' });
+        return next(ApiError.badRequest('invalid_device_profile', 'deviceProfile must be a string'));
       }
 
       const users = Array.isArray(userIds) && userIds.length ? db.getActiveUsersByIds(userIds) : db.listActiveUsers();
       if (!users.length) {
-        return res.status(400).json({ error: 'No users available' });
+        return next(ApiError.badRequest('no_users', 'No users available'));
       }
 
       const results = await downloadTickets(users, {
@@ -748,46 +774,82 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         outputRoot: path.resolve(outputDir || outputRoot),
         historyPath: DEFAULT_HISTORY_PATH,
         db,
-        encryptionKey: ENCRYPTION_KEY
+        encryptionKey: ENCRYPTION_KEY,
+        logger: req.logger || logger
       });
       res.json({ results });
     } catch (error) {
-      console.error('Failed to run download via API', error);
-      res.status(500).json({ error: error.message });
+      req.logger?.error('download_job_failed', { error });
+      next(ApiError.internal('download_job_failed', 'Failed to run download via API', error));
+    }
+  }));
+
+  app.get('/admin/observability/errors', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+    try {
+      const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 200);
+      const errors = db.getRecentErrors(limit);
+      res.json({ errors });
+    } catch (error) {
+      req.logger?.error('observability_errors_failed', { error });
+      next(ApiError.internal('observability_errors_failed', 'Failed to load recent errors', error));
+    }
+  }));
+
+  app.get('/admin/observability/job-summary', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+    try {
+      const hours = Math.max(1, Number(req.query.hours) || 24);
+      const summary = db.summarizeJobsSince(hours);
+      res.json({ window_hours: hours, summary });
+    } catch (error) {
+      req.logger?.error('observability_summary_failed', { error });
+      next(ApiError.internal('observability_summary_failed', 'Failed to load job summary', error));
+    }
+  }));
+
+  app.get('/admin/observability/base-ticket', jwtAuthMiddleware, requireAdmin, (req, res, next) => {
+    try {
+      const state = db.getBaseTicketState();
+      res.json({
+        state: {
+          base_ticket_hash: state?.base_ticket_hash || null,
+          effective_from: state?.effective_from || null,
+          last_checked_at: state?.last_checked_at || null,
+          updated_at: state?.updated_at || null
+        }
+      });
+    } catch (error) {
+      req.logger?.error('observability_base_ticket_failed', { error });
+      next(ApiError.internal('observability_base_ticket_failed', 'Failed to read base ticket state', error));
     }
   });
 
-  app.get('/history', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/history', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
     try {
       const limit = Number.parseInt(req.query.limit, 10) || 50;
       if (limit < 1 || limit > 1000) {
-        return res.status(400).json({ error: 'limit must be between 1 and 1000' });
+        return next(ApiError.badRequest('invalid_limit', 'limit must be between 1 and 1000'));
       }
       res.json({ history: db.listHistory(limit) });
     } catch (error) {
-      console.error('Failed to retrieve history', error);
-      res.status(500).json({ error: error.message });
+      req.logger?.error('history_read_failed', { error });
+      next(ApiError.internal('history_read_failed', 'Failed to retrieve history', error));
     }
-  });
+  }));
 
-  app.get('/tickets/:userId', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/tickets/:userId', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
     try {
       const { userId } = req.params;
       if (!userId || typeof userId !== 'string') {
-        return res.status(400).json({ error: 'userId must be a non-empty string' });
+        return next(ApiError.badRequest('invalid_user_id', 'userId must be a non-empty string'));
       }
       res.json({ tickets: db.listTicketsByUser(userId) });
     } catch (error) {
-      console.error('Failed to retrieve tickets', error);
-      res.status(500).json({ error: error.message });
+      req.logger?.error('tickets_read_failed', { error });
+      next(ApiError.internal('tickets_read_failed', 'Failed to retrieve tickets', error));
     }
-  });
+  }));
 
-  app.use((err, req, res, next) => {
-    console.error('Unhandled error', err);
-    res.status(500).json({ error: 'Unexpected server error' });
-    next();
-  });
+  app.use(errorHandler);
 
   return { app, db };
 }

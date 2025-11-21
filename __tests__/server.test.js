@@ -60,7 +60,7 @@ describe('protected operational routes', () => {
     for (const route of routes) {
       const response = await request(app)[route.method](route.path);
       expect(response.status).toBe(401);
-      expect(response.body.error).toMatch(/missing authentication token/i);
+      expect(response.body.error.message).toMatch(/missing authentication token/i);
     }
   });
 
@@ -79,7 +79,7 @@ describe('protected operational routes', () => {
     for (const route of routes) {
       const response = await request(app)[route.method](route.path).set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(403);
-      expect(response.body.error).toMatch(/admin access required/i);
+      expect(response.body.error.message).toMatch(/admin access required/i);
     }
   });
 
@@ -111,5 +111,25 @@ describe('protected operational routes', () => {
       .get(`/tickets/${admin.id}`)
       .set('Authorization', `Bearer ${token}`);
     expect(ticketsResponse.status).toBe(200);
+  });
+
+  it('returns structured errors for invalid download payloads', async () => {
+    const { createApp } = require('../src/server');
+    const { app, db } = createApp({ dbPath: testDbPath });
+    const admin = await createUser(db, { role: 'admin', email: 'admin-observer@example.com' });
+
+    const loginResponse = await request(app)
+      .post('/auth/login')
+      .send({ email: admin.email, password: admin.password });
+
+    const token = loginResponse.body.token;
+    const response = await request(app)
+      .post('/downloads')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ userIds: 'not-an-array' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('invalid_user_ids');
+    expect(response.headers['x-request-id']).toBeTruthy();
   });
 });

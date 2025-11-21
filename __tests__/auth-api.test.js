@@ -85,7 +85,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('email');
+      expect(response.body.error.message).toContain('email');
     });
 
     it('should reject registration with weak password', async () => {
@@ -98,7 +98,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('8 characters');
+      expect(response.body.error.message).toContain('8 characters');
     });
 
     it('should reject registration with invalid invite token', async () => {
@@ -111,7 +111,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Invalid invite token');
+      expect(response.body.error.message).toContain('Invalid invite token');
     });
 
     it('should reject registration with used invite token', async () => {
@@ -134,7 +134,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('already used');
+      expect(response.body.error.message).toContain('already used');
     });
 
     it('should reject registration with expired invite token', async () => {
@@ -157,7 +157,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('expired');
+      expect(response.body.error.message).toContain('expired');
     });
 
     it('should reject duplicate email registration', async () => {
@@ -188,7 +188,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('already registered');
+      expect(response.body.error.message).toContain('already registered');
     });
   });
 
@@ -234,7 +234,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toContain('Invalid credentials');
+      expect(response.body.error.message).toContain('Invalid credentials');
     });
 
     it('should reject login with non-existent email', async () => {
@@ -246,7 +246,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toContain('Invalid credentials');
+      expect(response.body.error.message).toContain('Invalid credentials');
     });
 
     it('should reject login for disabled account', async () => {
@@ -260,7 +260,7 @@ describe('Authentication API', () => {
         });
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toContain('disabled');
+      expect(response.body.error.message).toContain('disabled');
     });
   });
 
