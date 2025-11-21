@@ -64,19 +64,21 @@ describe('database', () => {
       db.upsertUsers([{ id: 'user-cred', username: 'cred-user' }]);
 
       db.createUserCredential({
-        id: 'cred-1',
         userId: 'user-cred',
         ukNumber: '123456',
-        passwordEncrypted: 'secret'
+        ukPasswordEncrypted: 'secret'
       });
 
-      db.updateUserCredentialLoginResult({ id: 'cred-1', status: 'success', loggedAt: '2024-01-01T00:00:00Z' });
+      db.updateUserCredentialStatus({
+        userId: 'user-cred',
+        status: 'success',
+        loggedInAt: '2024-01-01T00:00:00Z'
+      });
 
-      const creds = db.getUserCredentials('user-cred');
-      expect(creds).toHaveLength(1);
-      expect(creds[0].uk_number).toBe('123456');
-      expect(creds[0].last_login_status).toBe('success');
-      expect(creds[0].last_login_at).toBe('2024-01-01T00:00:00Z');
+      const credential = db.getUserCredential('user-cred');
+      expect(credential.uk_number).toBe('123456');
+      expect(credential.last_login_status).toBe('success');
+      expect(credential.last_login_at).toBe('2024-01-01T00:00:00Z');
       db.close();
     });
   });

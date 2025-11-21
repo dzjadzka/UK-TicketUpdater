@@ -96,19 +96,19 @@ describe('downloader module', () => {
     test('should throw error for invalid user object - missing id', async () => {
       await expect(
         downloadTicketForUser({ username: 'test', password: 'pass' })
-      ).rejects.toThrow('User object must contain id, username, and password');
+      ).rejects.toThrow('User object must contain id');
     });
 
     test('should throw error for invalid user object - missing username', async () => {
       await expect(
         downloadTicketForUser({ id: '123', password: 'pass' })
-      ).rejects.toThrow('User object must contain id, username, and password');
+      ).rejects.toThrow('User credentials not found');
     });
 
     test('should throw error for invalid user object - missing password', async () => {
       await expect(
         downloadTicketForUser({ id: '123', username: 'test' })
-      ).rejects.toThrow('User object must contain id, username, and password');
+      ).rejects.toThrow('User credentials not found');
     });
 
     test('should create output directory if it does not exist', async () => {
@@ -466,13 +466,13 @@ describe('downloader module', () => {
 
     test('should handle null user object', async () => {
       await expect(downloadTicketForUser(null)).rejects.toThrow(
-        'User object must contain id, username, and password'
+        'User object must contain id'
       );
     });
 
     test('should handle undefined user object', async () => {
       await expect(downloadTicketForUser(undefined)).rejects.toThrow(
-        'User object must contain id, username, and password'
+        'User object must contain id'
       );
     });
 

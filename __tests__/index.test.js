@@ -124,6 +124,7 @@ describe('index', () => {
       // Mock database
       mockDb = {
         getUsers: jest.fn(),
+        listActiveUsers: jest.fn(),
         close: jest.fn()
       };
       createDatabase.mockReturnValue(mockDb);
@@ -174,7 +175,7 @@ describe('index', () => {
       const mockUsers = [
         { id: 'db-user-1', username: 'dbtest', password: 'dbpass' }
       ];
-      mockDb.getUsers.mockReturnValue(mockUsers);
+      mockDb.listActiveUsers.mockReturnValue(mockUsers);
 
       process.argv = ['node', 'index.js', '--db=./data/test.db'];
 
@@ -185,7 +186,7 @@ describe('index', () => {
       await main();
 
       expect(createDatabase).toHaveBeenCalledWith(expect.stringContaining('test.db'));
-      expect(mockDb.getUsers).toHaveBeenCalled();
+      expect(mockDb.listActiveUsers).toHaveBeenCalled();
       expect(downloadTickets).toHaveBeenCalledWith(
         mockUsers,
         expect.objectContaining({ db: mockDb })
@@ -194,7 +195,7 @@ describe('index', () => {
 
     it('should close database connection after execution', async () => {
       const mockUsers = [{ id: 'user-1', username: 'test', password: 'pass' }];
-      mockDb.getUsers.mockReturnValue(mockUsers);
+      mockDb.listActiveUsers.mockReturnValue(mockUsers);
 
       process.argv = ['node', 'index.js', '--db=./data/test.db'];
 
@@ -209,7 +210,7 @@ describe('index', () => {
 
     it('should close database even if download fails', async () => {
       const mockUsers = [{ id: 'user-1', username: 'test', password: 'pass' }];
-      mockDb.getUsers.mockReturnValue(mockUsers);
+      mockDb.listActiveUsers.mockReturnValue(mockUsers);
 
       process.argv = ['node', 'index.js', '--db=./data/test.db'];
 
@@ -229,7 +230,7 @@ describe('index', () => {
     });
 
     it('should throw error if no users found in database', async () => {
-      mockDb.getUsers.mockReturnValue([]);
+      mockDb.listActiveUsers.mockReturnValue([]);
 
       process.argv = ['node', 'index.js', '--db=./data/test.db'];
 
