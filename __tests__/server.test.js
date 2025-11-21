@@ -60,7 +60,7 @@ describe('protected operational routes', () => {
     for (const route of routes) {
       const response = await request(app)[route.method](route.path);
       expect(response.status).toBe(401);
-      expect(response.body.error).toMatch(/missing authentication token/i);
+      expect(response.body.error).toMatchObject({ code: 'AUTH_MISSING' });
     }
   });
 
@@ -79,7 +79,7 @@ describe('protected operational routes', () => {
     for (const route of routes) {
       const response = await request(app)[route.method](route.path).set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(403);
-      expect(response.body.error).toMatch(/admin access required/i);
+      expect(response.body.error).toMatchObject({ code: 'ADMIN_REQUIRED' });
     }
   });
 
