@@ -333,15 +333,30 @@ Das hier gegebene Upload-Script dient lediglich als Beispiel/Anregung, wie ein U
 - `ticket-downloader.js`: original single-user downloader (Firefox-based). Retained for reference.
 - `ticket-uploader.sh`: example Nextcloud/WebDAV uploader. Currently not part of the main flow.
 
-## Cron example
+## Scheduled downloads (GitHub Actions)
 
-Run the multi-user downloader on the 1st of each month, hours 0–10 (once per hour):
+The scheduled GitHub Actions workflow in `.github/workflows/scheduled-download.yml` is the single source of truth for the
+monthly automation. It runs hourly from 00:00–10:00 UTC on the 1st day of each month. To enable it:
 
-```cron
-0 0-10 1 * * /usr/bin/node /path/to/repo/src/index.js --users /path/to/config/users.json --output /path/to/downloads
-```
+1. Add a repository secret `USERS_JSON` containing your multi-user configuration JSON.
+2. The workflow writes this secret to `config/users.ci.json` at runtime and runs `npm run download -- --users ./config/users.ci.json --output ./downloads/ci`.
+3. If the secret is missing, the workflow emits a notice and exits successfully so repositories without credentials are not broken.
 
-Ensure the configured user has permission to write into the output and history directories.
+### Manually rerun the scheduled job
+
+You can trigger the same job on demand via GitHub Actions without touching servers or cron:
+
+1. Navigate to the repository's **Actions** tab.
+2. Select **Scheduled multi-user download**.
+3. Click **Run workflow** and confirm to dispatch a run with the current default branch.
+4. Provide or update the `USERS_JSON` secret if you need different credentials before triggering.
+
+### Branch protection / required checks
+
+Enable branch protection on the default branch so that both CI workflows must pass before merges:
+
+- **CI** (`.github/workflows/ci.yml`): lints, formats, and runs the Jest suite with coverage.
+- **Scheduled multi-user download** (`.github/workflows/scheduled-download.yml`): scheduled/monthly workflow with a manual dispatch path; it exits with a notice when `USERS_JSON` is absent so the status check remains green on repositories without credentials.
 
 ### Update 09.2025!
 
@@ -388,18 +403,4 @@ Das Script sollte nun mit dem nodejs Benutzer ausführbar sein.
 
 ## Wie erstelle ich einen Cronjob?
 
-(Anmerkung: Jeder Benutzer hat seine eigene crontab-Datei, der Cronjob muss also auf dem nodejs Benutzer erstellt werden!)
-
-Die crontab-Datei öffnen und mit dem Editor deiner Wahl bearbeiten:
-
-```bash
-crontab -e
-```
-
-Am Ende der Datei folgende Zeile hinzufügen:
-
-```cron
-0 0-10 1 * * /Path/To/Script.sh
-```
-
-Jetzt wird das Script immer am ersten des Monats von 0 bis 10 Uhr zu jeder vollen Stunde einmal ausgeführt (Falls die Uni Server ausnahmweise mal Probleme machen sollten).
+Server-side cron setup has been retired; use the GitHub Actions schedule or manual dispatch described above instead.

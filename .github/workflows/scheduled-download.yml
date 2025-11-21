@@ -1,0 +1,44 @@
+name: Scheduled multi-user download
+
+on:
+  schedule:
+    # Hourly 0-10 on the 1st of each month (UTC)
+    - cron: '0 0-10 1 * *'
+  workflow_dispatch:
+
+env:
+  USERS_JSON: ${{ secrets.USERS_JSON }}
+
+jobs:
+  download:
+    name: Run scheduled downloader
+    runs-on: ubuntu-latest
+    # Stable concurrency key ensures only one scheduled run executes at a time across branches
+    concurrency: scheduled-downloader
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Skip when no users config is provided
+        if: env.USERS_JSON == ''
+        run: echo "::notice:: USERS_JSON secret not configured; skipping scheduled downloader run."
+
+      - name: Write users config from secret
+        if: env.USERS_JSON != ''
+        run: |
+          mkdir -p config
+          echo "$USERS_JSON" > config/users.ci.json
+
+      - name: Run monthly downloader
+        if: env.USERS_JSON != ''
+        run: npm run download -- --users ./config/users.ci.json --output ./downloads/ci
