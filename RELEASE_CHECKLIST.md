@@ -17,8 +17,8 @@ Use this checklist before cutting a new release to ensure code quality and stabi
 - [ ] Manual smoke test of CLI: `npm run download:sample`
 - [ ] Manual smoke test of API (if applicable):
   ```bash
-  API_TOKEN=test npm run api
-  curl -H "Authorization: Bearer test" http://localhost:3000/health
+  JWT_SECRET=test ENCRYPTION_KEY=dev-key-DO-NOT-USE-IN-PRODUCTION npm run api
+  curl -H "Authorization: Bearer <jwt-token>" http://localhost:3000/health
   ```
 
 ### 3. Dependencies
