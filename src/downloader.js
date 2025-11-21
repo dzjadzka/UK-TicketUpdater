@@ -3,6 +3,7 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 const { getDeviceProfile } = require('./deviceProfiles');
 const { appendHistory } = require('./history');
+const { decrypt, getEncryptionKey } = require('./auth');
 
 // Constants
 const TICKET_URL = 'https://ticket.astakassel.de';
@@ -10,6 +11,25 @@ const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const SELECTOR_TIMEOUT = 10000; // 10 seconds
 const TICKET_TEXT_MARKER = 'NVV-Semesterticket';
 const PRIVACY_TEXT_MARKER = 'Website of the semester ticket';
+
+function resolveUserCredentials(user, db, encryptionKey) {
+  if (db && typeof db.getUserCredential === 'function') {
+    const record = db.getUserCredential(user.id);
+    if (!record || !record.uk_password_encrypted) {
+      throw new Error('Missing UK credentials');
+    }
+
+    const key = encryptionKey || getEncryptionKey();
+    const password = decrypt(record.uk_password_encrypted, key);
+    return { ukNumber: record.uk_number, ukPassword: password };
+  }
+
+  if (user && user.username && user.password) {
+    return { ukNumber: user.username, ukPassword: user.password };
+  }
+
+  throw new Error('User credentials not found');
+}
 
 /**
  * Ensures a directory exists, creating it recursively if needed
@@ -140,9 +160,11 @@ async function downloadHtmlForSession(page) {
 async function downloadTicketForUser(user, options = {}) {
   const { defaultDeviceProfile = 'desktop_chrome', outputRoot = './downloads', historyPath, db } = options;
 
-  if (!user || !user.id || !user.username || !user.password) {
-    throw new Error('User object must contain id, username, and password');
+  if (!user || !user.id) {
+    throw new Error('User object must contain id');
   }
+
+  const credentials = resolveUserCredentials(user, db, options.encryptionKey);
 
   // Get device profile - either from DB (if it's a custom profile ID) or from presets
   let deviceProfile;
@@ -183,6 +205,7 @@ async function downloadTicketForUser(user, options = {}) {
   let status = 'error';
   let filePath = null;
   let message = '';
+  const deviceProfileName = (deviceProfile && deviceProfile.name) || profileIdentifier;
 
   try {
     // Prepare launch options with optional proxy
@@ -199,7 +222,7 @@ async function downloadTicketForUser(user, options = {}) {
     browser = await puppeteer.launch(launchOptions);
 
     const page = await preparePage(browser, deviceProfile);
-    await performLogin(page, user.username, user.password);
+    await performLogin(page, credentials.ukNumber, credentials.ukPassword);
 
     const html = await downloadHtmlForSession(page);
 
@@ -230,7 +253,7 @@ async function downloadTicketForUser(user, options = {}) {
     appendHistory(
       {
         userId: user.id,
-        deviceProfile: deviceProfile.name,
+        deviceProfile: deviceProfileName,
         status,
         filePath,
         message
@@ -240,7 +263,7 @@ async function downloadTicketForUser(user, options = {}) {
     );
   }
 
-  return { status, filePath, deviceProfile: deviceProfile.name, message };
+  return { status, filePath, deviceProfile: deviceProfileName, message };
 }
 
 /**

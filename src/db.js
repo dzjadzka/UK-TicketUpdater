@@ -26,9 +26,7 @@ function initSchema(db) {
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       email TEXT,
-      password_hash TEXT,
-      username TEXT,
-      is_active INTEGER DEFAULT 1
+      password_hash TEXT
     );
 
     CREATE TABLE IF NOT EXISTS invite_tokens (
@@ -38,19 +36,6 @@ function initSchema(db) {
       expires_at TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (created_by) REFERENCES users(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS user_credentials (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      uk_number TEXT NOT NULL,
-      password_encrypted TEXT NOT NULL,
-      last_login_status TEXT,
-      last_login_error TEXT,
-      last_login_at TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS user_credentials (
@@ -145,10 +130,15 @@ function createDatabase(dbPath) {
   initSchema(db);
 
   const getUsersStmt = db.prepare('SELECT * FROM users ORDER BY id');
-  const getActiveUsersStmt = db.prepare('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC');
+  const getActiveUsersStmt = db.prepare(
+    'SELECT * FROM users WHERE deleted_at IS NULL AND is_active = 1 ORDER BY created_at DESC'
+  );
+  const getActiveUsersByIdsStmt = db.prepare(
+    'SELECT * FROM users WHERE id IN (SELECT value FROM json_each(@ids)) AND deleted_at IS NULL AND is_active = 1 ORDER BY id'
+  );
   const upsertUserStmt = db.prepare(
-    `INSERT INTO users (id, login, role, flags, device_profile, output_dir, invite_token, invited_by, locale, created_at, updated_at, email, password_hash, username, is_active)
-    VALUES (@id, @login, @role, @flags, @device_profile, @output_dir, @invite_token, @invited_by, @locale, COALESCE(@created_at, datetime('now')), COALESCE(@updated_at, datetime('now')), @email, @password_hash, @username, COALESCE(@is_active, 1))
+    `INSERT INTO users (id, login, role, flags, device_profile, output_dir, invite_token, invited_by, locale, created_at, updated_at, email, password_hash, is_active)
+    VALUES (@id, @login, @role, @flags, @device_profile, @output_dir, @invite_token, @invited_by, @locale, COALESCE(@created_at, datetime('now')), COALESCE(@updated_at, datetime('now')), @email, @password_hash, COALESCE(@is_active, 1))
     ON CONFLICT(id) DO UPDATE SET
       login=excluded.login,
       role=excluded.role,
@@ -161,7 +151,6 @@ function createDatabase(dbPath) {
       updated_at=datetime('now'),
       email=COALESCE(excluded.email, users.email),
       password_hash=COALESCE(excluded.password_hash, users.password_hash),
-      username=COALESCE(excluded.username, users.username),
       is_active=COALESCE(excluded.is_active, users.is_active)`
   );
   const getUsersByIdsStmt = db.prepare(
@@ -216,9 +205,11 @@ function createDatabase(dbPath) {
   // Auth-related prepared statements
   const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL');
   const getUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  const getActiveUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL');
+  const getActiveUserByIdStmt = db.prepare(
+    'SELECT * FROM users WHERE id = ? AND deleted_at IS NULL AND is_active = 1'
+  );
   const createUserStmt = db.prepare(
-    'INSERT INTO users (id, email, password_hash, role, invite_token, invited_by, locale, is_active, auto_download_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO users (id, login, email, password_hash, role, invite_token, invited_by, locale, is_active, auto_download_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   );
   const updateUserStmt = db.prepare("UPDATE users SET updated_at = datetime('now') WHERE id = ?");
   const disableUserStmt = db.prepare("UPDATE users SET is_active = 0, updated_at = datetime('now') WHERE id = ?");
@@ -314,6 +305,17 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
+    getActiveUsersByIds: (ids) => {
+      try {
+        if (!Array.isArray(ids)) {
+          throw new Error('ids must be an array');
+        }
+        return getActiveUsersByIdsStmt.all({ ids: JSON.stringify(ids) });
+      } catch (error) {
+        console.error('Failed to get active users by IDs from database:', error);
+        throw error;
+      }
+    },
     upsertUsers: (users) => {
       if (!Array.isArray(users)) {
         throw new Error('users must be an array');
@@ -335,10 +337,14 @@ function createDatabase(dbPath) {
             locale: user.locale || 'en',
             email: user.email || null,
             password_hash: user.password_hash || null,
-            username: user.username || null,
             created_at: user.created_at || null,
             updated_at: user.updated_at || null,
-            is_active: user.is_active !== undefined ? user.is_active : 1
+            is_active:
+              user.is_active !== undefined
+                ? user.is_active
+                : user.isActive !== undefined
+                  ? user.isActive
+                  : 1
           });
         });
       });
@@ -539,7 +545,7 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
-    createUser: ({ id, email, passwordHash, role, inviteToken, invitedBy, locale, isActive, autoDownloadEnabled }) => {
+    createUser: ({ id, login, email, passwordHash, role, inviteToken, invitedBy, locale, isActive, autoDownloadEnabled }) => {
       try {
         const resolvedLogin = login || email;
         if (!resolvedLogin) {
@@ -679,6 +685,14 @@ function createDatabase(dbPath) {
       }
     },
 
+    createUserCredential: ({ userId, ukNumber, ukPasswordEncrypted }) => {
+      try {
+        return upsertUserCredentialStmt.run(userId, ukNumber, ukPasswordEncrypted);
+      } catch (error) {
+        console.error('Failed to create user credential:', error);
+        throw error;
+      }
+    },
     upsertUserCredential: ({ userId, ukNumber, ukPasswordEncrypted }) => {
       try {
         return upsertUserCredentialStmt.run(userId, ukNumber, ukPasswordEncrypted);

@@ -246,9 +246,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         return res.status(403).json({ error: 'Account is disabled' });
       }
 
-      // Check if user has password_hash (new system) or password (legacy)
-      const passwordHash = user.password_hash || user.password;
-      const isValid = await comparePassword(password, passwordHash);
+      if (!user.password_hash) {
+        return res.status(401).json({ error: 'Account needs password reset under new auth scheme' });
+      }
+
+      const isValid = await comparePassword(password, user.password_hash);
 
       if (!isValid) {
         return res.status(401).json({ error: 'Invalid credentials' });
@@ -736,7 +738,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         return res.status(400).json({ error: 'deviceProfile must be a string' });
       }
 
-      const users = Array.isArray(userIds) && userIds.length ? db.getUsersByIds(userIds) : db.getUsers();
+      const users = Array.isArray(userIds) && userIds.length ? db.getActiveUsersByIds(userIds) : db.listActiveUsers();
       if (!users.length) {
         return res.status(400).json({ error: 'No users available' });
       }
@@ -745,7 +747,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         defaultDeviceProfile: deviceProfile || DEFAULT_DEVICE,
         outputRoot: path.resolve(outputDir || outputRoot),
         historyPath: DEFAULT_HISTORY_PATH,
-        db
+        db,
+        encryptionKey: ENCRYPTION_KEY
       });
       res.json({ results });
     } catch (error) {

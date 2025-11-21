@@ -3,6 +3,7 @@ const path = require('path');
 const { downloadTickets } = require('./downloader');
 const { DEFAULT_HISTORY_PATH } = require('./history');
 const { createDatabase } = require('./db');
+const { getEncryptionKey } = require('./auth');
 
 function parseArgs(argv) {
   const args = {};
@@ -44,11 +45,12 @@ async function main() {
   const dbPath = args.db ? path.resolve(args.db) : null;
 
   const db = dbPath ? createDatabase(dbPath) : null;
+  const encryptionKey = getEncryptionKey();
 
   try {
     let users;
     if (db) {
-      users = db.getUsers();
+      users = db.listActiveUsers();
     } else {
       users = loadUsers(usersConfigPath);
     }
@@ -57,7 +59,13 @@ async function main() {
       throw new Error('No users found. Seed users via config/users.json or the database.');
     }
 
-    const results = await downloadTickets(users, { defaultDeviceProfile, outputRoot, historyPath, db });
+    const results = await downloadTickets(users, {
+      defaultDeviceProfile,
+      outputRoot,
+      historyPath,
+      db,
+      encryptionKey
+    });
 
     results.forEach((result, index) => {
       const userId = users[index].id;
