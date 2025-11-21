@@ -21,7 +21,6 @@ const {
 } = require('./auth');
 const { createJobSystem } = require('./jobs');
 const { logger } = require('./logger');
-const { ApiError, asyncHandler } = require('./errors');
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
@@ -179,9 +178,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     if (!ukNumber) {
       return null;
     }
+    // For very short numbers, mask all but last 2 characters
     if (ukNumber.length <= 4) {
       return '*'.repeat(Math.max(0, ukNumber.length - 2)) + ukNumber.slice(-2);
     }
+    // For longer numbers, show pattern: ***XX##
     const visible = ukNumber.slice(-2);
     return `${'*'.repeat(ukNumber.length - 4)}${ukNumber.slice(-4, -2)}${visible}`;
   }
@@ -995,29 +996,29 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Observability endpoints from PR38
-  app.get('/admin/observability/errors', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+  app.get('/admin/observability/errors', jwtAuthMiddleware, requireAdmin, (req, res) => {
     try {
       const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 200);
       const errors = db.getRecentErrors(limit);
       return ok(res, { errors });
     } catch (error) {
       req.logger?.error('observability_errors_failed', { error });
-      return next(ApiError.internal('OBSERVABILITY_ERRORS_FAILED', 'Failed to load recent errors', error));
+      return fail(res, 500, 'OBSERVABILITY_ERRORS_FAILED', 'Failed to load recent errors');
     }
-  }));
+  });
 
-  app.get('/admin/observability/job-summary', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+  app.get('/admin/observability/job-summary', jwtAuthMiddleware, requireAdmin, (req, res) => {
     try {
       const hours = Math.max(1, Number(req.query.hours) || 24);
       const summary = db.summarizeJobsSince(hours);
       return ok(res, { window_hours: hours, summary });
     } catch (error) {
       req.logger?.error('observability_summary_failed', { error });
-      return next(ApiError.internal('OBSERVABILITY_SUMMARY_FAILED', 'Failed to load job summary', error));
+      return fail(res, 500, 'OBSERVABILITY_SUMMARY_FAILED', 'Failed to load job summary');
     }
-  }));
+  });
 
-  app.get('/admin/observability/base-ticket', jwtAuthMiddleware, requireAdmin, (req, res, next) => {
+  app.get('/admin/observability/base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
     try {
       const state = db.getBaseTicketState();
       return ok(res, {
@@ -1030,7 +1031,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       });
     } catch (error) {
       req.logger?.error('observability_base_ticket_failed', { error });
-      return next(ApiError.internal('OBSERVABILITY_BASE_TICKET_FAILED', 'Failed to read base ticket state', error));
+      return fail(res, 500, 'OBSERVABILITY_BASE_TICKET_FAILED', 'Failed to read base ticket state');
     }
   });
 

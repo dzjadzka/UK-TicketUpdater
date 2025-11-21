@@ -40,8 +40,8 @@ async function fetchBaseTicket() {
     return { hash, content: html };
   } finally {
     if (browser) {
-      await browser.close().catch((err) => {
-        console.error('Failed to close browser after base ticket fetch', err);
+      await browser.close().catch(() => {
+        // Browser close failure is non-critical for base ticket fetch
       });
     }
   }

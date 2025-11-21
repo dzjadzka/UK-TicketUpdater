@@ -23,8 +23,9 @@ class JobQueue {
     if (!this.handlers.has(type)) {
       throw new Error(`No handler registered for job type ${type}`);
     }
+    const crypto = require('crypto');
     const job = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       type,
       payload,
       attempts: 0,
