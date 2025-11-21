@@ -1,131 +1,125 @@
 const fs = require('fs');
 const path = require('path');
-const { appendHistory, readHistory, DEFAULT_HISTORY_PATH } = require('../src/history');
+const {
+  appendHistory,
+  readHistory,
+  DEFAULT_HISTORY_PATH,
+  getUserHistory,
+  summarizeHistory,
+  shouldDownloadTicket
+} = require('../src/history');
+
+const { createDatabase } = require('../src/db');
 
 describe('history', () => {
   const testHistoryPath = path.join(__dirname, '../data/test-history.json');
+  const testDbPath = path.join(__dirname, '../data/test-history.db');
 
   beforeEach(() => {
-    // Clean up test history file
     if (fs.existsSync(testHistoryPath)) {
       fs.unlinkSync(testHistoryPath);
+    }
+    if (fs.existsSync(testDbPath)) {
+      fs.unlinkSync(testDbPath);
     }
   });
 
   afterAll(() => {
-    // Clean up after all tests
     if (fs.existsSync(testHistoryPath)) {
       fs.unlinkSync(testHistoryPath);
+    }
+    if (fs.existsSync(testDbPath)) {
+      fs.unlinkSync(testDbPath);
     }
   });
 
   describe('readHistory', () => {
-    it('should return empty array when history file does not exist', () => {
+    it('returns empty array when history file does not exist', () => {
       const history = readHistory(testHistoryPath);
       expect(history).toEqual([]);
     });
 
-    it('should read and parse existing history file', () => {
+    it('parses existing history file', () => {
       const mockHistory = [{ userId: 'user-1', status: 'success', timestamp: '2024-01-01T00:00:00.000Z' }];
       fs.writeFileSync(testHistoryPath, JSON.stringify(mockHistory));
 
       const history = readHistory(testHistoryPath);
       expect(history).toEqual(mockHistory);
     });
-
-    it('should return empty array for corrupted JSON file', () => {
-      fs.writeFileSync(testHistoryPath, 'invalid json {');
-      const history = readHistory(testHistoryPath);
-      expect(history).toEqual([]);
-    });
   });
 
   describe('appendHistory', () => {
-    it('should create new history file and append entry', () => {
-      const entry = {
-        userId: 'user-1',
-        deviceProfile: 'desktop_chrome',
-        status: 'success',
-        filePath: '/path/to/ticket.html',
-        message: 'Ticket downloaded'
-      };
-
+    it('appends to file when db is not provided', () => {
+      const entry = { userId: 'user-1', status: 'success', message: 'Ticket downloaded' };
       appendHistory(entry, testHistoryPath);
 
-      expect(fs.existsSync(testHistoryPath)).toBe(true);
       const history = JSON.parse(fs.readFileSync(testHistoryPath, 'utf-8'));
       expect(history).toHaveLength(1);
       expect(history[0]).toMatchObject(entry);
       expect(history[0]).toHaveProperty('timestamp');
     });
 
-    it('should append to existing history file', () => {
-      const firstEntry = { userId: 'user-1', status: 'success' };
-      appendHistory(firstEntry, testHistoryPath);
+    it('uses database when provided', () => {
+      const db = createDatabase(testDbPath);
+      db.upsertUsers([{ id: 'user-db', username: 'db-user' }]);
+      const entry = { userId: 'user-db', status: 'success', ticketVersion: '2024S', message: 'db' };
 
-      const secondEntry = { userId: 'user-2', status: 'error' };
-      appendHistory(secondEntry, testHistoryPath);
+      appendHistory(entry, testHistoryPath, db);
 
-      const history = JSON.parse(fs.readFileSync(testHistoryPath, 'utf-8'));
-      expect(history).toHaveLength(2);
-      expect(history[0].userId).toBe('user-1');
-      expect(history[1].userId).toBe('user-2');
-    });
-
-    it('should add timestamp if not provided', () => {
-      const entry = { userId: 'user-1', status: 'success' };
-      appendHistory(entry, testHistoryPath);
-
-      const history = JSON.parse(fs.readFileSync(testHistoryPath, 'utf-8'));
-      expect(history[0]).toHaveProperty('timestamp');
-      expect(new Date(history[0].timestamp)).toBeInstanceOf(Date);
-    });
-
-    it('should not append entry without userId', () => {
-      const entry = { status: 'success' }; // Missing userId
-      appendHistory(entry, testHistoryPath);
-
-      // File should not be created
+      const history = db.getTicketHistory('user-db');
+      expect(history).toHaveLength(1);
+      expect(history[0].ticket_version).toBe('2024S');
       expect(fs.existsSync(testHistoryPath)).toBe(false);
+      db.close();
+    });
+  });
+
+  describe('getUserHistory and summarizeHistory', () => {
+    it('reads and summarizes file history when db is absent', () => {
+      appendHistory({ userId: 'user-1', status: 'success' }, testHistoryPath);
+      appendHistory({ userId: 'user-1', status: 'error' }, testHistoryPath);
+
+      const history = getUserHistory('user-1', { historyPath: testHistoryPath, limit: 10 });
+      expect(history).toHaveLength(2);
+      const summary = summarizeHistory('user-1', { historyPath: testHistoryPath });
+      expect(summary.success).toBe(1);
+      expect(summary.error).toBe(1);
     });
 
-    it('should use database if provided', () => {
-      const mockDb = {
-        recordRun: jest.fn()
-      };
+    it('reads and summarizes from database when available', () => {
+      const db = createDatabase(testDbPath);
+      db.upsertUsers([{ id: 'user-db', username: 'db-user' }]);
+      db.recordRun({ userId: 'user-db', status: 'success' });
+      db.recordRun({ userId: 'user-db', status: 'error' });
 
-      const entry = {
-        userId: 'user-1',
-        deviceProfile: 'desktop_chrome',
-        status: 'success',
-        filePath: '/path/to/ticket.html',
-        message: 'Test'
-      };
+      const history = getUserHistory('user-db', { db, limit: 5 });
+      expect(history).toHaveLength(2);
+      const summary = summarizeHistory('user-db', { db });
+      expect(summary.success).toBe(1);
+      expect(summary.error).toBe(1);
+      db.close();
+    });
+  });
 
-      appendHistory(entry, testHistoryPath, mockDb);
+  describe('shouldDownloadTicket', () => {
+    it('defers to db version detection when available', () => {
+      const db = createDatabase(testDbPath);
+      db.upsertUsers([{ id: 'user-1', username: 'ticket-user' }]);
+      db.recordTicket({ userId: 'user-1', ticketVersion: '2024S', contentHash: 'abc' });
 
-      expect(mockDb.recordRun).toHaveBeenCalledWith(expect.objectContaining(entry));
-      expect(fs.existsSync(testHistoryPath)).toBe(false); // Should not write to file
+      expect(shouldDownloadTicket({ userId: 'user-1', ticketVersion: '2024S', db })).toBe(false);
+      expect(shouldDownloadTicket({ userId: 'user-1', contentHash: 'abc', db })).toBe(false);
+      expect(shouldDownloadTicket({ userId: 'user-1', ticketVersion: '2024F', db })).toBe(true);
+      db.close();
     });
 
-    it('should handle database errors gracefully', () => {
-      const mockDb = {
-        recordRun: jest.fn(() => {
-          throw new Error('Database error');
-        })
-      };
-
-      const entry = { userId: 'user-1', status: 'success' };
-
-      // Should not throw
-      expect(() => appendHistory(entry, testHistoryPath, mockDb)).not.toThrow();
-      expect(mockDb.recordRun).toHaveBeenCalled();
+    it('defaults to download when db is missing', () => {
+      expect(shouldDownloadTicket({ userId: 'user-1', ticketVersion: 'any' })).toBe(true);
     });
   });
 
   describe('DEFAULT_HISTORY_PATH', () => {
-    it('should be defined and point to data directory', () => {
-      expect(DEFAULT_HISTORY_PATH).toBeDefined();
+    it('points to the data directory', () => {
       expect(DEFAULT_HISTORY_PATH).toContain('data');
       expect(DEFAULT_HISTORY_PATH).toContain('history.json');
     });

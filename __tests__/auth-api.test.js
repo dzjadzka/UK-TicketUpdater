@@ -24,15 +24,16 @@ describe('Authentication API', () => {
 
     // Create admin user for tests
     const adminId = 'admin-001';
-    db.db.prepare(
-      'INSERT INTO users (id, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)'
-    ).run(
-      adminId,
-      'admin@example.com',
-      '$2b$10$validHashForTesting12345678901234567890123456789',
-      'admin',
-      1
-    );
+    db.db
+      .prepare('INSERT INTO users (id, login, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(
+        adminId,
+        'admin@example.com',
+        'admin@example.com',
+        '$2b$10$validHashForTesting12345678901234567890123456789',
+        'admin',
+        1
+      );
   });
 
   afterEach(() => {
