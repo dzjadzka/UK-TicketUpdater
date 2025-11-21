@@ -72,6 +72,6 @@ module.exports = [
     }
   },
   {
-    ignores: ['node_modules/**', 'coverage/**', 'downloads/**', 'data/**', '*.log']
+    ignores: ['node_modules/**', 'coverage/**', 'downloads/**', 'data/**', '*.log', 'frontend/**']
   }
 ];
