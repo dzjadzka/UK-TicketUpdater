@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Database schema updated to support authentication (backward compatible)
 - Users table now supports both legacy (username/password) and new (email/password_hash) fields
-- API endpoints now support both legacy API_TOKEN and new JWT authentication
+- API endpoints now require JWT authentication (legacy API_TOKEN removed)
 
 ### Security
 

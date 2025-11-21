@@ -165,7 +165,7 @@ CREATE TABLE credentials (
 
 **Environment Variables**:
 - `ENCRYPTION_KEY` - Key for encrypting credentials at rest
-- `API_TOKEN` - Already exists, document usage
+- `JWT_SECRET` - Secret for JWT authentication
 - `DB_PATH` - Already exists
 - `PORT` - Already exists
 
@@ -666,7 +666,7 @@ CREATE TABLE device_profiles (
 - **Date**: 2024-11-20
 - **Implementation**:
   - .env.example file with all configuration options
-  - Support for JWT_SECRET, ENCRYPTION_KEY, API_TOKEN
+- Support for JWT_SECRET, ENCRYPTION_KEY
   - Encrypted credential storage in database
   - Full CRUD API for credential management
   - Credentials scoped to user accounts

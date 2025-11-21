@@ -22,8 +22,8 @@
 
 - Main entrypoint: `src/index.js`. Run with `node src/index.js --users ./config/users.json` or `npm run download`.
 - SQLite mode: seed with `npm run setup:db` then run `npm run download:db` (users/history/tickets come from DB).
-- API server: `API_TOKEN=choose-a-token npm run api` (endpoints `/downloads`, `/history`, `/tickets/:userId`).
-- All server endpoints are protected by the API token middleware in `src/server.js`. Requests must include `Authorization: Bearer <API_TOKEN>`, unless `ALLOW_INSECURE=true` is set for development-only use.
+- API server: `npm run api` (JWT-protected endpoints like `/downloads`, `/history`, `/tickets/:userId`, and admin/user management).
+- All server endpoints are protected by JWT authentication in `src/server.js`. Requests must include `Authorization: Bearer <JWT>`.
 - Device profiles available: `desktop_chrome`, `mobile_android`, `iphone_13`, `tablet_ipad` (see `src/deviceProfiles.js`).
 - CLI flags:
   - `--users <path>` users config (default `./config/users.json`).
@@ -40,7 +40,7 @@
   - `npm run download:sample` (uses placeholder users).
   - `npm run download -- --users ./config/users.json` (after filling credentials).
   - `npm run download:db` after running `npm run setup:db`.
-- Update tests when changing authentication logic to ensure `/downloads`, `/history`, and `/tickets/:userId` keep returning 401 for missing or invalid tokens.
+- Update tests when changing authentication logic to ensure `/downloads`, `/history`, and `/tickets/:userId` require JWT auth (and admin role where applicable).
 - If Puppeteer cannot find a browser, either allow it to download Chromium (remove `PUPPETEER_SKIP_DOWNLOAD`) or install system Chromium/Chrome and rerun.
 
 ## Code style
@@ -57,7 +57,7 @@
 ## Security & safety notes
 
 - Never commit real credentials, tickets, or history files. `config/users.json`, `downloads/`, `data/history.json`, and `data/*.db` are git-ignored.
-- Set `API_TOKEN` when running the API to avoid unauthenticated access; do not log or commit the token.
+- Set `JWT_SECRET` when running the API to avoid unauthenticated access; do not log or commit secrets.
 - The downloader writes to paths you configure; ensure the executing user has write permissions and paths are safe.
 - The legacy uploader script uses basic auth for WebDAV; treat its placeholders as secrets if you ever adapt it.
 

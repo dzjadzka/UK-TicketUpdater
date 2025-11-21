@@ -129,7 +129,7 @@ Scan the repository for planned features, prioritize them, and implement them sy
 
 **Implementation:**
 - Created `.env.example` with all required variables
-- Support for JWT_SECRET, ENCRYPTION_KEY, API_TOKEN
+- Support for JWT_SECRET and ENCRYPTION_KEY
 - Production validation for required secrets
 - Full CRUD API for credential management
 - Credentials scoped to user accounts
@@ -139,8 +139,6 @@ Scan the repository for planned features, prioritize them, and implement them sy
 ```
 JWT_SECRET - JWT signing key (required in production)
 ENCRYPTION_KEY - Credential encryption key (required in production)
-API_TOKEN - Legacy API authentication (optional)
-ALLOW_INSECURE - Bypass auth in dev (default: false)
 JWT_EXPIRY - Token lifetime (default: 7d)
 PORT - Server port (default: 3000)
 DB_PATH - Database location (default: ./data/app.db)
@@ -365,15 +363,13 @@ JWT Tokens:
 ## Backward Compatibility
 
 **Maintained:**
-- Legacy API_TOKEN authentication still works
 - Existing user records compatible (username/password fields nullable)
-- Old download, history, and tickets endpoints unchanged
+- Old download, history, and tickets endpoints preserved with JWT protection
 - CLI usage unchanged
 - Database schema backward compatible
 
 **Migration Path:**
-- Users can continue using API_TOKEN for legacy endpoints
-- New JWT authentication optional but recommended
+- Clients must use JWT authentication for download/history/ticket endpoints
 - Existing users can have email added to migrate to new system
 - No breaking changes to existing functionality
 
@@ -424,7 +420,7 @@ JWT Tokens:
 1. **Database Schema Evolution**: Made username/password nullable for backward compatibility
 2. **SQLite Quote Syntax**: Fixed datetime() calls to use single quotes
 3. **Test Environment**: Handled temporary test databases and cleanup properly
-4. **Legacy Support**: Maintained old API_TOKEN auth while adding JWT
+4. **Legacy Support**: Retired API_TOKEN auth while adding JWT
 5. **Production Secrets**: Added validation without breaking dev/test environments
 
 ### Best Practices Applied

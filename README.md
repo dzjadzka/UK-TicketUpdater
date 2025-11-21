@@ -5,14 +5,14 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 ## What this project does
 - Runs headless browser sessions per user to fetch the current semester ticket HTML and save it under `downloads/<user-id>/`.
 - Records run history (status/message/file path) in `data/history.json` or in SQLite when configured.
-- Provides an optional Express server with JWT-based auth (with invite tokens) plus a legacy API-token mode for triggering downloads, viewing history, and managing credentials/device profiles.
+- Provides an Express server with JWT-based auth (with invite tokens) for triggering downloads, viewing history, and managing credentials/device profiles.
 - Legacy single-user scripts remain in `legacy/` for reference only.
 
 ## Architecture at a glance
 - **CLI entrypoint:** `src/index.js` orchestrates multi-user downloads (JSON config or SQLite users/history).
 - **Downloader:** `src/downloader.js` handles Puppeteer interactions with device-profile presets from `src/deviceProfiles.js`.
 - **Persistence:** `src/history.js` (JSON history) and `src/db.js` (SQLite users/credentials/history/tickets, invite tokens).
-- **API server:** `src/server.js` exposes `/auth`, `/credentials`, `/device-profiles`, `/admin/*`, `/downloads`, `/history`, and `/tickets/:userId` with JWT or legacy API-token protection.
+- **API server:** `src/server.js` exposes `/auth`, `/credentials`, `/device-profiles`, `/admin/*`, `/downloads`, `/history`, and `/tickets/:userId` with JWT protection.
 - **Frontend:** `frontend/` is a Vite/React/Tailwind scaffold with placeholder scripts; no production UI is implemented.
 
 ## Prerequisites
@@ -21,8 +21,6 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - Network access to `https://ticket.astakassel.de`.
 
 ## Configuration (environment variables)
-- `API_TOKEN` (optional): Token for legacy bearer auth on download/history/ticket routes. If unset, `ALLOW_INSECURE=true` must be provided to bypass.
-- `ALLOW_INSECURE` (optional): Set to `true` only in closed/dev environments to permit unauthenticated legacy routes.
 - `JWT_SECRET` (recommended): Secret for signing JWTs (required in production); falls back to a dev default otherwise.
 - `JWT_EXPIRY` (optional): JWT expiry, defaults to `7d`.
 - `ENCRYPTION_KEY` (recommended): 32-byte key for encrypting stored credentials (required in production).
@@ -65,18 +63,13 @@ CLI flags:
 
 ## API server
 ```bash
-# Legacy API-token mode (protects /downloads, /history, /tickets/:userId)
-API_TOKEN=choose-a-token npm run api
-
-# JWT + invite flow (credentials/device-profiles/admin routes)
 JWT_SECRET=strong-secret ENCRYPTION_KEY=32-byte-key npm run api
 ```
 Key routes (see `src/server.js` for full logic):
 - `POST /auth/register` (invite required) and `POST /auth/login` for JWTs.
 - `GET/POST/PUT/DELETE /credentials` for ticket-site credentials (encrypted at rest).
 - `GET/POST/PUT/DELETE /device-profiles` for per-user device presets.
-- Admin-only: `POST/GET/DELETE /admin/invites`, `GET /admin/users`, `PUT /admin/users/:id/disable`.
-- Legacy download surface: `POST /downloads`, `GET /history`, `GET /tickets/:userId` (API token or `ALLOW_INSECURE=true`).
+- Admin-only: `POST/GET/DELETE /admin/invites`, `GET /admin/users`, `PUT /admin/users/:id/disable`, `POST /downloads`, `GET /history`, `GET /tickets/:userId`.
 
 ## Legacy components
 - `legacy/ticket-downloader.js`: Original single-user Firefox/Puppeteer script.

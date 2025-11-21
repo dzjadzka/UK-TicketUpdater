@@ -1,106 +1,115 @@
 const request = require('supertest');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
-describe('authMiddleware', () => {
+jest.mock('../src/downloader', () => ({
+  downloadTickets: jest.fn().mockResolvedValue([])
+}));
+
+const { hashPassword } = require('../src/auth');
+const { downloadTickets } = require('../src/downloader');
+
+describe('protected operational routes', () => {
   const originalEnv = { ...process.env };
   const testDbPath = path.join(__dirname, '../data/test-app.db');
-  const withToken = (token) => ({
-    Authorization: `Bearer ${token}`
-  });
-
-  beforeEach(() => {
-    jest.resetModules();
-    process.env = { ...originalEnv };
-    // Clean up test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-  });
-
-  afterAll(() => {
-    process.env = originalEnv;
-    // Clean up test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-  });
-
   const routes = [
     { method: 'post', path: '/downloads' },
     { method: 'get', path: '/history' },
     { method: 'get', path: '/tickets/example-user' }
   ];
 
-  describe('when API_TOKEN is configured', () => {
-    beforeEach(() => {
-      process.env.API_TOKEN = 'secret-token';
-      delete process.env.ALLOW_INSECURE;
+  const removeTestDb = () => {
+    if (fs.existsSync(testDbPath)) {
+      fs.unlinkSync(testDbPath);
+    }
+  };
+
+  const createUser = async (db, { role = 'user', email }) => {
+    const password = 'Password123';
+    const passwordHash = await hashPassword(password);
+    const id = crypto.randomUUID();
+    db.createUser({
+      id,
+      email,
+      passwordHash,
+      role,
+      inviteToken: null,
+      invitedBy: null,
+      locale: 'en',
+      isActive: 1
     });
+    return { id, email, password };
+  };
 
-    it('rejects requests without an Authorization header', async () => {
-      const { createApp } = require('../src/server');
-      const { app } = createApp({ dbPath: testDbPath });
-
-      for (const route of routes) {
-        const response = await request(app)[route.method](route.path);
-        expect(response.status).toBe(401);
-        expect(response.body.error).toMatch(/missing api token/i);
-      }
-    });
-
-    it('rejects requests with an invalid token', async () => {
-      const { createApp } = require('../src/server');
-      const { app } = createApp({ dbPath: testDbPath });
-
-      for (const route of routes) {
-        const response = await request(app)[route.method](route.path).set(withToken('invalid'));
-        expect(response.status).toBe(401);
-        expect(response.body.error).toMatch(/invalid api token/i);
-      }
-    });
-
-    it('allows requests with the correct token', async () => {
-      const { createApp } = require('../src/server');
-      const { app } = createApp({ dbPath: testDbPath });
-
-      for (const route of routes) {
-        const response = await request(app)[route.method](route.path).set(withToken('secret-token'));
-        // Auth passed if we don't get 401 or 403
-        expect(response.status).not.toBe(401);
-        expect(response.status).not.toBe(403);
-      }
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = { ...originalEnv, JWT_SECRET: 'test-secret' };
+    removeTestDb();
   });
 
-  describe('when API_TOKEN is missing', () => {
-    beforeEach(() => {
-      delete process.env.API_TOKEN;
-    });
+  afterAll(() => {
+    process.env = originalEnv;
+    removeTestDb();
+  });
 
-    it('rejects requests if ALLOW_INSECURE is not set', async () => {
-      delete process.env.ALLOW_INSECURE;
-      const { createApp } = require('../src/server');
-      const { app } = createApp({ dbPath: testDbPath });
+  it('rejects requests without a JWT', async () => {
+    const { createApp } = require('../src/server');
+    const { app } = createApp({ dbPath: testDbPath });
 
-      for (const route of routes) {
-        const response = await request(app)[route.method](route.path);
-        expect(response.status).toBe(401);
-        expect(response.body.error).toMatch(/not configured/i);
-      }
-    });
+    for (const route of routes) {
+      const response = await request(app)[route.method](route.path);
+      expect(response.status).toBe(401);
+      expect(response.body.error).toMatch(/missing authentication token/i);
+    }
+  });
 
-    it('allows requests when ALLOW_INSECURE is true', async () => {
-      process.env.ALLOW_INSECURE = 'true';
-      const { createApp } = require('../src/server');
-      const { app } = createApp({ dbPath: testDbPath });
+  it('rejects non-admin users with a 403', async () => {
+    const { createApp } = require('../src/server');
+    const { app, db } = createApp({ dbPath: testDbPath });
+    const user = await createUser(db, { role: 'user', email: 'user@example.com' });
 
-      for (const route of routes) {
-        const response = await request(app)[route.method](route.path);
-        // Auth passed if we don't get 401 or 403
-        expect(response.status).not.toBe(401);
-        expect(response.status).not.toBe(403);
-      }
-    });
+    const loginResponse = await request(app)
+      .post('/auth/login')
+      .send({ email: user.email, password: user.password });
+
+    const token = loginResponse.body.token;
+    expect(token).toBeTruthy();
+
+    for (const route of routes) {
+      const response = await request(app)[route.method](route.path).set('Authorization', `Bearer ${token}`);
+      expect(response.status).toBe(403);
+      expect(response.body.error).toMatch(/admin access required/i);
+    }
+  });
+
+  it('allows admin users and invokes route handlers', async () => {
+    const { createApp } = require('../src/server');
+    const { app, db } = createApp({ dbPath: testDbPath });
+    const admin = await createUser(db, { role: 'admin', email: 'admin@example.com' });
+
+    const loginResponse = await request(app)
+      .post('/auth/login')
+      .send({ email: admin.email, password: admin.password });
+
+    const token = loginResponse.body.token;
+    expect(token).toBeTruthy();
+
+    const downloadResponse = await request(app)
+      .post('/downloads')
+      .set('Authorization', `Bearer ${token}`);
+    expect(downloadTickets).toHaveBeenCalled();
+    expect(downloadResponse.status).not.toBe(401);
+    expect(downloadResponse.status).not.toBe(403);
+
+    const historyResponse = await request(app)
+      .get('/history')
+      .set('Authorization', `Bearer ${token}`);
+    expect(historyResponse.status).toBe(200);
+
+    const ticketsResponse = await request(app)
+      .get(`/tickets/${admin.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(ticketsResponse.status).toBe(200);
   });
 });
