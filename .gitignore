@@ -6,3 +6,8 @@ downloads
 npm-debug.log*
 coverage
 .DS_Store
+
+# Frontend
+frontend/dist
+frontend/.env
+frontend/.env.local
