@@ -14,6 +14,8 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - 👥 **User management** with role-based access control (admin/user roles)
 - 🔑 **Credential management** with encrypted storage for ticket site credentials
 - 🎨 **Custom device profiles** per user with proxy and geolocation support
+- 🖥️ **Modern Web Interface** - React-based frontend with responsive design
+- 🌍 **Internationalization** - Support for English, German, and Russian
 - ⚡ **Automated CI/CD** with GitHub Actions
 - 🧪 **Comprehensive test suite** (97 tests with extensive coverage)
 - 📝 **Well-documented** with JSDoc and contribution guidelines
@@ -26,6 +28,8 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 
 ## Quick Start
 
+### Backend Setup
+
 ```bash
 # Install dependencies
 PUPPETEER_SKIP_DOWNLOAD=1 npm install
@@ -34,15 +38,32 @@ PUPPETEER_SKIP_DOWNLOAD=1 npm install
 cp config/users.sample.json config/users.json
 # Edit config/users.json with your credentials
 
-# Download tickets
+# Download tickets (CLI)
 npm run download
 
 # Run tests
 npm test
 
 # Start API server
-API_TOKEN=your-secret-token npm run api
+JWT_SECRET=your-secret-key npm run api
 ```
+
+### Frontend Setup (New!)
+
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Start development server (in another terminal)
+npm run dev
+
+# Or use root package scripts
+cd ..
+npm run dev:frontend
+```
+
+Then open http://localhost:5173 in your browser. See [FRONTEND_README.md](./FRONTEND_README.md) for detailed frontend documentation.
 
 ## Setup
 
