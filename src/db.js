@@ -114,11 +114,27 @@ function initSchema(db) {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
+    CREATE TABLE IF NOT EXISTS jobs (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      data TEXT,
+      result TEXT,
+      error TEXT,
+      retries INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      started_at TEXT,
+      completed_at TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_invite_tokens_expires ON invite_tokens(expires_at);
     CREATE INDEX IF NOT EXISTS idx_credentials_user ON credentials(user_id);
     CREATE INDEX IF NOT EXISTS idx_device_profiles_user ON device_profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_user_credentials_user ON user_credentials(user_id);
+    CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type);
+    CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at);
   `);
 }
 
@@ -276,6 +292,20 @@ function createDatabase(dbPath) {
      WHERE id = ? AND user_id = ?`
   );
   const deleteDeviceProfileStmt = db.prepare('DELETE FROM device_profiles WHERE id = ? AND user_id = ?');
+
+  // Job tracking statements
+  const createJobStmt = db.prepare(
+    `INSERT INTO jobs (id, type, status, data, retries, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  const getJobByIdStmt = db.prepare('SELECT * FROM jobs WHERE id = ?');
+  const updateJobStatusStmt = db.prepare(
+    `UPDATE jobs SET status = ?, started_at = COALESCE(?, started_at), completed_at = COALESCE(?, completed_at), result = COALESCE(?, result), error = COALESCE(?, error)
+     WHERE id = ?`
+  );
+  const listJobsStmt = db.prepare('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?');
+  const listJobsByTypeStmt = db.prepare('SELECT * FROM jobs WHERE type = ? ORDER BY created_at DESC LIMIT ?');
+  const listJobsByStatusStmt = db.prepare('SELECT * FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?');
 
   return {
     getUsers: () => {
@@ -807,6 +837,98 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
+
+    // Job tracking methods
+    createJob: (job) => {
+      try {
+        return createJobStmt.run(
+          job.id,
+          job.type,
+          job.status,
+          JSON.stringify(job.data || {}),
+          job.retries || 0,
+          job.createdAt
+        );
+      } catch (error) {
+        console.error('Failed to create job:', error);
+        throw error;
+      }
+    },
+    getJobById: (jobId) => {
+      try {
+        const job = getJobByIdStmt.get(jobId);
+        if (job && job.data) {
+          job.data = JSON.parse(job.data);
+        }
+        if (job && job.result) {
+          job.result = JSON.parse(job.result);
+        }
+        return job;
+      } catch (error) {
+        console.error('Failed to get job by id:', error);
+        throw error;
+      }
+    },
+    updateJobStatus: (jobId, status, startedAt, completedAt, result, error) => {
+      try {
+        return updateJobStatusStmt.run(status, startedAt, completedAt, result, error, jobId);
+      } catch (error) {
+        console.error('Failed to update job status:', error);
+        throw error;
+      }
+    },
+    listJobs: (limit = 50) => {
+      try {
+        const jobs = listJobsStmt.all(limit);
+        return jobs.map((job) => {
+          if (job.data) {
+            job.data = JSON.parse(job.data);
+          }
+          if (job.result) {
+            job.result = JSON.parse(job.result);
+          }
+          return job;
+        });
+      } catch (error) {
+        console.error('Failed to list jobs:', error);
+        throw error;
+      }
+    },
+    listJobsByType: (type, limit = 50) => {
+      try {
+        const jobs = listJobsByTypeStmt.all(type, limit);
+        return jobs.map((job) => {
+          if (job.data) {
+            job.data = JSON.parse(job.data);
+          }
+          if (job.result) {
+            job.result = JSON.parse(job.result);
+          }
+          return job;
+        });
+      } catch (error) {
+        console.error('Failed to list jobs by type:', error);
+        throw error;
+      }
+    },
+    listJobsByStatus: (status, limit = 50) => {
+      try {
+        const jobs = listJobsByStatusStmt.all(status, limit);
+        return jobs.map((job) => {
+          if (job.data) {
+            job.data = JSON.parse(job.data);
+          }
+          if (job.result) {
+            job.result = JSON.parse(job.result);
+          }
+          return job;
+        });
+      } catch (error) {
+        console.error('Failed to list jobs by status:', error);
+        throw error;
+      }
+    },
+
     db
   };
 }

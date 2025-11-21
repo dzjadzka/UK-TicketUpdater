@@ -783,6 +783,109 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
+  // Phase 2: Job management endpoints (admin-only)
+  const { JobQueue, JobType } = require('./jobs');
+  const jobQueue = new JobQueue({
+    maxConcurrency: 3,
+    maxRetries: 2,
+    db,
+    encryptionKey: ENCRYPTION_KEY,
+    outputRoot: DEFAULT_OUTPUT,
+    defaultDeviceProfile: DEFAULT_DEVICE
+  });
+
+  app.post('/admin/jobs/check-base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { adminUserId } = req.body;
+
+      if (!adminUserId) {
+        return res.status(400).json({ error: 'adminUserId is required' });
+      }
+
+      // Verify admin user exists and has admin role
+      const adminUser = db.getUserById(adminUserId);
+      if (!adminUser || adminUser.role !== 'admin') {
+        return res.status(400).json({ error: 'Invalid admin user' });
+      }
+
+      const jobId = jobQueue.enqueue(JobType.CHECK_BASE_TICKET, { adminUserId });
+      res.status(202).json({ jobId, message: 'Base ticket check job enqueued' });
+    } catch (error) {
+      console.error('Failed to enqueue base ticket check job:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/admin/jobs/download-all-users', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const jobId = jobQueue.enqueue(JobType.DOWNLOAD_TICKETS_FOR_ALL_USERS, {
+        triggeredBy: req.user.id
+      });
+      res.status(202).json({ jobId, message: 'Download all users job enqueued' });
+    } catch (error) {
+      console.error('Failed to enqueue download all users job:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/admin/jobs/download-user', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const jobId = jobQueue.enqueue(JobType.DOWNLOAD_TICKET_FOR_USER, {
+        userId,
+        triggeredBy: req.user.id
+      });
+      res.status(202).json({ jobId, message: 'Download user job enqueued' });
+    } catch (error) {
+      console.error('Failed to enqueue download user job:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/admin/jobs', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { type, status, limit } = req.query;
+      const filter = {};
+
+      if (type) {
+        filter.type = type;
+      }
+      if (status) {
+        filter.status = status;
+      }
+      if (limit) {
+        filter.limit = Number.parseInt(limit, 10);
+      }
+
+      const jobs = jobQueue.listJobs(filter);
+      res.json({ jobs });
+    } catch (error) {
+      console.error('Failed to list jobs:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/admin/jobs/:jobId', jwtAuthMiddleware, requireAdmin, (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const job = jobQueue.getJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+
+      res.json({ job });
+    } catch (error) {
+      console.error('Failed to get job:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.use((err, req, res, next) => {
     console.error('Unhandled error', err);
     res.status(500).json({ error: 'Unexpected server error' });
