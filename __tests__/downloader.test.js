@@ -312,17 +312,15 @@ describe('downloader module', () => {
     });
 
     test('should handle browser close failure gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const logSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => {});
       mockBrowser.close.mockRejectedValueOnce(new Error('Close failed'));
 
       await downloadTicketForUser(validUser);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to close browser'),
-        expect.any(Error)
-      );
+      const logMessages = logSpy.mock.calls.map((call) => String(call[0]));
+      expect(logMessages.some((msg) => msg.includes('browser_close_failed'))).toBe(true);
 
-      consoleErrorSpy.mockRestore();
+      logSpy.mockRestore();
     });
 
     test('should use output_dir (snake_case) if outputDir not available', async () => {

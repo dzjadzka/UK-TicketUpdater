@@ -295,16 +295,16 @@ describe('Authentication API', () => {
       const meResponse = await request(app).get('/me').set('Authorization', `Bearer ${userToken}`);
 
       expect(meResponse.status).toBe(200);
-      expect(meResponse.body.user.email).toBe('self@example.com');
-      expect(meResponse.body.user.auto_download_enabled).toBe(false);
+      expect(meResponse.body.data.user.email).toBe('self@example.com');
+      expect(meResponse.body.data.user.auto_download_enabled).toBe(false);
 
       const toggleResponse = await request(app)
-        .patch('/me/auto-download')
+        .put('/me/credentials')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ enabled: true });
+        .send({ autoDownloadEnabled: true, ukNumber: 'UK-123', ukPassword: 'TicketPass123!' });
 
       expect(toggleResponse.status).toBe(200);
-      expect(toggleResponse.body.user.auto_download_enabled).toBe(true);
+      expect(toggleResponse.body.data.user.auto_download_enabled).toBe(true);
     });
 
     it('stores UK credentials encrypted for the user', async () => {
@@ -314,7 +314,7 @@ describe('Authentication API', () => {
         .send({ ukNumber: 'UK-12345', ukPassword: 'TicketPass123!' });
 
       expect(saveResponse.status).toBe(200);
-      expect(saveResponse.body.credential.uk_number).toBe('UK-12345');
+      expect(saveResponse.body.data.credential.uk_number_masked).toContain('45');
 
       const stored = db.getUserCredential(userId);
       expect(stored.uk_number).toBe('UK-12345');
@@ -365,8 +365,8 @@ describe('Authentication API', () => {
           .send({ expiresInHours: 24 });
 
         expect(response.status).toBe(201);
-        expect(response.body.token).toBeDefined();
-        expect(response.body.expiresAt).toBeDefined();
+        expect(response.body.data.token).toBeDefined();
+        expect(response.body.data.expiresAt).toBeDefined();
       });
 
       it('should reject invite creation without auth', async () => {
@@ -391,8 +391,8 @@ describe('Authentication API', () => {
           .set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.invites).toBeDefined();
-        expect(Array.isArray(response.body.invites)).toBe(true);
+        expect(response.body.data.invites).toBeDefined();
+        expect(Array.isArray(response.body.data.invites)).toBe(true);
       });
 
       it('should reject listing without auth', async () => {
@@ -410,11 +410,11 @@ describe('Authentication API', () => {
           .set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.users).toBeDefined();
-        expect(Array.isArray(response.body.users)).toBe(true);
-        expect(response.body.users.length).toBeGreaterThan(0);
+        expect(response.body.data.users).toBeDefined();
+        expect(Array.isArray(response.body.data.users)).toBe(true);
+        expect(response.body.data.users.length).toBeGreaterThan(0);
         // Should not expose sensitive fields
-        expect(response.body.users[0].password_hash).toBeUndefined();
+        expect(response.body.data.users[0].user.password_hash).toBeUndefined();
       });
     });
 
@@ -435,11 +435,12 @@ describe('Authentication API', () => {
 
       it('should disable user as admin', async () => {
         const response = await request(app)
-          .put('/admin/users/user-to-disable/disable')
-          .set('Authorization', `Bearer ${adminToken}`);
+          .put('/admin/users/user-to-disable')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ isActive: false });
 
         expect(response.status).toBe(200);
-        expect(response.body.message).toContain('disabled');
+        expect(response.body.data.user.is_active).toBe(false);
 
         // Verify user is actually disabled
         const user = db.getUserById('user-to-disable');
@@ -461,12 +462,12 @@ describe('Authentication API', () => {
       });
 
       const response = await request(app)
-        .put('/admin/users/user-for-cred/credentials')
+        .put('/admin/users/user-for-cred')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ ukNumber: 'UK-999', ukPassword: 'AdminSetPass123!' });
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain('Credentials updated');
+      expect(response.body.data.credential.uk_number_masked).toContain('99');
       const stored = db.getUserCredential('user-for-cred');
       expect(stored.uk_number).toBe('UK-999');
       expect(stored.uk_password_encrypted).toBeDefined();
