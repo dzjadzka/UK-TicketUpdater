@@ -20,6 +20,8 @@ const {
   getEncryptionKey
 } = require('./auth');
 const { createJobSystem } = require('./jobs');
+const { logger } = require('./logger');
+const { ApiError, asyncHandler } = require('./errors');
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
@@ -35,21 +37,49 @@ function fail(res, status, code, message) {
   return res.status(status).json({ data: null, error: { code, message } });
 }
 
+// Unified error handler that outputs in {data, error} format
+function errorHandler(err, req, res, next) {
+  const status = err.status || 500;
+  const code = err.code || (status >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+  const message = err.expose ? err.message : 'Unexpected server error';
+  
+  logger.error('request_failed', {
+    request_id: req?.requestId,
+    route: req?.originalUrl,
+    method: req?.method,
+    user_id: req?.user?.id,
+    error: err
+  });
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return fail(res, status, code, message);
+}
+
 /**
  * Request logging middleware
  * Adds unique request ID and logs incoming requests
  */
 function requestLogger(req, res, next) {
-  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = crypto.randomUUID();
   req.requestId = requestId;
   res.setHeader('X-Request-ID', requestId);
 
+  const requestLoggerInstance = logger.child({ request_id: requestId, route: req.path, method: req.method });
+  req.logger = requestLoggerInstance;
+
   const start = Date.now();
-  console.log(`[${requestId}] ${req.method} ${req.path}`);
+  requestLoggerInstance.info('request_started', { ip: req.ip, user_agent: req.get('user-agent') });
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${requestId}] ${res.statusCode} ${duration}ms`);
+    requestLoggerInstance.info('request_completed', {
+      status: res.statusCode,
+      duration_ms: duration,
+      user_id: req.user?.id
+    });
   });
 
   next();
@@ -250,7 +280,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         user: sanitizeUser(db.getUserById(userId))
       });
     } catch (error) {
-      console.error('Registration failed:', error);
+      req.logger?.error('Registration failed:', error);
       res.status(500).json({ error: 'Registration failed' });
     }
   });
@@ -290,7 +320,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         user: sanitizeUser(user)
       });
     } catch (error) {
-      console.error('Login failed:', error);
+      req.logger?.error('Login failed:', error);
       res.status(500).json({ error: 'Login failed' });
     }
   });
@@ -420,7 +450,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       return ok(res, { token, expiresAt }, 201);
     } catch (error) {
-      console.error('Failed to create invite token:', error);
+      req.logger?.error('Failed to create invite token:', error);
       return fail(res, 500, 'INVITE_CREATE_FAILED', 'Failed to create invite token');
     }
   });
@@ -430,7 +460,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       const tokens = db.listInviteTokens(req.user.id);
       return ok(res, { invites: tokens });
     } catch (error) {
-      console.error('Failed to list invite tokens:', error);
+      req.logger?.error('Failed to list invite tokens:', error);
       return fail(res, 500, 'INVITE_LIST_FAILED', 'Failed to list invite tokens');
     }
   });
@@ -441,7 +471,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       db.deleteInviteToken(token);
       return ok(res, { message: 'Invite token deleted' });
     } catch (error) {
-      console.error('Failed to delete invite token:', error);
+      req.logger?.error('Failed to delete invite token:', error);
       return fail(res, 500, 'INVITE_DELETE_FAILED', 'Failed to delete invite token');
     }
   });
@@ -488,7 +518,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       return ok(res, { users });
     } catch (error) {
-      console.error('Failed to list users:', error);
+      req.logger?.error('Failed to list users:', error);
       return fail(res, 500, 'USER_LIST_FAILED', 'Failed to list users');
     }
   });
@@ -534,7 +564,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         ticket_stats: history
       });
     } catch (error) {
-      console.error('Failed to fetch user detail:', error);
+      req.logger?.error('Failed to fetch user detail:', error);
       return fail(res, 500, 'USER_DETAIL_FAILED', 'Failed to fetch user detail');
     }
   });
@@ -589,7 +619,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         credential: credentialDetails
       });
     } catch (error) {
-      console.error('Failed to update user credentials:', error);
+      req.logger?.error('Failed to update user credentials:', error);
       return fail(res, 500, 'USER_UPDATE_FAILED', 'Failed to update user');
     }
   });
@@ -601,7 +631,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       db.softDeleteUser(id);
       return ok(res, { message: 'User deleted' });
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      req.logger?.error('Failed to delete user:', error);
       return fail(res, 500, 'USER_DELETE_FAILED', 'Failed to delete user');
     }
   });
@@ -618,7 +648,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       const updated = db.getBaseTicketState();
       return ok(res, { status: 'queued', state: updated });
     } catch (error) {
-      console.error('Failed to enqueue base ticket check:', error);
+      req.logger?.error('Failed to enqueue base ticket check:', error);
       return fail(res, 500, 'JOB_ENQUEUE_FAILED', 'Failed to enqueue base ticket check');
     }
   });
@@ -636,12 +666,13 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         outputRoot: path.resolve(outputRoot),
         historyPath: DEFAULT_HISTORY_PATH,
         db,
-        encryptionKey: ENCRYPTION_KEY
+        encryptionKey: ENCRYPTION_KEY,
+        logger: req.logger || logger
       });
 
       return ok(res, { status: 'queued', results });
     } catch (error) {
-      console.error('Failed to trigger download-all job:', error);
+      req.logger?.error('Failed to trigger download-all job:', error);
       return fail(res, 500, 'JOB_ENQUEUE_FAILED', 'Failed to enqueue download job');
     }
   });
@@ -664,7 +695,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       return ok(res, { overview });
     } catch (error) {
-      console.error('Failed to load admin overview:', error);
+      req.logger?.error('Failed to load admin overview:', error);
       return fail(res, 500, 'OVERVIEW_FAILED', 'Failed to load overview');
     }
   });
@@ -683,7 +714,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       }));
       return ok(res, { credentials: sanitized });
     } catch (error) {
-      console.error('Failed to get credentials:', error);
+      req.logger?.error('Failed to get credentials:', error);
       return fail(res, 500, 'CREDENTIAL_LIST_FAILED', 'Failed to get credentials');
     }
   });
@@ -712,7 +743,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         credential: { id, loginName, label, created_at: new Date().toISOString() }
       });
     } catch (error) {
-      console.error('Failed to create credential:', error);
+      req.logger?.error('Failed to create credential:', error);
       res.status(500).json({ error: 'Failed to create credential' });
     }
   });
@@ -739,7 +770,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       res.json({ message: 'Credential updated' });
     } catch (error) {
-      console.error('Failed to update credential:', error);
+      req.logger?.error('Failed to update credential:', error);
       res.status(500).json({ error: 'Failed to update credential' });
     }
   });
@@ -755,7 +786,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       res.json({ message: 'Credential deleted' });
     } catch (error) {
-      console.error('Failed to delete credential:', error);
+      req.logger?.error('Failed to delete credential:', error);
       res.status(500).json({ error: 'Failed to delete credential' });
     }
   });
@@ -766,7 +797,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       const profiles = db.getDeviceProfilesByUser(req.user.id);
       res.json({ profiles });
     } catch (error) {
-      console.error('Failed to get device profiles:', error);
+      req.logger?.error('Failed to get device profiles:', error);
       res.status(500).json({ error: 'Failed to get device profiles' });
     }
   });
@@ -821,7 +852,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       res.status(201).json({ message: 'Device profile created', id });
     } catch (error) {
-      console.error('Failed to create device profile:', error);
+      req.logger?.error('Failed to create device profile:', error);
       res.status(500).json({ error: 'Failed to create device profile' });
     }
   });
@@ -881,7 +912,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       res.json({ message: 'Device profile updated' });
     } catch (error) {
-      console.error('Failed to update device profile:', error);
+      req.logger?.error('Failed to update device profile:', error);
       res.status(500).json({ error: 'Failed to update device profile' });
     }
   });
@@ -897,7 +928,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
       return ok(res, { message: 'Device profile deleted' });
     } catch (error) {
-      console.error('Failed to delete device profile:', error);
+      req.logger?.error('Failed to delete device profile:', error);
       return fail(res, 500, 'PROFILE_DELETE_FAILED', 'Failed to delete device profile');
     }
   });
@@ -927,11 +958,12 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         outputRoot: path.resolve(outputDir || outputRoot),
         historyPath: DEFAULT_HISTORY_PATH,
         db,
-        encryptionKey: ENCRYPTION_KEY
+        encryptionKey: ENCRYPTION_KEY,
+        logger: req.logger || logger
       });
       return ok(res, { results });
     } catch (error) {
-      console.error('Failed to run download via API', error);
+      req.logger?.error('Failed to run download via API', error);
       return fail(res, 500, 'DOWNLOAD_FAILED', error.message);
     }
   });
@@ -944,7 +976,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       }
       return ok(res, { history: db.listHistory(limit) });
     } catch (error) {
-      console.error('Failed to retrieve history', error);
+      req.logger?.error('Failed to retrieve history', error);
       return fail(res, 500, 'HISTORY_FAILED', error.message);
     }
   });
@@ -957,25 +989,52 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       }
       return ok(res, { tickets: db.listTicketsByUser(userId) });
     } catch (error) {
-      console.error('Failed to retrieve tickets', error);
+      req.logger?.error('Failed to retrieve tickets', error);
       return fail(res, 500, 'TICKETS_FAILED', error.message);
     }
   });
 
-  app.post('/admin/jobs/check-base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
-    const queue = req.app?.locals?.jobQueue;
-    if (!queue) {
-      return res.status(500).json({ error: 'Job queue not configured' });
+  // Observability endpoints from PR38
+  app.get('/admin/observability/errors', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+    try {
+      const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 200);
+      const errors = db.getRecentErrors(limit);
+      return ok(res, { errors });
+    } catch (error) {
+      req.logger?.error('observability_errors_failed', { error });
+      return next(ApiError.internal('OBSERVABILITY_ERRORS_FAILED', 'Failed to load recent errors', error));
     }
-    queue.enqueue('checkBaseTicket');
-    res.json({ message: 'Base ticket check enqueued' });
+  }));
+
+  app.get('/admin/observability/job-summary', jwtAuthMiddleware, requireAdmin, asyncHandler(async (req, res, next) => {
+    try {
+      const hours = Math.max(1, Number(req.query.hours) || 24);
+      const summary = db.summarizeJobsSince(hours);
+      return ok(res, { window_hours: hours, summary });
+    } catch (error) {
+      req.logger?.error('observability_summary_failed', { error });
+      return next(ApiError.internal('OBSERVABILITY_SUMMARY_FAILED', 'Failed to load job summary', error));
+    }
+  }));
+
+  app.get('/admin/observability/base-ticket', jwtAuthMiddleware, requireAdmin, (req, res, next) => {
+    try {
+      const state = db.getBaseTicketState();
+      return ok(res, {
+        state: {
+          base_ticket_hash: state?.base_ticket_hash || null,
+          effective_from: state?.effective_from || null,
+          last_checked_at: state?.last_checked_at || null,
+          updated_at: state?.updated_at || null
+        }
+      });
+    } catch (error) {
+      req.logger?.error('observability_base_ticket_failed', { error });
+      return next(ApiError.internal('OBSERVABILITY_BASE_TICKET_FAILED', 'Failed to read base ticket state', error));
+    }
   });
 
-  app.use((err, req, res, next) => {
-    console.error('Unhandled error', err);
-    fail(res, 500, 'UNEXPECTED', 'Unexpected server error');
-    next();
-  });
+  app.use(errorHandler);
 
   return { app, db, jobQueue: jobSystem.queue, jobScheduler: jobSystem.scheduler };
 }
@@ -983,7 +1042,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 function start() {
   const { app, db, jobScheduler } = createApp();
   const server = app.listen(PORT, () => {
-    console.log(`API listening on port ${PORT}`);
+    logger.info('server_started', { port: PORT });
   });
 
   if (jobScheduler && process.env.JOBS_SCHEDULER_ENABLED !== 'false') {

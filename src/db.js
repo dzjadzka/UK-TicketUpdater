@@ -190,6 +190,19 @@ function createDatabase(dbPath) {
   const aggregateStatsStmt = db.prepare(
     'SELECT status, COUNT(*) AS count FROM download_history WHERE user_id = ? GROUP BY status'
   );
+  const getRecentErrorsStmt = db.prepare(
+    `SELECT user_id, status, message, error_message, device_profile, downloaded_at
+     FROM download_history
+     WHERE status IS NULL OR status != 'success'
+     ORDER BY downloaded_at DESC, id DESC
+     LIMIT ?`
+  );
+  const getJobSummarySinceStmt = db.prepare(
+    `SELECT status, COUNT(*) AS count
+     FROM download_history
+     WHERE downloaded_at >= datetime('now', @window)
+     GROUP BY status`
+  );
 
   const setBaseTicketStateStmt = db.prepare(
     `INSERT INTO base_ticket_state (id, base_ticket_hash, effective_from, last_checked_at, updated_at)
@@ -478,6 +491,27 @@ function createDatabase(dbPath) {
         );
       } catch (error) {
         console.error('Failed to aggregate ticket stats:', error);
+        throw error;
+      }
+    },
+    getRecentErrors: (limit = 50) => {
+      try {
+        return getRecentErrorsStmt.all(limit);
+      } catch (error) {
+        console.error('Failed to read recent errors:', error);
+        throw error;
+      }
+    },
+    summarizeJobsSince: (windowHours = 24) => {
+      try {
+        const window = `-${Math.max(1, Number(windowHours) || 24)} hours`;
+        const rows = getJobSummarySinceStmt.all({ window });
+        return rows.reduce(
+          (acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }),
+          { success: 0, error: 0 }
+        );
+      } catch (error) {
+        console.error('Failed to summarize jobs:', error);
         throw error;
       }
     },

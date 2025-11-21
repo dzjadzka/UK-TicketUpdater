@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
 const crypto = require('crypto');
+const puppeteer = require('puppeteer');
 const { getDeviceProfile } = require('./deviceProfiles');
 const { appendHistory } = require('./history');
 const { decrypt, getEncryptionKey } = require('./auth');
+const { logger } = require('./logger');
 
 // Constants
 const TICKET_URL = 'https://ticket.astakassel.de';
@@ -159,13 +160,23 @@ async function downloadHtmlForSession(page) {
  * @throws {Error} If user object is invalid
  */
 async function downloadTicketForUser(user, options = {}) {
-  const { defaultDeviceProfile = 'desktop_chrome', outputRoot = './downloads', historyPath, db } = options;
+  const {
+    defaultDeviceProfile = 'desktop_chrome',
+    outputRoot = './downloads',
+    historyPath,
+    db,
+    logger: providedLogger,
+    jobId
+  } = options;
 
   if (!user || !user.id) {
     throw new Error('User object must contain id');
   }
 
   const credentials = resolveUserCredentials(user, db, options.encryptionKey);
+
+  const baseLogger = providedLogger || logger;
+  const ticketLogger = baseLogger.child({ user_id: user.id, job_id: jobId || crypto.randomUUID() });
 
   // Get device profile - either from DB (if it's a custom profile ID) or from presets
   let deviceProfile;
@@ -208,6 +219,11 @@ async function downloadTicketForUser(user, options = {}) {
   let message = '';
   const deviceProfileName = (deviceProfile && deviceProfile.name) || profileIdentifier;
 
+  ticketLogger.info('download_start', {
+    device_profile: deviceProfileName,
+    output_root: outputRoot
+  });
+
   try {
     // Prepare launch options with optional proxy
     const launchOptions = {
@@ -242,25 +258,46 @@ async function downloadTicketForUser(user, options = {}) {
       if (db && typeof db.recordTicket === 'function') {
         db.recordTicket({ userId: user.id, filePath, status, ticketVersion, contentHash });
       }
+
+      ticketLogger.info('download_success', {
+        device_profile: deviceProfileName,
+        file_path: filePath
+      });
     } else {
       message = 'Ticket content not found';
+      ticketLogger.warn('ticket_missing', { device_profile: deviceProfileName });
     }
   } catch (error) {
     message = error.message;
-    console.error(`Failed to download ticket for ${user.id}:`, error);
+    ticketLogger.error('download_failed', { device_profile: deviceProfileName, error });
   } finally {
     if (browser) {
       await browser.close().catch((err) => {
-        console.error(`Failed to close browser for ${user.id}:`, err);
+        ticketLogger.warn('browser_close_failed', { device_profile: deviceProfileName, error: err });
       });
     }
+
+    if (db && typeof db.updateUserCredentialStatus === 'function') {
+      try {
+        db.updateUserCredentialStatus({
+          userId: user.id,
+          status,
+          error: status === 'success' ? null : message,
+          loggedInAt: status === 'success' ? new Date().toISOString() : null
+        });
+      } catch (err) {
+        ticketLogger.warn('credential_status_update_failed', { error: err });
+      }
+    }
+
     appendHistory(
       {
         userId: user.id,
         deviceProfile: deviceProfileName,
         status,
         filePath,
-        message
+        message,
+        errorMessage: status === 'success' ? null : message
       },
       historyPath,
       db
@@ -277,11 +314,20 @@ async function downloadTicketForUser(user, options = {}) {
  * @returns {Promise<Array<Object>>} Array of result objects
  */
 async function downloadTickets(users, options = {}) {
+  const jobId = options.jobId || crypto.randomUUID();
+  const jobLogger = (options.logger || logger).child({ job_id: jobId, job: 'download_tickets' });
   const results = [];
+  jobLogger.info('job_started', { user_count: users.length });
+
   for (const user of users) {
-    const result = await downloadTicketForUser(user, options);
-    results.push(result);
+    const result = await downloadTicketForUser(user, { ...options, logger: jobLogger, jobId });
+    results.push({ userId: user.id, ...result });
   }
+
+  const successCount = results.filter((r) => r.status === 'success').length;
+  const failureCount = results.length - successCount;
+
+  jobLogger.info('job_completed', { user_count: users.length, success_count: successCount, failure_count: failureCount });
   return results;
 }
 
