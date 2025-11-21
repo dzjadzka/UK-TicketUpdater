@@ -128,9 +128,7 @@ function createDatabase(dbPath) {
   );
   const getInviteTokenStmt = db.prepare('SELECT * FROM invite_tokens WHERE token = ?');
   const markInviteTokenUsedStmt = db.prepare('UPDATE invite_tokens SET used_by = ? WHERE token = ?');
-  const listInviteTokensStmt = db.prepare(
-    'SELECT * FROM invite_tokens WHERE created_by = ? ORDER BY created_at DESC'
-  );
+  const listInviteTokensStmt = db.prepare('SELECT * FROM invite_tokens WHERE created_by = ? ORDER BY created_at DESC');
   const deleteInviteTokenStmt = db.prepare('DELETE FROM invite_tokens WHERE token = ?');
 
   // Credentials statements

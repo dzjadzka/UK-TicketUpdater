@@ -57,6 +57,7 @@ frontend/
 ## Installation
 
 1. Install frontend dependencies:
+
    ```bash
    cd frontend
    npm install
@@ -74,12 +75,14 @@ frontend/
 The frontend development server runs on port 5173 and proxies API requests to the backend on port 3000.
 
 1. Start the backend API server in one terminal:
+
    ```bash
    # From project root
    JWT_SECRET=your-secret-key npm run api
    ```
 
 2. Start the frontend dev server in another terminal:
+
    ```bash
    # From project root
    npm run dev:frontend
@@ -243,6 +246,7 @@ The application uses Tailwind CSS for styling with a clean, modern design.
 ### Responsive Design
 
 The interface is fully responsive and works well on:
+
 - Mobile devices (< 640px)
 - Tablets (640px - 1024px)
 - Desktops (> 1024px)
@@ -351,6 +355,7 @@ When contributing to the frontend:
 ## Support
 
 For issues or questions about the frontend, please check:
+
 - Backend API documentation in the main README.md
 - React documentation: https://react.dev/
 - Vite documentation: https://vitejs.dev/

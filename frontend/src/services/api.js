@@ -40,15 +40,14 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
-  register: (inviteToken, email, password, locale) => 
-    api.post('/auth/register', { inviteToken, email, password, locale }),
+  register: (inviteToken, email, password, locale) =>
+    api.post('/auth/register', { inviteToken, email, password, locale })
 };
 
 // Credentials API
 export const credentialsAPI = {
   getAll: () => api.get('/credentials'),
-  create: (loginName, loginPassword, label) => 
-    api.post('/credentials', { loginName, loginPassword, label }),
+  create: (loginName, loginPassword, label) => api.post('/credentials', { loginName, loginPassword, label }),
   update: (id, data) => api.put(`/credentials/${id}`, data),
   delete: (id) => api.delete(`/credentials/${id}`)
 };
@@ -63,16 +62,14 @@ export const deviceProfilesAPI = {
 
 // Downloads API
 export const downloadsAPI = {
-  trigger: (userIds, deviceProfile, outputDir) => 
-    api.post('/downloads', { userIds, deviceProfile, outputDir }),
+  trigger: (userIds, deviceProfile, outputDir) => api.post('/downloads', { userIds, deviceProfile, outputDir }),
   getHistory: (limit = 50) => api.get('/history', { params: { limit } }),
   getTickets: (userId) => api.get(`/tickets/${userId}`)
 };
 
 // Admin API
 export const adminAPI = {
-  createInvite: (expiresInHours) => 
-    api.post('/admin/invites', { expiresInHours }),
+  createInvite: (expiresInHours) => api.post('/admin/invites', { expiresInHours }),
   getInvites: () => api.get('/admin/invites'),
   deleteInvite: (token) => api.delete(`/admin/invites/${token}`),
   getUsers: () => api.get('/admin/users'),

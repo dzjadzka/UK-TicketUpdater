@@ -28,7 +28,7 @@ const Layout = ({ children }) => {
     { name: t('nav.credentials'), href: '/credentials', icon: KeyIcon },
     { name: t('nav.devices'), href: '/devices', icon: DevicePhoneMobileIcon },
     { name: t('nav.history'), href: '/history', icon: ClockIcon },
-    { name: t('nav.tickets'), href: '/tickets', icon: TicketIcon },
+    { name: t('nav.tickets'), href: '/tickets', icon: TicketIcon }
   ];
 
   if (isAdmin) {
@@ -53,9 +53,7 @@ const Layout = ({ children }) => {
           <div className="flex h-16 justify-between">
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
-                <span className="text-xl font-bold text-blue-600">
-                  {t('app.title')}
-                </span>
+                <span className="text-xl font-bold text-blue-600">{t('app.title')}</span>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => (
@@ -149,9 +147,7 @@ const Layout = ({ children }) => {
                       {({ active }) => (
                         <Link
                           to="/profile"
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block px-4 py-2 text-sm text-gray-700`}
+                          className={`${active ? 'bg-gray-100' : ''} block px-4 py-2 text-sm text-gray-700`}
                         >
                           <UserCircleIcon className="inline-block h-4 w-4 mr-2" />
                           {t('nav.profile')}
@@ -180,11 +176,7 @@ const Layout = ({ children }) => {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
               >
-                {mobileMenuOpen ? (
-                  <XMarkIcon className="block h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="block h-6 w-6" />
-                )}
+                {mobileMenuOpen ? <XMarkIcon className="block h-6 w-6" /> : <Bars3Icon className="block h-6 w-6" />}
               </button>
             </div>
           </div>
@@ -241,9 +233,7 @@ const Layout = ({ children }) => {
 
       {/* Main Content */}
       <main className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}</div>
       </main>
     </div>
   );

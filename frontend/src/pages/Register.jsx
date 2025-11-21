@@ -29,12 +29,7 @@ const Register = () => {
     setLoading(true);
     setError('');
 
-    const result = await register(
-      formData.inviteToken,
-      formData.email,
-      formData.password,
-      formData.locale
-    );
+    const result = await register(formData.inviteToken, formData.email, formData.password, formData.locale);
 
     if (result.success) {
       navigate('/');
@@ -49,12 +44,8 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {t('app.title')}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t('auth.registerTitle')}
-          </p>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">{t('app.title')}</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">{t('auth.registerTitle')}</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
@@ -109,9 +100,7 @@ const Register = () => {
                 className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder={t('auth.password')}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                {t('auth.passwordRequirements')}
-              </p>
+              <p className="mt-1 text-xs text-gray-500">{t('auth.passwordRequirements')}</p>
             </div>
             <div>
               <label htmlFor="locale" className="block text-sm font-medium text-gray-700">
@@ -142,10 +131,7 @@ const Register = () => {
           </div>
 
           <div className="text-center">
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
               {t('auth.hasAccount')} {t('auth.login')}
             </Link>
           </div>

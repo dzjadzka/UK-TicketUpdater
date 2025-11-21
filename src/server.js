@@ -530,7 +530,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         timezone: timezone || existing.timezone,
         proxy_url: proxyUrl !== undefined ? proxyUrl : existing.proxy_url,
         geolocation_latitude: geolocationLatitude !== undefined ? geolocationLatitude : existing.geolocation_latitude,
-        geolocation_longitude: geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
+        geolocation_longitude:
+          geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
       };
 
       // Validate updated profile

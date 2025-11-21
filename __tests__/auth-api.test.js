@@ -20,15 +20,9 @@ describe('Authentication API', () => {
 
     // Create admin user for tests
     const adminId = 'admin-001';
-    db.db.prepare(
-      'INSERT INTO users (id, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)'
-    ).run(
-      adminId,
-      'admin@example.com',
-      '$2b$10$validHashForTesting12345678901234567890123456789',
-      'admin',
-      1
-    );
+    db.db
+      .prepare('INSERT INTO users (id, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)')
+      .run(adminId, 'admin@example.com', '$2b$10$validHashForTesting12345678901234567890123456789', 'admin', 1);
   });
 
   afterEach(() => {
@@ -51,14 +45,12 @@ describe('Authentication API', () => {
     });
 
     it('should register user with valid invite token', async () => {
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'newuser@example.com',
-          password: 'StrongPassword123',
-          locale: 'en'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'newuser@example.com',
+        password: 'StrongPassword123',
+        locale: 'en'
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('User created successfully');
@@ -71,39 +63,33 @@ describe('Authentication API', () => {
     });
 
     it('should reject registration with invalid email', async () => {
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'invalid-email',
-          password: 'StrongPassword123'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'invalid-email',
+        password: 'StrongPassword123'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('email');
     });
 
     it('should reject registration with weak password', async () => {
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'newuser@example.com',
-          password: 'weak'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'newuser@example.com',
+        password: 'weak'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('8 characters');
     });
 
     it('should reject registration with invalid invite token', async () => {
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken: 'invalid-token',
-          email: 'newuser@example.com',
-          password: 'StrongPassword123'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken: 'invalid-token',
+        email: 'newuser@example.com',
+        password: 'StrongPassword123'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid invite token');
@@ -111,22 +97,18 @@ describe('Authentication API', () => {
 
     it('should reject registration with used invite token', async () => {
       // Use the token first
-      await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'first@example.com',
-          password: 'StrongPassword123'
-        });
+      await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'first@example.com',
+        password: 'StrongPassword123'
+      });
 
       // Try to use it again
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'second@example.com',
-          password: 'StrongPassword123'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'second@example.com',
+        password: 'StrongPassword123'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('already used');
@@ -143,13 +125,11 @@ describe('Authentication API', () => {
         expiresAt: pastDate.toISOString()
       });
 
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken: expiredToken,
-          email: 'newuser@example.com',
-          password: 'StrongPassword123'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken: expiredToken,
+        email: 'newuser@example.com',
+        password: 'StrongPassword123'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('expired');
@@ -157,13 +137,11 @@ describe('Authentication API', () => {
 
     it('should reject duplicate email registration', async () => {
       // First registration
-      await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken,
-          email: 'duplicate@example.com',
-          password: 'StrongPassword123'
-        });
+      await request(app).post('/auth/register').send({
+        inviteToken,
+        email: 'duplicate@example.com',
+        password: 'StrongPassword123'
+      });
 
       // Create another invite token
       const newInvite = generateInviteToken();
@@ -174,13 +152,11 @@ describe('Authentication API', () => {
       });
 
       // Try to register with same email
-      const response = await request(app)
-        .post('/auth/register')
-        .send({
-          inviteToken: newInvite,
-          email: 'duplicate@example.com',
-          password: 'StrongPassword123'
-        });
+      const response = await request(app).post('/auth/register').send({
+        inviteToken: newInvite,
+        email: 'duplicate@example.com',
+        password: 'StrongPassword123'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('already registered');
@@ -204,12 +180,10 @@ describe('Authentication API', () => {
     });
 
     it('should login with correct credentials', async () => {
-      const response = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'testuser@example.com',
-          password: 'TestPassword123'
-        });
+      const response = await request(app).post('/auth/login').send({
+        email: 'testuser@example.com',
+        password: 'TestPassword123'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Login successful');
@@ -221,24 +195,20 @@ describe('Authentication API', () => {
     });
 
     it('should reject login with wrong password', async () => {
-      const response = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'testuser@example.com',
-          password: 'WrongPassword123'
-        });
+      const response = await request(app).post('/auth/login').send({
+        email: 'testuser@example.com',
+        password: 'WrongPassword123'
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.error).toContain('Invalid credentials');
     });
 
     it('should reject login with non-existent email', async () => {
-      const response = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'nonexistent@example.com',
-          password: 'TestPassword123'
-        });
+      const response = await request(app).post('/auth/login').send({
+        email: 'nonexistent@example.com',
+        password: 'TestPassword123'
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.error).toContain('Invalid credentials');
@@ -247,12 +217,10 @@ describe('Authentication API', () => {
     it('should reject login for disabled account', async () => {
       db.disableUser('test-user-001');
 
-      const response = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'testuser@example.com',
-          password: 'TestPassword123'
-        });
+      const response = await request(app).post('/auth/login').send({
+        email: 'testuser@example.com',
+        password: 'TestPassword123'
+      });
 
       expect(response.status).toBe(403);
       expect(response.body.error).toContain('disabled');
@@ -276,12 +244,10 @@ describe('Authentication API', () => {
       });
 
       // Get admin token
-      const loginResponse = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'admin@example.com',
-          password: 'AdminPassword123'
-        });
+      const loginResponse = await request(app).post('/auth/login').send({
+        email: 'admin@example.com',
+        password: 'AdminPassword123'
+      });
 
       adminToken = loginResponse.body.token;
     });
@@ -299,9 +265,7 @@ describe('Authentication API', () => {
       });
 
       it('should reject invite creation without auth', async () => {
-        const response = await request(app)
-          .post('/admin/invites')
-          .send({ expiresInHours: 24 });
+        const response = await request(app).post('/admin/invites').send({ expiresInHours: 24 });
 
         expect(response.status).toBe(401);
       });
@@ -315,9 +279,7 @@ describe('Authentication API', () => {
           .set('Authorization', `Bearer ${adminToken}`)
           .send({ expiresInHours: 24 });
 
-        const response = await request(app)
-          .get('/admin/invites')
-          .set('Authorization', `Bearer ${adminToken}`);
+        const response = await request(app).get('/admin/invites').set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body.invites).toBeDefined();
@@ -325,8 +287,7 @@ describe('Authentication API', () => {
       });
 
       it('should reject listing without auth', async () => {
-        const response = await request(app)
-          .get('/admin/invites');
+        const response = await request(app).get('/admin/invites');
 
         expect(response.status).toBe(401);
       });
@@ -334,9 +295,7 @@ describe('Authentication API', () => {
 
     describe('GET /admin/users', () => {
       it('should list all users as admin', async () => {
-        const response = await request(app)
-          .get('/admin/users')
-          .set('Authorization', `Bearer ${adminToken}`);
+        const response = await request(app).get('/admin/users').set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body.users).toBeDefined();

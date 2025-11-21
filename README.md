@@ -171,6 +171,7 @@ The API now supports JWT-based authentication with invite-only registration and 
 ### Setup Authentication
 
 1. Configure environment variables (see `.env.example`):
+
    ```bash
    JWT_SECRET=your-secret-key-minimum-32-chars
    ENCRYPTION_KEY=your-encryption-key-32-chars
@@ -184,6 +185,7 @@ The API now supports JWT-based authentication with invite-only registration and 
 ### Authentication Flow
 
 1. **Admin creates invite token**:
+
    ```bash
    POST /admin/invites
    Authorization: Bearer <admin-jwt-token>
@@ -191,6 +193,7 @@ The API now supports JWT-based authentication with invite-only registration and 
    ```
 
 2. **User registers with invite token**:
+
    ```bash
    POST /auth/register
    Body: {
@@ -214,10 +217,12 @@ The API now supports JWT-based authentication with invite-only registration and 
 ### API Endpoints
 
 #### Public Endpoints
+
 - `POST /auth/register` - Register with invite token
 - `POST /auth/login` - Login and receive JWT token
 
 #### User Endpoints (JWT auth required)
+
 - `GET /credentials` - List user's credentials
 - `POST /credentials` - Create new credential set
 - `PUT /credentials/:id` - Update credential
@@ -228,6 +233,7 @@ The API now supports JWT-based authentication with invite-only registration and 
 - `DELETE /device-profiles/:id` - Delete device profile
 
 #### Admin Endpoints (admin role required)
+
 - `POST /admin/invites` - Generate invite token
 - `GET /admin/invites` - List invite tokens
 - `DELETE /admin/invites/:token` - Revoke invite token
@@ -235,6 +241,7 @@ The API now supports JWT-based authentication with invite-only registration and 
 - `PUT /admin/users/:id/disable` - Disable user account
 
 #### Legacy Endpoints (API_TOKEN auth)
+
 - `POST /downloads` - Trigger ticket downloads
 - `GET /history` - List download history
 - `GET /tickets/:userId` - List user's tickets
@@ -305,6 +312,7 @@ Content-Type: application/json
 ```
 
 **Supported Features:**
+
 - **Custom User Agent**: Emulate any browser/device
 - **Viewport Size**: Set custom width and height
 - **Timezone**: Override browser timezone (e.g., `America/New_York`)
@@ -313,6 +321,7 @@ Content-Type: application/json
 - **Geolocation**: Override location (useful for location-based testing)
 
 **Validation Rules:**
+
 - Name and user agent are required
 - Viewport dimensions must be positive integers
 - Proxy URL must be valid URL format

@@ -11,21 +11,15 @@ const Profile = () => {
       <div className="bg-white shadow rounded-lg p-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              {t('profile.email')}
-            </label>
+            <label className="block text-sm font-medium text-gray-700">{t('profile.email')}</label>
             <p className="mt-1 text-sm text-gray-900">{user?.email}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              {t('profile.role')}
-            </label>
+            <label className="block text-sm font-medium text-gray-700">{t('profile.role')}</label>
             <p className="mt-1 text-sm text-gray-900 capitalize">{user?.role}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              {t('profile.language')}
-            </label>
+            <label className="block text-sm font-medium text-gray-700">{t('profile.language')}</label>
             <p className="mt-1 text-sm text-gray-900">{user?.locale}</p>
           </div>
         </div>
