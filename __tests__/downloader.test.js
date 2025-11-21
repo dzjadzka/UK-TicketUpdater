@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 // Mock dependencies BEFORE requiring the module under test
 jest.mock('fs');

@@ -411,8 +411,6 @@ describe('index', () => {
       // This tests lines 76-78 (the if require.main === module block)
       // We can't directly test it here as it requires the module to be the main module
       // But we can verify the error handling logic exists
-      const { main } = require('../src/index');
-      
       // Create a rejected promise similar to what would happen
       const mockMain = jest.fn().mockRejectedValue(new Error('Test error'));
       
