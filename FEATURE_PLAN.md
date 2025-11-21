@@ -671,13 +671,18 @@ CREATE TABLE device_profiles (
   - Full CRUD API for credential management
   - Credentials scoped to user accounts
 
-### In Progress Features
-
-#### F012: Enhanced Device Emulation
-- **Status**: Database schema complete, API endpoints implemented
-- **Remaining**: Integration with downloader.js to apply custom profiles
-- **Next Steps**: Update Puppeteer launch to support proxy URLs and geolocation
+#### F012: Enhanced Device Emulation ✅
+- **Status**: Complete
+- **Date**: 2024-11-21
+- **Implementation**:
+  - Database schema with proxy_url, geolocation fields, and timezone
+  - Full CRUD API endpoints for custom device profiles
+  - Validation function for all device profile fields
+  - Downloader integration with timezone, geolocation, and proxy support
+  - Automatic detection of custom profiles (UUID format)
+  - 15 new tests for validation logic
+  - Documentation with examples
 
 ---
 
-**Status**: Phase 1 complete (4/4 features), Phase 2 in progress (1/2 features)
+**Status**: Phase 1 complete (5/5 features)

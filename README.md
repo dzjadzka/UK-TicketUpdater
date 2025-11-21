@@ -261,6 +261,48 @@ const crypto = require('crypto');
 "
 ```
 
+### Custom Device Profiles
+
+Create custom device profiles with advanced emulation features:
+
+```bash
+POST /device-profiles
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "name": "My Custom Profile",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...",
+  "viewportWidth": 1920,
+  "viewportHeight": 1080,
+  "locale": "de-DE",
+  "timezone": "Europe/Berlin",
+  "proxyUrl": "http://proxy.example.com:8080",
+  "geolocationLatitude": 51.3127,
+  "geolocationLongitude": 9.4797
+}
+```
+
+**Supported Features:**
+- **Custom User Agent**: Emulate any browser/device
+- **Viewport Size**: Set custom width and height
+- **Timezone**: Override browser timezone (e.g., `America/New_York`)
+- **Locale**: Set language preference
+- **Proxy Server**: Route traffic through HTTP/HTTPS proxy
+- **Geolocation**: Override location (useful for location-based testing)
+
+**Validation Rules:**
+- Name and user agent are required
+- Viewport dimensions must be positive integers
+- Proxy URL must be valid URL format
+- Latitude must be between -90 and 90
+- Longitude must be between -180 and 180
+- Latitude and longitude must be provided together
+
+**Using Custom Profiles:**
+
+Custom profiles are automatically used when their UUID is set as the user's device profile. The downloader will load the custom profile from the database and apply all settings including proxy and geolocation.
+
 ## Legacy scripts / Alte Skripte
 
 Die Datei `ticket-downloader.js` beinhaltet das eigentliche Download-Script, die Datei `ticket-uploader.sh` ist ein Beispiel, wie man das Ticket nach dem Download automatisch in eine Cloud laden kann. Ich nutze dafür NextCloud, es sollte aber ohne Probleme an jede andere Cloud anpassbar sein (ChatGPT/Copilot/... ist dein Freund). Alternativ zu einem eigenen Upload-Script kann auch [rclone](https://rclone.org/) genutzt werden.

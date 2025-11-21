@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2024-11-20
+## [Unreleased] - 2024-11-21
 
 ### Added
 
@@ -30,12 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - User-scoped credential access
   - Label support for organizing multiple credentials
 
-- **Custom Device Profiles**:
+- **Custom Device Profiles** (F012 Complete):
   - User-defined device profiles with custom user agents
   - Viewport configuration per profile
-  - Proxy URL configuration
-  - Geolocation (latitude/longitude) support
-  - Timezone and locale customization per profile
+  - Proxy URL configuration with validation
+  - Geolocation (latitude/longitude) support with range validation
+  - Timezone emulation (e.g., America/New_York, Europe/Berlin)
+  - Locale customization per profile
+  - Full integration with downloader (auto-detects custom profiles by UUID)
+  - Comprehensive validation function with detailed error reporting
+  - 15 new tests for device profile validation
 
 - **Enhanced Database Schema**:
   - Updated users table with email, password_hash, role, locale, is_active
@@ -52,9 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Protected admin endpoints with role checks
 
 - **Testing**:
-  - 45 new tests for authentication module
+  - 60 new tests total (45 auth + 15 device profiles)
   - Comprehensive integration tests for auth API endpoints
-  - Test coverage increased from 52 to 97 tests
+  - Device profile validation tests (required fields, proxy, geolocation)
+  - Test coverage increased from 52 to 112 tests
   - Tests for password hashing, JWT tokens, encryption, and validation
 
 - **Documentation**:
@@ -62,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - API endpoint reference with request/response examples
   - Security features and password requirements documentation
   - Bootstrap instructions for first admin user creation
+  - Custom device profiles section with examples and validation rules
+  - FEATURE_PLAN.md updated to reflect Phase 1 completion (5/5 features)
 
 ### Changed
 
