@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { downloadTickets } = require('./downloader');
 const { createDatabase } = require('./db');
 const { DEFAULT_HISTORY_PATH } = require('./history');
+const { validateDeviceProfile } = require('./deviceProfiles');
 const {
   hashPassword,
   comparePassword,
@@ -458,10 +459,23 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         geolocationLongitude
       } = req.body;
 
-      if (!name || !userAgent || !viewportWidth || !viewportHeight) {
-        return res
-          .status(400)
-          .json({ error: 'name, userAgent, viewportWidth, and viewportHeight are required' });
+      // Prepare profile for validation
+      const profileToValidate = {
+        name,
+        user_agent: userAgent,
+        viewport_width: viewportWidth,
+        viewport_height: viewportHeight,
+        locale: locale || 'de-DE',
+        timezone: timezone || 'Europe/Berlin',
+        proxy_url: proxyUrl || null,
+        geolocation_latitude: geolocationLatitude !== undefined ? geolocationLatitude : null,
+        geolocation_longitude: geolocationLongitude !== undefined ? geolocationLongitude : null
+      };
+
+      // Validate device profile
+      const validation = validateDeviceProfile(profileToValidate);
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid device profile', details: validation.errors });
       }
 
       const id = crypto.randomUUID();
@@ -475,8 +489,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         locale: locale || 'de-DE',
         timezone: timezone || 'Europe/Berlin',
         proxyUrl: proxyUrl || null,
-        geolocationLatitude: geolocationLatitude || null,
-        geolocationLongitude: geolocationLongitude || null
+        geolocationLatitude: geolocationLatitude !== undefined ? geolocationLatitude : null,
+        geolocationLongitude: geolocationLongitude !== undefined ? geolocationLongitude : null
       });
 
       res.status(201).json({ message: 'Device profile created', id });
@@ -506,18 +520,37 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         return res.status(404).json({ error: 'Device profile not found' });
       }
 
+      // Prepare updated profile for validation
+      const updatedProfile = {
+        name: name || existing.name,
+        user_agent: userAgent || existing.user_agent,
+        viewport_width: viewportWidth || existing.viewport_width,
+        viewport_height: viewportHeight || existing.viewport_height,
+        locale: locale || existing.locale,
+        timezone: timezone || existing.timezone,
+        proxy_url: proxyUrl !== undefined ? proxyUrl : existing.proxy_url,
+        geolocation_latitude: geolocationLatitude !== undefined ? geolocationLatitude : existing.geolocation_latitude,
+        geolocation_longitude: geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
+      };
+
+      // Validate updated profile
+      const validation = validateDeviceProfile(updatedProfile);
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid device profile', details: validation.errors });
+      }
+
       db.updateDeviceProfile({
         id,
         userId: req.user.id,
-        name: name || existing.name,
-        userAgent: userAgent || existing.user_agent,
-        viewportWidth: viewportWidth || existing.viewport_width,
-        viewportHeight: viewportHeight || existing.viewport_height,
-        locale: locale || existing.locale,
-        timezone: timezone || existing.timezone,
-        proxyUrl: proxyUrl !== undefined ? proxyUrl : existing.proxy_url,
-        geolocationLatitude: geolocationLatitude !== undefined ? geolocationLatitude : existing.geolocation_latitude,
-        geolocationLongitude: geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
+        name: updatedProfile.name,
+        userAgent: updatedProfile.user_agent,
+        viewportWidth: updatedProfile.viewport_width,
+        viewportHeight: updatedProfile.viewport_height,
+        locale: updatedProfile.locale,
+        timezone: updatedProfile.timezone,
+        proxyUrl: updatedProfile.proxy_url,
+        geolocationLatitude: updatedProfile.geolocation_latitude,
+        geolocationLongitude: updatedProfile.geolocation_longitude
       });
 
       res.json({ message: 'Device profile updated' });

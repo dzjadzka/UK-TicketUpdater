@@ -42,6 +42,24 @@ async function preparePage(browser, deviceProfile) {
     await page.setExtraHTTPHeaders({ 'Accept-Language': deviceProfile.locale });
   }
 
+  // Set timezone if provided
+  if (deviceProfile?.timezone) {
+    await page.emulateTimezone(deviceProfile.timezone);
+  }
+
+  // Set geolocation if provided
+  if (
+    deviceProfile?.geolocation_latitude !== null &&
+    deviceProfile?.geolocation_latitude !== undefined &&
+    deviceProfile?.geolocation_longitude !== null &&
+    deviceProfile?.geolocation_longitude !== undefined
+  ) {
+    await page.setGeolocation({
+      latitude: deviceProfile.geolocation_latitude,
+      longitude: deviceProfile.geolocation_longitude
+    });
+  }
+
   return page;
 }
 
@@ -126,7 +144,36 @@ async function downloadTicketForUser(user, options = {}) {
     throw new Error('User object must contain id, username, and password');
   }
 
-  const deviceProfile = getDeviceProfile(user.deviceProfile || defaultDeviceProfile);
+  // Get device profile - either from DB (if it's a custom profile ID) or from presets
+  let deviceProfile;
+  const profileIdentifier = user.deviceProfile || user.device_profile || defaultDeviceProfile;
+
+  // Check if db is available and profile identifier looks like a custom profile ID (UUID format)
+  if (db && typeof db.getDeviceProfileById === 'function' && profileIdentifier.includes('-')) {
+    const customProfile = db.getDeviceProfileById(profileIdentifier, user.id);
+    if (customProfile) {
+      // Convert DB format to the format expected by preparePage
+      deviceProfile = {
+        name: customProfile.name,
+        userAgent: customProfile.user_agent,
+        viewport: {
+          width: customProfile.viewport_width,
+          height: customProfile.viewport_height
+        },
+        locale: customProfile.locale,
+        timezone: customProfile.timezone,
+        proxy_url: customProfile.proxy_url,
+        geolocation_latitude: customProfile.geolocation_latitude,
+        geolocation_longitude: customProfile.geolocation_longitude
+      };
+    } else {
+      // Fallback to preset if custom profile not found
+      deviceProfile = getDeviceProfile(defaultDeviceProfile);
+    }
+  } else {
+    // Use preset device profile
+    deviceProfile = getDeviceProfile(profileIdentifier);
+  }
 
   let browser;
   let status = 'error';
@@ -134,10 +181,18 @@ async function downloadTicketForUser(user, options = {}) {
   let message = '';
 
   try {
-    browser = await puppeteer.launch({
+    // Prepare launch options with optional proxy
+    const launchOptions = {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--mute-audio']
-    });
+    };
+
+    // Add proxy server if configured
+    if (deviceProfile?.proxy_url) {
+      launchOptions.args.push(`--proxy-server=${deviceProfile.proxy_url}`);
+    }
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await preparePage(browser, deviceProfile);
     await performLogin(page, user.username, user.password);

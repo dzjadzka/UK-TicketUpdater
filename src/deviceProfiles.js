@@ -36,4 +36,79 @@ function getDeviceProfile(name) {
   return DEVICE_PROFILES[name] || DEVICE_PROFILES.desktop_chrome;
 }
 
-module.exports = { DEVICE_PROFILES, getDeviceProfile };
+/**
+ * Validates a custom device profile configuration
+ * @param {Object} profile - Device profile to validate
+ * @returns {Object} Object with valid boolean and errors array
+ */
+function validateDeviceProfile(profile) {
+  const errors = [];
+
+  // Required fields
+  if (!profile.name || typeof profile.name !== 'string' || profile.name.trim().length === 0) {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!profile.user_agent || typeof profile.user_agent !== 'string' || profile.user_agent.trim().length === 0) {
+    errors.push('user_agent is required and must be a non-empty string');
+  }
+
+  if (
+    typeof profile.viewport_width !== 'number' ||
+    profile.viewport_width <= 0 ||
+    !Number.isInteger(profile.viewport_width)
+  ) {
+    errors.push('viewport_width must be a positive integer');
+  }
+
+  if (
+    typeof profile.viewport_height !== 'number' ||
+    profile.viewport_height <= 0 ||
+    !Number.isInteger(profile.viewport_height)
+  ) {
+    errors.push('viewport_height must be a positive integer');
+  }
+
+  // Optional proxy URL validation
+  if (profile.proxy_url !== null && profile.proxy_url !== undefined && profile.proxy_url !== '') {
+    try {
+      new URL(profile.proxy_url);
+    } catch {
+      errors.push('proxy_url must be a valid URL');
+    }
+  }
+
+  // Optional geolocation validation
+  if (profile.geolocation_latitude !== null && profile.geolocation_latitude !== undefined) {
+    if (typeof profile.geolocation_latitude !== 'number') {
+      errors.push('geolocation_latitude must be a number');
+    } else if (profile.geolocation_latitude < -90 || profile.geolocation_latitude > 90) {
+      errors.push('geolocation_latitude must be between -90 and 90');
+    }
+  }
+
+  if (profile.geolocation_longitude !== null && profile.geolocation_longitude !== undefined) {
+    if (typeof profile.geolocation_longitude !== 'number') {
+      errors.push('geolocation_longitude must be a number');
+    } else if (profile.geolocation_longitude < -180 || profile.geolocation_longitude > 180) {
+      errors.push('geolocation_longitude must be between -180 and 180');
+    }
+  }
+
+  // Check if both lat and lng are provided together
+  const hasLat = profile.geolocation_latitude !== null && profile.geolocation_latitude !== undefined;
+  const hasLng = profile.geolocation_longitude !== null && profile.geolocation_longitude !== undefined;
+  if (hasLat && !hasLng) {
+    errors.push('geolocation_longitude is required when geolocation_latitude is provided');
+  }
+  if (hasLng && !hasLat) {
+    errors.push('geolocation_latitude is required when geolocation_longitude is provided');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+module.exports = { DEVICE_PROFILES, getDeviceProfile, validateDeviceProfile };
