@@ -33,3 +33,8 @@ Purpose: document how the persistent backend should run, what controls exist for
 
 - Keep this file aligned with backend changes; remove any references to UI-level workflows until a frontend is reintroduced.
 - Add API examples (curl or HTTPie) once the polling loop cadence and job lifecycle endpoints are finalized.
+# Frontend documentation archive
+
+The previous "Frontend Improvement Plan" outlined a prospective UI that has not been implemented. That planning note now lives at `legacy/FRONTEND_IMPROVEMENT_PLAN_ARCHIVED.md` for historical reference only.
+
+If a new UI effort starts, prefer drafting a fresh plan that reflects the current backend capabilities and avoids implying existing flows.
