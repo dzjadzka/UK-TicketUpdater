@@ -148,8 +148,12 @@ async function downloadTicketForUser(user, options = {}) {
   let deviceProfile;
   const profileIdentifier = user.deviceProfile || user.device_profile || defaultDeviceProfile;
 
-  // Check if db is available and profile identifier looks like a custom profile ID (UUID format)
-  if (db && typeof db.getDeviceProfileById === 'function' && profileIdentifier.includes('-')) {
+  // UUID v4 format: 8-4-4-4-12 hex digits
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const isCustomProfile = uuidRegex.test(profileIdentifier);
+
+  // Check if db is available and profile identifier is a UUID (custom profile)
+  if (db && typeof db.getDeviceProfileById === 'function' && isCustomProfile) {
     const customProfile = db.getDeviceProfileById(profileIdentifier, user.id);
     if (customProfile) {
       // Convert DB format to the format expected by preparePage

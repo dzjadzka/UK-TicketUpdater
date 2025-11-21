@@ -72,7 +72,12 @@ function validateDeviceProfile(profile) {
   // Optional proxy URL validation
   if (profile.proxy_url !== null && profile.proxy_url !== undefined && profile.proxy_url !== '') {
     try {
-      new URL(profile.proxy_url);
+      const proxyUrl = new URL(profile.proxy_url);
+      // Validate proxy URL has appropriate scheme (http, https, socks4, socks5)
+      const validSchemes = ['http:', 'https:', 'socks4:', 'socks5:'];
+      if (!validSchemes.includes(proxyUrl.protocol)) {
+        errors.push('proxy_url must use http, https, socks4, or socks5 protocol');
+      }
     } catch {
       errors.push('proxy_url must be a valid URL');
     }

@@ -119,10 +119,29 @@ describe('deviceProfiles', () => {
       expect(result.errors).toContain('proxy_url must be a valid URL');
     });
 
-    it('should accept valid proxy_url', () => {
+    it('should accept valid http proxy_url', () => {
       const profile = { ...validProfile, proxy_url: 'http://proxy.example.com:8080' };
       const result = validateDeviceProfile(profile);
       expect(result.valid).toBe(true);
+    });
+
+    it('should accept valid https proxy_url', () => {
+      const profile = { ...validProfile, proxy_url: 'https://proxy.example.com:8080' };
+      const result = validateDeviceProfile(profile);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept valid socks5 proxy_url', () => {
+      const profile = { ...validProfile, proxy_url: 'socks5://proxy.example.com:1080' };
+      const result = validateDeviceProfile(profile);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should reject proxy_url with invalid scheme', () => {
+      const profile = { ...validProfile, proxy_url: 'ftp://proxy.example.com:8080' };
+      const result = validateDeviceProfile(profile);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('proxy_url must use http, https, socks4, or socks5 protocol');
     });
 
     it('should reject latitude without longitude', () => {
