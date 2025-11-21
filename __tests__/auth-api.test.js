@@ -1,8 +1,12 @@
+const TEST_ENCRYPTION_KEY = 'test-secret-key-1234567890123456';
+process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || TEST_ENCRYPTION_KEY;
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+
 const request = require('supertest');
 const fs = require('fs');
 const path = require('path');
 const { createApp } = require('../src/server');
-const { generateInviteToken, getInviteExpiration } = require('../src/auth');
+const { generateInviteToken, getInviteExpiration, decrypt, getEncryptionKey } = require('../src/auth');
 
 describe('Authentication API', () => {
   let app;
@@ -259,6 +263,72 @@ describe('Authentication API', () => {
     });
   });
 
+  describe('User self-service', () => {
+    let userToken;
+    const userId = 'self-user-001';
+
+    beforeEach(async () => {
+      const { hashPassword } = require('../src/auth');
+      const passwordHash = await hashPassword('TestPassword123');
+
+      db.createUser({
+        id: userId,
+        email: 'self@example.com',
+        passwordHash,
+        role: 'user',
+        locale: 'en',
+        isActive: 1
+      });
+
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          email: 'self@example.com',
+          password: 'TestPassword123'
+        });
+
+      userToken = loginResponse.body.token;
+    });
+
+    it('returns own profile and toggles auto download flag', async () => {
+      const meResponse = await request(app).get('/me').set('Authorization', `Bearer ${userToken}`);
+
+      expect(meResponse.status).toBe(200);
+      expect(meResponse.body.user.email).toBe('self@example.com');
+      expect(meResponse.body.user.auto_download_enabled).toBe(false);
+
+      const toggleResponse = await request(app)
+        .patch('/me/auto-download')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ enabled: true });
+
+      expect(toggleResponse.status).toBe(200);
+      expect(toggleResponse.body.user.auto_download_enabled).toBe(true);
+    });
+
+    it('stores UK credentials encrypted for the user', async () => {
+      const saveResponse = await request(app)
+        .put('/me/credentials')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ ukNumber: 'UK-12345', ukPassword: 'TicketPass123!' });
+
+      expect(saveResponse.status).toBe(200);
+      expect(saveResponse.body.credential.uk_number).toBe('UK-12345');
+
+      const stored = db.getUserCredential(userId);
+      expect(stored.uk_number).toBe('UK-12345');
+      expect(stored.uk_password_encrypted).toBeDefined();
+      expect(stored.uk_password_encrypted).not.toBe('TicketPass123!');
+      const decrypted = decrypt(stored.uk_password_encrypted, getEncryptionKey());
+      expect(decrypted).toBe('TicketPass123!');
+    });
+
+    it('prevents non-admin users from accessing admin routes', async () => {
+      const response = await request(app).get('/admin/users').set('Authorization', `Bearer ${userToken}`);
+      expect(response.status).toBe(403);
+    });
+  });
+
   describe('Admin endpoints', () => {
     beforeEach(async () => {
       const { hashPassword } = require('../src/auth');
@@ -374,6 +444,31 @@ describe('Authentication API', () => {
         const user = db.getUserById('user-to-disable');
         expect(user.is_active).toBe(0);
       });
+    });
+
+    it('allows admin to set user UK credentials', async () => {
+      const { hashPassword } = require('../src/auth');
+      const passwordHash = await hashPassword('UserPassword123');
+
+      db.createUser({
+        id: 'user-for-cred',
+        email: 'cred@example.com',
+        passwordHash,
+        role: 'user',
+        locale: 'en',
+        isActive: 1
+      });
+
+      const response = await request(app)
+        .put('/admin/users/user-for-cred/credentials')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ukNumber: 'UK-999', ukPassword: 'AdminSetPass123!' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('Credentials updated');
+      const stored = db.getUserCredential('user-for-cred');
+      expect(stored.uk_number).toBe('UK-999');
+      expect(stored.uk_password_encrypted).toBeDefined();
     });
   });
 });
