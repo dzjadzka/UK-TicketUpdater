@@ -156,6 +156,8 @@ See [`docs/operations.md`](docs/operations.md) for an operations-focused view of
 - API rate limiting: global IP limit plus per-user limiter; outbound ticket-provider calls are throttled by `TICKET_RATE_LIMIT_PER_MINUTE`.
 - CI: GitHub Actions workflow `.github/workflows/ci.yml` runs lint, backend/frontend tests, and Playwright smoke tests on pushes/PRs; `.github/workflows/scheduled-download.yml` runs a scheduled downloader when a `USERS_JSON` secret is configured.
 
+See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance and [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) for pre-deployment validation.
+
 ## Docker / deployment
 - Build: `docker build -t uk-ticket-updater .`
 - Run locally: `docker-compose up --build` (serves API on `localhost:3000`, mounts `./data` and `./downloads`).
@@ -167,6 +169,25 @@ See [`docs/operations.md`](docs/operations.md) for an operations-focused view of
 - End-to-end Playwright suite (API): `npm run test:e2e`
 - Tests log warnings when default `JWT_SECRET`/`ENCRYPTION_KEY` values are used; set these env vars locally if you want to silence the notices.
 
-## Limitations and cautions
+## Documentation
+
+### Architecture & Design
+- [**Architecture Overview**](docs/architecture.md) - System components, data flows, and technology stack
+- [Database Schema](docs/db-schema.md) - Table definitions and relationships
+- [Operations Guide](docs/operations.md) - Deployment, monitoring, and operational procedures
+
+### Release & Planning
+- [**CHANGELOG**](CHANGELOG.md) - Version history and release notes (see v1.0.0 for complete feature list)
+- [**Release Checklist**](RELEASE_CHECKLIST.md) - Pre-deployment validation and production readiness
+- [Future Work & Limitations](docs/future-work.md) - Known limitations and enhancement roadmap
+
+### Development
+- [CONTRIBUTING](CONTRIBUTING.md) - Development setup and contribution guidelines
+- [AGENTS](AGENTS.md) - AI agent instructions and project overview
+
+## Limitations and known issues
 - SQLite-backed persistence is provided for both app data and the job queue; ensure the database file is backed up or mounted on durable storage in production.
 - Rate limiting is in-process; distributed deployments should externalize limits (e.g., Redis) if multiple API instances run concurrently.
+- Single-instance queue design: the SQLite queue is not designed for multi-instance horizontal scaling.
+
+For detailed limitations and future enhancements, see [`docs/future-work.md`](docs/future-work.md).
