@@ -134,6 +134,9 @@ function initSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_device_profiles_user ON device_profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_user_credentials_user ON user_credentials(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tickets_user_time ON tickets(user_id, downloaded_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_history_user_time ON download_history(user_id, downloaded_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active, deleted_at);
   `);
 }
 
@@ -142,6 +145,8 @@ function createDatabase(dbPath) {
   ensureDirExists(path.dirname(resolvedPath));
 
   const db = new Database(resolvedPath);
+  // Enable foreign key constraints (disabled by default in SQLite)
+  db.pragma('foreign_keys = ON');
   initSchema(db);
 
   const getUsersStmt = db.prepare('SELECT * FROM users ORDER BY id');

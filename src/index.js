@@ -1,31 +1,15 @@
-const fs = require('fs');
 const path = require('path');
 const { downloadTickets } = require('./downloader');
-const { DEFAULT_HISTORY_PATH } = require('./history');
 const { createDatabase } = require('./db');
 const { getEncryptionKey } = require('./auth');
 const { parseArgs } = require('./cli');
 const { createRateLimiterFromEnv } = require('./rateLimiter');
 
-function loadUsers(configPath) {
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`Users config not found at ${configPath}. Create it from config/users.sample.json`);
-  }
-  const raw = fs.readFileSync(configPath, 'utf-8');
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    throw new Error('Users config must be an array of user objects');
-  }
-  return parsed;
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const usersConfigPath = path.resolve(args.users || './config/users.json');
   const outputRoot = path.resolve(args.output || './downloads');
   const defaultDeviceProfile = args.device || 'desktop_chrome';
-  const historyPath = path.resolve(args.history || DEFAULT_HISTORY_PATH);
-  const dbPath = args.db ? path.resolve(args.db) : null;
+  const dbPath = path.resolve(args.db || './data/app.db');
 
   if (args.concurrency) {
     process.env.JOB_CONCURRENCY = String(args.concurrency);
@@ -34,26 +18,20 @@ async function main() {
     process.env.JOB_QUEUE_BACKEND = args.queueBackend;
   }
 
-  const db = dbPath ? createDatabase(dbPath) : null;
+  const db = createDatabase(dbPath);
   const encryptionKey = getEncryptionKey();
 
   try {
     const rateLimiter = createRateLimiterFromEnv();
-    let users;
-    if (db) {
-      users = db.listActiveUsers();
-    } else {
-      users = loadUsers(usersConfigPath);
-    }
+    const users = db.listActiveUsers();
 
     if (!users.length) {
-      throw new Error('No users found. Seed users via config/users.json or the database.');
+      throw new Error('No users found. Create an admin and register users via invites, then set their credentials.');
     }
 
     const results = await downloadTickets(users, {
       defaultDeviceProfile,
       outputRoot,
-      historyPath,
       db,
       encryptionKey,
       rateLimiter
@@ -66,9 +44,7 @@ async function main() {
       );
     });
   } finally {
-    if (db) {
-      db.close();
-    }
+    db.close();
   }
 }
 
@@ -79,4 +55,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, loadUsers, main };
+module.exports = { parseArgs, main };

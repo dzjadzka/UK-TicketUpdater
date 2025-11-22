@@ -1,22 +1,18 @@
-const fs = require('fs');
 const path = require('path');
 const { createDatabase } = require('./db');
-const { loadUsers } = require('./index');
 const { parseArgs } = require('./cli');
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const sourcePath = path.resolve(args.users || './config/users.json');
   const dbPath = path.resolve(args.db || './data/app.db');
 
   const db = createDatabase(dbPath);
-  if (fs.existsSync(sourcePath)) {
-    const users = loadUsers(sourcePath);
-    db.upsertUsers(users);
-    console.log(`Imported ${users.length} users into ${dbPath}`);
-  } else {
-    console.warn(`Source user file not found at ${sourcePath}. Database initialized without users.`);
-  }
+  // Schema initialization happens in createDatabase()
+  console.log(`Database initialized at ${dbPath}`);
+  console.log('Next steps:');
+  console.log('- Create initial admin: ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD="StrongPass123!" npm run init:admin');
+  console.log('- Start API: npm run api');
+  console.log('- Register users with the invite token via POST /auth/register and set credentials via PUT /me/credentials');
   db.close();
 }
 
