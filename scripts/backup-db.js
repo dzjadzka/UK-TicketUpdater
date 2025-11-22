@@ -30,7 +30,7 @@ function backupDatabase() {
   const backupFileName = `app-${timestamp}.db`;
   const backupPath = path.resolve(backupDir, backupFileName);
 
-  console.log(`Backing up database...`);
+  console.log('Backing up database...');
   console.log(`  Source: ${resolvedDbPath}`);
   console.log(`  Destination: ${backupPath}`);
 
@@ -50,7 +50,7 @@ function backupDatabase() {
     const stats = fs.statSync(backupPath);
     const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
 
-    console.log(`✓ Backup completed successfully`);
+    console.log('✓ Backup completed successfully');
     console.log(`  Size: ${sizeMB} MB`);
     console.log(`  Location: ${backupPath}`);
 
