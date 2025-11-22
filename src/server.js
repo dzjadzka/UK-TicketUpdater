@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { downloadTickets } = require('./downloader');
 const { createDatabase } = require('./db');
 const { DEFAULT_HISTORY_PATH } = require('./history');
@@ -205,7 +206,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT, jobO
   const authenticatedLimiter = rateLimit({
     windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
     max: AUTH_RATE_LIMIT_MAX,
-    keyGenerator: (req) => req.user?.id || req.ip,
+    // use user id if present, otherwise use ipKeyGenerator(req) to handle IPv4 & IPv6 correctly
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
     message: { error: 'Too many authenticated requests, please slow down.' },
     standardHeaders: true,
     legacyHeaders: false
