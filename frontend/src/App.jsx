@@ -5,13 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Credentials from './pages/Credentials';
-import DeviceProfiles from './pages/DeviceProfiles';
-import Downloads from './pages/Downloads';
-import History from './pages/History';
-import Tickets from './pages/Tickets';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -21,86 +15,17 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
+                <Layout />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/credentials"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Credentials />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/devices"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <DeviceProfiles />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/downloads"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Downloads />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <History />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tickets"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Tickets />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Profile />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly={true}>
-                <Layout>
-                  <Admin />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

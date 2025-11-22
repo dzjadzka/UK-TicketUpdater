@@ -1,37 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { TicketIcon } from '@heroicons/react/24/outline';
 
 const Login = () => {
-  const { t } = useTranslation();
-  const { login } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const { login, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError('');
-  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
     setLoading(true);
-    setError('');
 
-    const result = await login(formData.email, formData.password);
+    const result = await login(email, password);
 
     if (result.success) {
-      navigate('/');
+      navigate('/dashboard');
     } else {
       setError(result.error);
     }
@@ -40,120 +33,68 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen hero bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse max-w-6xl w-full">
-        {/* Right side - Login Form */}
-        <div className="card flex-shrink-0 w-full max-w-md shadow-2xl bg-base-100">
-          <div className="card-body">
-            <div className="text-center mb-4">
-              <div className="flex justify-center mb-4">
-                <div className="avatar placeholder">
-                  <div className="bg-primary text-primary-content rounded-full w-16">
-                    <TicketIcon className="h-8 w-8" />
-                  </div>
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold">{t('app.title')}</h2>
-              <p className="text-base-content/70 mt-2">{t('auth.loginTitle')}</p>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {error && (
-                <div className="alert alert-error mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">{t('auth.email')}</span>
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-4">
-                <label className="label">
-                  <span className="label-text">{t('auth.password')}</span>
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-6">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary"
-                >
-                  {loading && <span className="loading loading-spinner"></span>}
-                  {loading ? t('common.loading') : t('auth.loginButton')}
-                </button>
-              </div>
-
-              <div className="divider">OR</div>
-
-              <p className="text-center text-sm">
-                {t('auth.noAccount')}{' '}
-                <Link to="/register" className="link link-primary font-semibold">
-                  {t('auth.register')}
-                </Link>
-              </p>
-            </form>
-          </div>
-        </div>
-
-        {/* Left side - Hero Content */}
-        <div className="text-center lg:text-left max-w-md">
-          <h1 className="text-5xl font-bold">{t('app.title')}</h1>
-          <p className="py-6 text-lg">
-            {t('app.description')}
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-6 text-center">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Welcome back</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Sign in to your account</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Access your UK ticket downloads, update credentials, and manage automation preferences.
           </p>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="badge badge-primary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Multi-user Support</h3>
-                <p className="text-sm text-base-content/70">Manage multiple accounts with ease</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="badge badge-primary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Device Emulation</h3>
-                <p className="text-sm text-base-content/70">Custom profiles for different devices</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="badge badge-primary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Secure & Private</h3>
-                <p className="text-sm text-base-content/70">Encrypted credentials and JWT auth</p>
-              </div>
-            </div>
-          </div>
         </div>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className="block text-sm font-medium text-slate-700" htmlFor="email">
+              Email address
+            </label>
+            <input
+              id="email"
+              type="email"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+          >
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-slate-600">
+          New here?{' '}
+          <Link className="font-semibold text-indigo-600 hover:text-indigo-700" to="/register">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );
