@@ -8,8 +8,8 @@ services:
       - DB_PATH=/app/data/app.db
       - OUTPUT_ROOT=/app/downloads
       - JOB_QUEUE_BACKEND=persistent
-      - JWT_SECRET=change-me
-      - ENCRYPTION_KEY=change-me-32-bytes!
+      - JWT_SECRET=0da2b0094d92744d2b6df55e1565988fe4dbf0458ea40a260b71f42d7bf56f5f
+      - ENCRYPTION_KEY=fba8e68b205c00e857e9f509dc9b097045aabfb63504913de19710997125fba7
       - AUTH_RATE_LIMIT_MAX=300
     volumes:
       - ./data:/app/data

@@ -54,35 +54,32 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 # Install dependencies (skip Chromium download if you have one installed)
 PUPPETEER_SKIP_DOWNLOAD=1 npm install
 
-# Prepare a users config (JSON mode)
-cp config/users.sample.json config/users.json
-# Fill username/password and optional deviceProfile/outputDir per entry
-
-# Initialize SQLite from JSON users (recommended path)
+# Initialize SQLite (schema only)
 npm run setup:db
+
+# Create initial admin and one invite token (copy the token printed)
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='StrongPass123!' npm run init:admin
+
+# Start API server
+npm run api
 ```
 
 ## Running downloads (CLI)
 ```bash
-# Using JSON users
-npm run download
+# Always DB-backed now
+echo "Ensure users exist in the DB with credentials set (via API)"
 
-# Using the sample placeholder config
-npm run download:sample
-
-# Using SQLite users/history/tickets (after npm run setup:db)
-npm run download:db
+# Manual one-off download for all active users
+npm run download -- --db ./data/app.db --device desktop_chrome --output ./downloads
 
 # Show full CLI help (all flags)
 node src/index.js --help
 ```
-CLI flags:
-- `--users <path>`: Users config path (default `./config/users.json`).
+CLI flags (DB-only):
+- `--db <path>`: SQLite path (default `./data/app.db`).
 - `--output <path>`: Base download directory (default `./downloads`).
-- `--device <profile>`: Default device profile (`desktop_chrome`, `mobile_android`, `iphone_13`, `iphone_15_pro`, `desktop_firefox`, `mac_safari`, `tablet_ipad`).
-- `--history <path>`: JSON history path (default `./data/history.json`; ignored when using `--db`).
-- `--db <path>`: SQLite path; when set, users/history/tickets are read/written there.
-- `--queue-backend <memory|persistent>`: Switch background queue backend (default `memory` unless DB persistent mode chosen).
+- `--device <profile>`: Default device profile.
+- `--queue-backend <memory|persistent>`: Background queue backend (default `memory`).
 - `--concurrency <number>`: Override job concurrency for CLI downloads.
 
 > Deprecated: The `--source` flag is still accepted as an alias for `--users` but will emit a warning and is scheduled for removal in v1.1.0. Migrate any scripts to use `--users`.

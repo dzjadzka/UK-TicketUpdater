@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - CLI flag `--source` now emits a deprecation warning and will be removed in v1.1.0. Use `--users` instead.
 
+### Changed
+- Removed JSON users mode. The CLI and app now operate exclusively with the SQLite database. `users.sample.json` is retained as a legacy example but no longer used by scripts.
+
 ## [1.0.0] - 2025-11-22
 
 This is the first major release of UK-TicketUpdater, marking the completion of Phases 1-4 and establishing a production-ready multi-user ticket automation system.
