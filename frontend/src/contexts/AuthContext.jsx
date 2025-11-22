@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, userAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -9,43 +9,57 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored token and user on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
+
+    if (storedToken) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+      refreshUser();
+    } else {
+      setLoading(false);
     }
-    
-    setLoading(false);
   }, []);
+
+  const refreshUser = async () => {
+    try {
+      const response = await userAPI.getProfile();
+      setUser(response.data.user);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    } catch (error) {
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
       const { token: newToken, user: newUser } = response.data;
-      
+
       setToken(newToken);
       setUser(newUser);
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
-      
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Login failed' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Login failed'
       };
     }
   };
 
-  const register = async (inviteToken, email, password, locale) => {
+  const register = async (inviteToken, email, password, locale, autoDownloadEnabled) => {
     try {
-      const response = await authAPI.register(inviteToken, email, password, locale);
+      const response = await authAPI.register(inviteToken, email, password, locale, autoDownloadEnabled);
       const { token: newToken, user: newUser } = response.data;
-      
+
       setToken(newToken);
       setUser(newUser);
       
@@ -64,6 +78,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
+    setLoading(false);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
@@ -75,6 +90,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshUser,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin'
   };

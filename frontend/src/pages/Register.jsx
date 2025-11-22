@@ -1,44 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { TicketIcon } from '@heroicons/react/24/outline';
 
 const Register = () => {
-  const { t, i18n } = useTranslation();
-  const { register } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    inviteToken: '',
-    email: '',
-    password: '',
-    locale: i18n.language || 'en'
-  });
+  const { register, isAuthenticated } = useAuth();
+  const [inviteToken, setInviteToken] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [autoDownload, setAutoDownload] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError('');
-  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
     setLoading(true);
-    setError('');
 
-    const result = await register(
-      formData.inviteToken,
-      formData.email,
-      formData.password,
-      formData.locale
-    );
-
+    const result = await register(inviteToken, email, password, 'en', autoDownload);
     if (result.success) {
-      navigate('/');
+      navigate('/dashboard');
     } else {
       setError(result.error);
     }
@@ -47,156 +34,103 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen hero bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse max-w-6xl w-full">
-        {/* Right side - Register Form */}
-        <div className="card flex-shrink-0 w-full max-w-md shadow-2xl bg-base-100">
-          <div className="card-body">
-            <div className="text-center mb-4">
-              <div className="flex justify-center mb-4">
-                <div className="avatar placeholder">
-                  <div className="bg-secondary text-secondary-content rounded-full w-16">
-                    <TicketIcon className="h-8 w-8" />
-                  </div>
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold">{t('app.title')}</h2>
-              <p className="text-base-content/70 mt-2">{t('auth.registerTitle')}</p>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {error && (
-                <div className="alert alert-error mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">{t('auth.inviteToken')}</span>
-                </label>
-                <input
-                  id="inviteToken"
-                  name="inviteToken"
-                  type="text"
-                  required
-                  value={formData.inviteToken}
-                  onChange={handleChange}
-                  placeholder="XXXX-XXXX-XXXX"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-4">
-                <label className="label">
-                  <span className="label-text">{t('auth.email')}</span>
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-4">
-                <label className="label">
-                  <span className="label-text">{t('auth.password')}</span>
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="input input-bordered"
-                />
-                <label className="label">
-                  <span className="label-text-alt">{t('auth.passwordRequirements')}</span>
-                </label>
-              </div>
-
-              <div className="form-control mt-4">
-                <label className="label">
-                  <span className="label-text">{t('auth.locale')}</span>
-                </label>
-                <select
-                  id="locale"
-                  name="locale"
-                  value={formData.locale}
-                  onChange={handleChange}
-                  className="select select-bordered"
-                >
-                  <option value="en">English</option>
-                  <option value="de">Deutsch</option>
-                  <option value="ru">Русский</option>
-                </select>
-              </div>
-
-              <div className="form-control mt-6">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary"
-                >
-                  {loading && <span className="loading loading-spinner"></span>}
-                  {loading ? t('common.loading') : t('auth.registerButton')}
-                </button>
-              </div>
-
-              <div className="divider">OR</div>
-
-              <p className="text-center text-sm">
-                {t('auth.hasAccount')}{' '}
-                <Link to="/login" className="link link-primary font-semibold">
-                  {t('auth.login')}
-                </Link>
-              </p>
-            </form>
-          </div>
-        </div>
-
-        {/* Left side - Hero Content */}
-        <div className="text-center lg:text-left max-w-md">
-          <h1 className="text-5xl font-bold">Join Our Community</h1>
-          <p className="py-6 text-lg">
-            Get started with automated ticket management. Register with your invite code.
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-6 text-center">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Join the beta</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Create your account</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Enter your invite token and credentials to start downloading UK tickets automatically.
           </p>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="badge badge-secondary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Invite-Only Access</h3>
-                <p className="text-sm text-base-content/70">Exclusive community for verified users</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="badge badge-secondary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Multi-language</h3>
-                <p className="text-sm text-base-content/70">Available in English, German & Russian</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="badge badge-secondary badge-lg">✓</div>
-              <div className="text-left">
-                <h3 className="font-semibold">Get Started Fast</h3>
-                <p className="text-sm text-base-content/70">Easy setup in just a few minutes</p>
-              </div>
-            </div>
-          </div>
         </div>
+
+        <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700" htmlFor="invite">
+              Invite token
+            </label>
+            <input
+              id="invite"
+              type="text"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Paste your invite token"
+              value={inviteToken}
+              onChange={(e) => setInviteToken(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700" htmlFor="email">
+              Email address
+            </label>
+            <input
+              id="email"
+              type="email"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Create a strong password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <p className="mt-2 text-xs text-slate-500">Use at least 8 characters with a mix of letters and numbers.</p>
+          </div>
+
+          <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                checked={autoDownload}
+                onChange={(e) => setAutoDownload(e.target.checked)}
+              />
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Enable automatic downloads</p>
+                <p className="text-sm text-slate-600">
+                  When enabled, your tickets will be fetched automatically using your saved credentials.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {error && (
+            <div className="md:col-span-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+            >
+              {loading ? 'Creating your account…' : 'Create account'}
+            </button>
+          </div>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Already registered?{' '}
+          <Link className="font-semibold text-indigo-600 hover:text-indigo-700" to="/login">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
