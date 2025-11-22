@@ -7,6 +7,8 @@ describe('deviceProfiles', () => {
       expect(DEVICE_PROFILES).toHaveProperty('mobile_android');
       expect(DEVICE_PROFILES).toHaveProperty('iphone_13');
       expect(DEVICE_PROFILES).toHaveProperty('tablet_ipad');
+      expect(DEVICE_PROFILES).toHaveProperty('desktop_firefox');
+      expect(DEVICE_PROFILES).toHaveProperty('mac_safari');
     });
 
     it('should have complete profile data for each device', () => {
@@ -15,6 +17,7 @@ describe('deviceProfiles', () => {
         expect(profile).toHaveProperty('userAgent');
         expect(profile).toHaveProperty('viewport');
         expect(profile).toHaveProperty('locale');
+        expect(profile).toHaveProperty('timezone');
         expect(profile.viewport).toHaveProperty('width');
         expect(profile.viewport).toHaveProperty('height');
       });
@@ -55,6 +58,8 @@ describe('deviceProfiles', () => {
       expect(getDeviceProfile('mobile_android').name).toBe('mobile_android');
       expect(getDeviceProfile('iphone_13').name).toBe('iphone_13');
       expect(getDeviceProfile('tablet_ipad').name).toBe('tablet_ipad');
+      expect(getDeviceProfile('desktop_firefox').name).toBe('desktop_firefox');
+      expect(getDeviceProfile('mac_safari').name).toBe('mac_safari');
     });
   });
 
@@ -180,6 +185,16 @@ describe('deviceProfiles', () => {
       };
       const result = validateDeviceProfile(profile);
       expect(result.valid).toBe(true);
+    });
+
+    it('rejects non-string locale or timezone', () => {
+      const localeResult = validateDeviceProfile({ ...validProfile, locale: 123 });
+      expect(localeResult.valid).toBe(false);
+      expect(localeResult.errors).toContain('locale must be a string when provided');
+
+      const tzResult = validateDeviceProfile({ ...validProfile, timezone: {} });
+      expect(tzResult.valid).toBe(false);
+      expect(tzResult.errors).toContain('timezone must be a string when provided');
     });
 
     it('should accept profile with all optional fields', () => {

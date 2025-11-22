@@ -1,4 +1,4 @@
-const { createJobHandlers } = require('../../src/jobs/handlers');
+const { createJobHandlers, buildDeviceProfile } = require('../../src/jobs/handlers');
 
 describe('job handlers', () => {
   describe('checkBaseTicket', () => {
@@ -62,6 +62,29 @@ describe('job handlers', () => {
       expect(queue.enqueue).toHaveBeenCalledTimes(2);
       expect(queue.enqueue).toHaveBeenCalledWith('downloadTicketForUser', { userId: 'u1' });
       expect(queue.enqueue).toHaveBeenCalledWith('downloadTicketForUser', { userId: 'u3' });
+    });
+  });
+
+  describe('buildDeviceProfile', () => {
+    test('returns DB-backed profile when UUID provided and includes proxy/geolocation', () => {
+      const db = {
+        getDeviceProfileById: jest.fn().mockReturnValue({
+          name: 'custom',
+          user_agent: 'UA',
+          viewport_width: 100,
+          viewport_height: 200,
+          locale: 'de-DE',
+          timezone: 'Europe/Berlin',
+          proxy_url: 'http://proxy.local:8080',
+          geolocation_latitude: 10,
+          geolocation_longitude: 20
+        })
+      };
+      const profile = buildDeviceProfile({ deviceProfile: '123e4567-e89b-12d3-a456-426614174000', id: 'u1' }, db, 'desktop_chrome');
+
+      expect(profile.proxy_url).toBe('http://proxy.local:8080');
+      expect(profile.geolocation_latitude).toBe(10);
+      expect(profile.geolocation_longitude).toBe(20);
     });
   });
 });

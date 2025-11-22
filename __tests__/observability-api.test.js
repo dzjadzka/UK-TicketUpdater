@@ -122,4 +122,21 @@ describe('Admin observability endpoints', () => {
     expect(response.body.data.state.effective_from).toContain('2024-01-01');
     expect(response.body.data.state.last_checked_at).toContain('2024-01-02');
   });
+
+  it('returns queue metrics', async () => {
+    const response = await request(app)
+      .get('/admin/observability/queue')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.metrics).toHaveProperty('pending');
+    expect(response.body.data.metrics).toHaveProperty('backend');
+  });
+
+  it('exposes Prometheus metrics', async () => {
+    const response = await request(app).get('/metrics');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('job_queue_pending');
+    expect(response.text).toContain('ticket_provider_calls_allowed');
+  });
 });

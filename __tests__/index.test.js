@@ -10,50 +10,24 @@ jest.mock('../src/db');
 
 describe('index', () => {
   describe('parseArgs', () => {
-    it('should parse arguments with = separator', () => {
-      const argv = ['--users=./config/users.json', '--output=./downloads'];
-      const args = parseArgs(argv);
-
+    it('parses primary flags with defaults', () => {
+      const args = parseArgs(['--users', './config/users.json', '--output', './downloads']);
       expect(args.users).toBe('./config/users.json');
       expect(args.output).toBe('./downloads');
+      expect(args.device).toBe('desktop_chrome');
+      expect(args.queueBackend).toBe('memory');
     });
 
-    it('should parse arguments with space separator', () => {
-      const argv = ['--users', './config/users.json', '--output', './downloads'];
-      const args = parseArgs(argv);
-
-      expect(args.users).toBe('./config/users.json');
-      expect(args.output).toBe('./downloads');
+    it('supports overrides for device and queue backend', () => {
+      const args = parseArgs(['--device', 'iphone_15_pro', '--queue-backend', 'persistent']);
+      expect(args.device).toBe('iphone_15_pro');
+      expect(args.queueBackend).toBe('persistent');
     });
 
-    it('should parse boolean flags', () => {
-      const argv = ['--verbose', '--debug'];
-      const args = parseArgs(argv);
-
-      expect(args.verbose).toBe(true);
-      expect(args.debug).toBe(true);
-    });
-
-    it('should handle mixed argument formats', () => {
-      const argv = ['--users=./config.json', '--verbose', '--device', 'mobile'];
-      const args = parseArgs(argv);
-
-      expect(args.users).toBe('./config.json');
-      expect(args.verbose).toBe(true);
-      expect(args.device).toBe('mobile');
-    });
-
-    it('should return empty object for no arguments', () => {
-      const args = parseArgs([]);
-      expect(args).toEqual({});
-    });
-
-    it('should ignore non-flag arguments', () => {
-      const argv = ['somecommand', '--flag', 'value'];
-      const args = parseArgs(argv);
-
-      expect(args.flag).toBe('value');
-      expect(args.somecommand).toBeUndefined();
+    it('validates integer options', () => {
+      expect(() => parseArgs(['--concurrency', 'not-a-number'])).toThrow();
+      const parsed = parseArgs(['--concurrency', '5']);
+      expect(parsed.concurrency).toBe(5);
     });
   });
 

@@ -1,14 +1,18 @@
 # UK-TicketUpdater
 
-Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. **Phase 2** now ships with a background job queue, automated base ticket monitoring, and admin observability endpoints. The system detects ticket changes and downloads updated tickets for users with auto-download enabled.
+[![CI](https://github.com/UK-TicketUpdater/UK-TicketUpdater/actions/workflows/ci.yml/badge.svg)](https://github.com/UK-TicketUpdater/UK-TicketUpdater/actions/workflows/ci.yml)
+[![Scheduled multi-user download](https://github.com/UK-TicketUpdater/UK-TicketUpdater/actions/workflows/scheduled-download.yml/badge.svg)](https://github.com/UK-TicketUpdater/UK-TicketUpdater/actions/workflows/scheduled-download.yml)
+
+Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. Phase 3 adds a selectable persistent queue backend, end-to-end rate limiting for the ticket provider, Prometheus-friendly metrics, and a minimal React dashboard for users and admins.
 
 ## What this project does
 - **Automated ticket monitoring**: Periodically checks for base ticket changes using admin credentials and triggers user downloads when changes are detected.
-- **Background job queue**: Processes ticket downloads with configurable concurrency, retry logic, and error handling.
+- **Background job queue**: Processes ticket downloads with configurable concurrency, retry logic, and error handling (memory or SQLite-backed persistence).
 - **User management**: JWT-protected API for users to manage credentials and view their ticket history.
 - **Admin dashboard API**: Endpoints for user management, job control, and observability (error tracking, job statistics).
 - **Ticket versioning**: Detects duplicate tickets via content hashing to avoid redundant downloads.
 - Records history and tickets in SQLite with structured logging for production observability.
+- **Frontend dashboard**: React UI for users (tickets, credentials, device profiles) and admins (overview, user management, manual jobs).
 
 ## Architecture at a glance
 - **API server:** `src/server.js` hosts JWT-protected routes for user and admin operations.
@@ -37,9 +41,13 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - `DEFAULT_DEVICE`: Default device profile (default `desktop_chrome`).
 - `PORT`: API server port (default `3000`).
 - `JOB_CONCURRENCY`: Max concurrent download jobs (default `2`).
+- `JOB_QUEUE_BACKEND`: `persistent` (SQLite-backed queue for restart safety, default when DB is available) or `memory`.
 - `BASE_TICKET_CHECK_INTERVAL_HOURS`: Hours between base ticket checks (default `6`).
 - `JOBS_SCHEDULER_ENABLED`: Set to `false` to disable automatic scheduler (default `true`).
 - `PUPPETEER_SKIP_DOWNLOAD`: Set to `1` during `npm install` to skip bundled Chromium.
+- `TICKET_RATE_LIMIT_PER_MINUTE`: Token bucket limit for outbound ticket-provider calls (default `12`).
+- `TICKET_RATE_LIMIT_WINDOW_MS`: Override token bucket window (default `60000`).
+- `AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW_MS`: Per-user/IP API limiter (default 300 requests per 15 minutes).
 
 ## Setup
 ```bash
@@ -68,9 +76,11 @@ npm run download:db
 CLI flags:
 - `--users <path>`: Users config path (default `./config/users.json`).
 - `--output <path>`: Base download directory (default `./downloads`).
-- `--device <profile>`: Default device profile (`desktop_chrome`, `mobile_android`, `iphone_13`, `tablet_ipad`).
+- `--device <profile>`: Default device profile (`desktop_chrome`, `mobile_android`, `iphone_13`, `iphone_15_pro`, `desktop_firefox`, `mac_safari`, `tablet_ipad`).
 - `--history <path>`: JSON history path (default `./data/history.json`; ignored when using `--db`).
 - `--db <path>`: SQLite path; when set, users/history/tickets are read/written there.
+- `--queue-backend <memory|persistent>`: Switch background queue to SQLite-backed persistence (default `memory`).
+- `--concurrency <number>`: Override job concurrency for CLI downloads.
 
 ## API server
 ```bash
@@ -79,6 +89,14 @@ JWT_SECRET=your-secret ENCRYPTION_KEY=32-byte-key \
 TICKET_ADMIN_USERNAME=admin TICKET_ADMIN_PASSWORD=admin-pass \
 npm run api
 ```
+
+The server starts the base ticket scheduler automatically unless `JOBS_SCHEDULER_ENABLED=false`. Scheduler cadence comes from `BASE_TICKET_CHECK_INTERVAL_HOURS` (default 6h) and each `checkBaseTicket` run enqueues per-user downloads when the base ticket hash changes. Request rate limiting caps traffic at 100 requests per 15 minutes per IP plus a per-user limiter (`AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW_MS`). Health probes: `GET /health` (liveness) and `GET /ready` (DB + queue readiness).
+
+## Frontend dashboard
+- Development server: `npm run dev:frontend`
+- Production build: `npm run build:frontend`
+
+The dashboard expects the API at `VITE_API_BASE_URL` (default `/api` when reverse-proxied). Users can log in, view ticket history, update credentials, and manage device profiles. Admins see an overview tab, user management, and manual job triggers. In Docker images, the static build is served at `/app` by the backend container.
 
 ### User Routes
 - `POST /auth/register`: Register with invite token
@@ -127,11 +145,21 @@ See `src/server.js` for complete API documentation.
 - **Dead letter queue**: Permanently failed jobs tracked for admin review
 - **Structured logging**: All job events logged as JSON with request IDs for tracing
 
+See [`docs/operations.md`](docs/operations.md) for an operations-focused view of how jobs are started, controlled, monitored, and rate-limited in production.
+
 ## Operations and observability
-- Background scheduler is enabled by default when running `npm run api` and can be disabled via `JOBS_SCHEDULER_ENABLED=false`.
-- Job concurrency can be tuned with `JOB_CONCURRENCY`, and scheduler cadence via `BASE_TICKET_CHECK_INTERVAL_HOURS`.
-- Observability endpoints surface recent errors, job summaries, and base ticket state for admins.
+- Background scheduler is enabled by default when running `npm run api`; set `JOBS_SCHEDULER_ENABLED=false` to disable.
+- Job concurrency can be tuned with `JOB_CONCURRENCY`, scheduler cadence via `BASE_TICKET_CHECK_INTERVAL_HOURS`, and queue backend via `JOB_QUEUE_BACKEND` (`persistent` recommended for API/server runs).
+- Observability endpoints surface recent errors, job summaries, base ticket state, queue metrics (`/admin/observability/queue`), and Prometheus text metrics at `/metrics`.
+- Health probes: `/health` (liveness) and `/ready` (DB + queue readiness) for load balancers.
 - Logs redact credentials and include request/job IDs for correlation.
+- API rate limiting: global IP limit plus per-user limiter; outbound ticket-provider calls are throttled by `TICKET_RATE_LIMIT_PER_MINUTE`.
+- CI: GitHub Actions workflow `.github/workflows/ci.yml` runs lint, backend/frontend tests, and Playwright smoke tests on pushes/PRs; `.github/workflows/scheduled-download.yml` runs a scheduled downloader when a `USERS_JSON` secret is configured.
+
+## Docker / deployment
+- Build: `docker build -t uk-ticket-updater .`
+- Run locally: `docker-compose up --build` (serves API on `localhost:3000`, mounts `./data` and `./downloads`).
+- Configure via environment variables listed above; `JOB_QUEUE_BACKEND=persistent` is recommended for containers so jobs survive restarts.
 
 ## Testing and linting
 - Run unit/integration tests: `npm test` (runs ESLint first via `pretest`)
@@ -140,13 +168,5 @@ See `src/server.js` for complete API documentation.
 - Tests log warnings when default `JWT_SECRET`/`ENCRYPTION_KEY` values are used; set these env vars locally if you want to silence the notices.
 
 ## Limitations and cautions
-- Job queue is in-memory (resets on restart); persistent queue planned for Phase 3.
-- No rate limiting per user for external API calls yet.
-- No automated CI/CD pipeline configured (manual testing required).
-
-## Roadmap / next steps (Phase 3)
-- Persistent job queue (Redis or database-backed)
-- Frontend UI for admin dashboard and user self-service
-- CI/CD pipeline with automated tests
-- Metrics and alerting (Prometheus/Grafana)
-- Rate limiting and request throttling
+- SQLite-backed persistence is provided for both app data and the job queue; ensure the database file is backed up or mounted on durable storage in production.
+- Rate limiting is in-process; distributed deployments should externalize limits (e.g., Redis) if multiple API instances run concurrently.

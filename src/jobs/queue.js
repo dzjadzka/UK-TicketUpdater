@@ -13,6 +13,12 @@ class JobQueue {
     this.stopped = false;
     this.deadLetters = [];
     this.idleResolvers = [];
+    this.metrics = {
+      enqueued: 0,
+      completed: 0,
+      failed: 0,
+      retries: 0
+    };
   }
 
   registerHandler(type, handler) {
@@ -33,6 +39,7 @@ class JobQueue {
       retryDelayMs: options.retryDelayMs || DEFAULT_RETRY_DELAY_MS,
       backoffFactor: options.backoffFactor || DEFAULT_BACKOFF_FACTOR
     };
+    this.metrics.enqueued += 1;
     this.queue.push(job);
     this.process();
     return job.id;
@@ -69,9 +76,11 @@ class JobQueue {
 
     try {
       await handler(job.payload, job);
+      this.metrics.completed += 1;
     } catch (error) {
       job.attempts += 1;
       if (job.attempts <= job.maxRetries) {
+        this.metrics.retries += 1;
         const delay = job.retryDelayMs * Math.pow(job.backoffFactor, job.attempts - 1);
         this.logger.warn(
           `Job ${job.type} failed (attempt ${job.attempts}/${job.maxRetries}). Retrying in ${delay}ms: ${error.message}`
@@ -82,6 +91,7 @@ class JobQueue {
         }, delay);
       } else {
         this.logger.error(`Job ${job.type} exhausted retries: ${error.message}`);
+        this.metrics.failed += 1;
         this.deadLetters.push({ job, error: error.message, stack: error.stack });
       }
     }
@@ -97,6 +107,16 @@ class JobQueue {
   stop() {
     this.stopped = true;
     this.queue = [];
+  }
+
+  getMetrics() {
+    return {
+      ...this.metrics,
+      pending: this.queue.length,
+      running: this.activeCount,
+      failedPersisted: this.deadLetters.length,
+      backend: 'memory'
+    };
   }
 }
 
