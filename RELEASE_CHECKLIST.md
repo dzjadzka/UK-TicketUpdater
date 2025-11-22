@@ -20,6 +20,8 @@ Use this checklist before cutting a new release to ensure code quality and stabi
   JWT_SECRET=test ENCRYPTION_KEY=dev-key-DO-NOT-USE-IN-PRODUCTION npm run api
   curl -H "Authorization: Bearer <jwt-token>" http://localhost:3000/health
   ```
+- [ ] Readiness probes respond ( `/ready`, `/metrics` ) when running under expected configuration
+- [ ] Docker image builds: `docker build -t uk-ticket-updater .`
 
 ### 3. Dependencies
 
@@ -40,6 +42,7 @@ Use this checklist before cutting a new release to ensure code quality and stabi
 - [ ] Sample config files are valid and up to date
 - [ ] `.gitignore` properly excludes sensitive files
 - [ ] CI workflow passes on main branch
+- [ ] docker-compose up works with documented env vars and volumes
 
 ### 6. Git Hygiene
 

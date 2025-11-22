@@ -1,7 +1,8 @@
 # Frontend status
 
-The repository does **not** ship a working web UI. The `frontend/` folder only contains a Vite/React scaffold that hasn't been wired to the backend or built out beyond the template stage.
+The repository now ships a minimal but functional React dashboard in `frontend/`:
 
-The previous document describing a full-featured interface is kept for historical context at `legacy/FRONTEND_README_ARCHIVED.md` and should be treated as an archived concept, not an implemented flow.
+- **User flows:** login/register, ticket history, credential updates, and device profile management (presets + custom fields).
+- **Admin flows:** overview with base-ticket triggers and user list/detail views. Admin routes are protected by JWT and only render when the logged-in user has the `admin` role.
 
-For the current state of the project, refer to the main `README.md`, which documents the supported CLI and API usage.
+Run it locally with `npm run dev:frontend` from the repo root (proxy API via `VITE_API_BASE_URL` if needed) or `npm run build:frontend` to produce a static bundle. The backend container serves the built assets under `/app` when present. See the main `README.md` for API expectations and environment variables.

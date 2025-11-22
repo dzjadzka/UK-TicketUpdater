@@ -46,7 +46,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (inviteToken, email, password, locale, autoDownloadEnabled) =>
-    api.post('/auth/register', { inviteToken, email, password, locale, autoDownloadEnabled }),
+    api.post('/auth/register', { inviteToken, email, password, locale, autoDownloadEnabled })
 };
 
 export const userAPI = {
@@ -55,6 +55,13 @@ export const userAPI = {
   updateCredentials: (payload) => api.put('/me/credentials', payload),
   getTickets: () => api.get('/me/tickets'),
   deleteAccount: () => api.delete('/me')
+};
+
+export const deviceAPI = {
+  list: () => api.get('/device-profiles'),
+  create: (payload) => api.post('/device-profiles', payload),
+  update: (id, payload) => api.put(`/device-profiles/${id}`, payload),
+  remove: (id) => api.delete(`/device-profiles/${id}`)
 };
 
 // Admin API

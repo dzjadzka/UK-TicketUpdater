@@ -95,13 +95,18 @@ function createJobHandlers({
   logger = console,
   encryptionKey,
   defaults = {},
-  fetchBaseTicketFn = fetchBaseTicket
+  fetchBaseTicketFn = fetchBaseTicket,
+  rateLimiter
 }) {
   const defaultOutput = defaults.outputRoot || './downloads';
   const defaultDeviceProfile = defaults.defaultDeviceProfile || 'desktop_chrome';
 
   async function handleCheckBaseTicket() {
     const now = new Date().toISOString();
+    if (rateLimiter) {
+      await rateLimiter.acquire();
+    }
+
     const state = db.getBaseTicketState();
     const { hash } = await fetchBaseTicketFn();
 
@@ -148,6 +153,10 @@ function createJobHandlers({
         loggedInAt: new Date().toISOString()
       });
       throw new Error('Missing credentials');
+    }
+
+    if (rateLimiter) {
+      await rateLimiter.acquire();
     }
 
     const profile = buildDeviceProfile(user, db, defaultDeviceProfile);

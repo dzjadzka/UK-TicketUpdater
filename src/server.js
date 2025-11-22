@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { downloadTickets } = require('./downloader');
@@ -27,6 +28,8 @@ const DEFAULT_DB_PATH = process.env.DB_PATH || './data/app.db';
 const DEFAULT_OUTPUT = process.env.OUTPUT_ROOT || './downloads';
 const DEFAULT_DEVICE = process.env.DEFAULT_DEVICE || 'desktop_chrome';
 const ENCRYPTION_KEY = getEncryptionKey();
+const AUTH_RATE_LIMIT_WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
+const AUTH_RATE_LIMIT_MAX = Number(process.env.AUTH_RATE_LIMIT_MAX) || 300;
 
 function ok(res, data, status = 200) {
   return res.status(status).json({ data, error: null });
@@ -146,16 +149,19 @@ function requireAdmin(req, res, next) {
  * @param {string} [options.outputRoot] - Base output directory for downloads
  * @returns {Object} Object with app and db instances
  */
-function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {}) {
+function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT, jobOverrides = {} } = {}) {
   const app = express();
   const db = createDatabase(path.resolve(dbPath));
   app.locals.db = db;
   const jobSystem = createJobSystem({
     db,
-    defaults: { outputRoot, defaultDeviceProfile: DEFAULT_DEVICE, historyPath: DEFAULT_HISTORY_PATH }
+    defaults: { outputRoot, defaultDeviceProfile: DEFAULT_DEVICE, historyPath: DEFAULT_HISTORY_PATH },
+    overrides: jobOverrides
   });
   app.locals.jobQueue = jobSystem.queue;
   app.locals.jobScheduler = jobSystem.scheduler;
+  app.locals.rateLimiter = jobSystem.rateLimiter;
+  app.locals.queueBackend = jobSystem.backend;
 
   function sanitizeUser(user) {
     if (!user) {
@@ -196,6 +202,18 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     legacyHeaders: false
   });
 
+  const authenticatedLimiter = rateLimit({
+    windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+    max: AUTH_RATE_LIMIT_MAX,
+    keyGenerator: (req) => req.user?.id || req.ip,
+    message: { error: 'Too many authenticated requests, please slow down.' },
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+
+  const protectedChain = [jwtAuthMiddleware, authenticatedLimiter];
+  const adminChain = [...protectedChain, requireAdmin];
+
   // Security headers
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -213,6 +231,74 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
   });
+
+  app.get('/ready', (req, res) => {
+    try {
+      db.db.prepare('SELECT 1').get();
+      const queueMetrics = jobSystem.queue?.getMetrics?.();
+      const schedulerReady = !!jobSystem.scheduler;
+
+      if (!queueMetrics) {
+        return res.status(503).json({ status: 'degraded', error: 'Queue unavailable' });
+      }
+
+      return res.json({ status: 'ready', queue: queueMetrics.backend || 'memory', scheduler: schedulerReady });
+    } catch (error) {
+      req.logger?.error('readiness_failed', { error: error.message });
+      return res.status(503).json({ status: 'error', error: 'Service not ready' });
+    }
+  });
+
+  // Prometheus-style metrics (queue + rate limiter)
+  app.get('/metrics', (req, res) => {
+    const queueMetrics = jobSystem.queue?.getMetrics?.() || {};
+    const limiterStats = jobSystem.rateLimiter?.getStats?.();
+    const lines = [];
+
+    if (queueMetrics) {
+      lines.push('# HELP job_queue_pending Pending jobs in the queue');
+      lines.push('# TYPE job_queue_pending gauge');
+      lines.push('job_queue_pending ' + (queueMetrics.pending ?? 0));
+      lines.push('# HELP job_queue_running Running jobs in the queue');
+      lines.push('# TYPE job_queue_running gauge');
+      lines.push('job_queue_running ' + (queueMetrics.running ?? 0));
+      lines.push('# HELP job_queue_completed Total completed jobs');
+      lines.push('# TYPE job_queue_completed counter');
+      lines.push('job_queue_completed ' + (queueMetrics.completed ?? 0));
+      lines.push('# HELP job_queue_failed Total failed jobs');
+      lines.push('# TYPE job_queue_failed counter');
+      lines.push('job_queue_failed ' + (queueMetrics.failed ?? 0));
+      lines.push('# HELP job_queue_retries Total retries across jobs');
+      lines.push('# TYPE job_queue_retries counter');
+      lines.push('job_queue_retries ' + (queueMetrics.retries ?? 0));
+    }
+
+    if (limiterStats) {
+      lines.push('# HELP ticket_provider_calls_allowed Calls allowed by the token bucket');
+      lines.push('# TYPE ticket_provider_calls_allowed counter');
+      lines.push('ticket_provider_calls_allowed ' + limiterStats.acquired);
+      lines.push('# HELP ticket_provider_calls_delayed Calls delayed by rate limiting');
+      lines.push('# TYPE ticket_provider_calls_delayed counter');
+      lines.push('ticket_provider_calls_delayed ' + limiterStats.delayed);
+      lines.push('# HELP ticket_provider_queue_depth Current waiting requests for provider calls');
+      lines.push('# TYPE ticket_provider_queue_depth gauge');
+      lines.push('ticket_provider_queue_depth ' + limiterStats.queue_depth);
+      lines.push('# HELP ticket_provider_tokens_available Tokens currently available');
+      lines.push('# TYPE ticket_provider_tokens_available gauge');
+      lines.push('ticket_provider_tokens_available ' + limiterStats.available_tokens);
+    }
+
+    res.set('Content-Type', 'text/plain');
+    res.send(lines.join('\n'));
+  });
+
+  const frontendDir = path.join(__dirname, '..', 'frontend', 'dist');
+  if (fs.existsSync(frontendDir)) {
+    app.use('/app', express.static(frontendDir));
+    app.get('/app/*', (req, res) => {
+      res.sendFile(path.join(frontendDir, 'index.html'));
+    });
+  }
 
   // Auth routes (no auth middleware)
   app.post('/auth/register', async (req, res) => {
@@ -272,6 +358,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       // Mark invite as used
       db.markInviteTokenUsed(inviteToken, userId);
 
+      req.logger?.info('audit_invite_redeemed', { invite_token: inviteToken, user_id: userId, invited_by: invite.created_by });
+
       // Generate JWT token
       const token = generateToken({ id: userId, email, role: 'user' });
 
@@ -326,7 +414,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.post('/auth/logout', jwtAuthMiddleware, (req, res) => {
+  app.post('/auth/logout', ...protectedChain, (req, res) => {
     // JWTs are stateless; client should discard token
     res.json({ message: 'Logged out' });
   });
@@ -337,13 +425,13 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
   // Current user routes
   // GET /me - returns the current user's profile
-  app.get('/me', jwtAuthMiddleware, (req, res) => {
+  app.get('/me', ...protectedChain, (req, res) => {
     const user = db.getUserById(req.user.id);
     return ok(res, { user: sanitizeUser(user) });
   });
 
   // GET /me/credentials - fetch current user's UK credentials summary
-  app.get('/me/credentials', jwtAuthMiddleware, (req, res) => {
+  app.get('/me/credentials', ...protectedChain, (req, res) => {
     const user = db.getUserById(req.user.id);
     const credential = db.getUserCredential(req.user.id);
     if (!credential) {
@@ -365,7 +453,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // PUT /me/credentials - update UK number/password and auto-download flag
-  app.put('/me/credentials', jwtAuthMiddleware, (req, res) => {
+  app.put('/me/credentials', ...protectedChain, (req, res) => {
     const { ukNumber, ukPassword, autoDownloadEnabled } = req.body || {};
     if (!ukNumber && !ukPassword && autoDownloadEnabled === undefined) {
       return fail(res, 400, 'INVALID_BODY', 'Provide ukNumber, ukPassword, or autoDownloadEnabled');
@@ -404,6 +492,12 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     const updatedUser = db.getUserById(req.user.id);
     const updatedCredential = db.getUserCredential(req.user.id);
 
+    req.logger?.info('audit_credentials_updated', {
+      user_id: req.user.id,
+      auto_download_enabled: updatedUser.auto_download_enabled,
+      has_password: !!updatedCredential.uk_password_encrypted
+    });
+
     return ok(res, {
       message: 'Credentials saved',
       user: sanitizeUser(updatedUser),
@@ -417,7 +511,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // GET /me/tickets - list tickets belonging to the current user
-  app.get('/me/tickets', jwtAuthMiddleware, (req, res) => {
+  app.get('/me/tickets', ...protectedChain, (req, res) => {
     const tickets = db.listTicketsByUser(req.user.id).map((ticket) => ({
       id: ticket.id,
       version: ticket.ticket_version,
@@ -431,13 +525,13 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // DELETE /me - soft delete (or anonymize) the current account
-  app.delete('/me', jwtAuthMiddleware, (req, res) => {
+  app.delete('/me', ...protectedChain, (req, res) => {
     db.softDeleteUser(req.user.id);
     return ok(res, { message: 'Account deleted' });
   });
 
   // Admin routes
-  app.post('/admin/invites', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.post('/admin/invites', ...adminChain, (req, res) => {
     try {
       const { expiresInHours } = req.body;
       const token = generateInviteToken();
@@ -449,6 +543,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         expiresAt
       });
 
+      req.logger?.info('audit_invite_created', { admin_id: req.user.id, token, expires_at: expiresAt });
+
       return ok(res, { token, expiresAt }, 201);
     } catch (error) {
       req.logger?.error('Failed to create invite token:', error);
@@ -456,7 +552,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.get('/admin/invites', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/invites', ...adminChain, (req, res) => {
     try {
       const tokens = db.listInviteTokens(req.user.id);
       return ok(res, { invites: tokens });
@@ -466,10 +562,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.delete('/admin/invites/:token', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.delete('/admin/invites/:token', ...adminChain, (req, res) => {
     try {
       const { token } = req.params;
       db.deleteInviteToken(token);
+      req.logger?.info('audit_invite_deleted', { admin_id: req.user.id, token });
       return ok(res, { message: 'Invite token deleted' });
     } catch (error) {
       req.logger?.error('Failed to delete invite token:', error);
@@ -478,7 +575,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // GET /admin/users - list users with optional filtering
-  app.get('/admin/users', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/users', ...adminChain, (req, res) => {
     try {
       const query = (req.query.q || '').toLowerCase();
       const statusFilter = req.query.status || 'active';
@@ -525,7 +622,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // GET /admin/users/:id - full user detail
-  app.get('/admin/users/:id', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/users/:id', ...adminChain, (req, res) => {
     try {
       const { id } = req.params;
       const user = db.getUserById(id);
@@ -571,7 +668,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // PUT /admin/users/:id - update credentials/flags
-  app.put('/admin/users/:id', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.put('/admin/users/:id', ...adminChain, (req, res) => {
     try {
       const { id } = req.params;
       const { ukNumber, ukPassword, autoDownloadEnabled, isActive } = req.body || {};
@@ -626,7 +723,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // DELETE /admin/users/:id - soft delete user
-  app.delete('/admin/users/:id', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.delete('/admin/users/:id', ...adminChain, (req, res) => {
     try {
       const { id } = req.params;
       db.softDeleteUser(id);
@@ -638,7 +735,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // POST /admin/jobs/check-base-ticket - trigger base ticket check
-  app.post('/admin/jobs/check-base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.post('/admin/jobs/check-base-ticket', ...adminChain, (req, res) => {
     try {
       const currentState = db.getBaseTicketState() || {};
       db.setBaseTicketState({
@@ -655,7 +752,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // POST /admin/jobs/download-all - enqueue downloads for all users
-  app.post('/admin/jobs/download-all', jwtAuthMiddleware, requireAdmin, async (req, res) => {
+  app.post('/admin/jobs/download-all', ...adminChain, async (req, res) => {
     try {
       const users = db.listActiveUsers();
       if (!users.length) {
@@ -679,7 +776,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // GET /admin/overview - high level stats
-  app.get('/admin/overview', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/overview', ...adminChain, (req, res) => {
     try {
       const users = db.getUsers();
       const credentials = users.map((u) => db.getUserCredential(u.id)).filter(Boolean);
@@ -702,7 +799,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Credential management routes (JWT auth required)
-  app.get('/credentials', jwtAuthMiddleware, (req, res) => {
+  app.get('/credentials', ...protectedChain, (req, res) => {
     try {
       const credentials = db.getCredentialsByUser(req.user.id);
       // Don't return encrypted passwords
@@ -720,7 +817,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.post('/credentials', jwtAuthMiddleware, async (req, res) => {
+  app.post('/credentials', ...protectedChain, async (req, res) => {
     try {
       const { loginName, loginPassword, label } = req.body;
 
@@ -749,7 +846,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.put('/credentials/:id', jwtAuthMiddleware, async (req, res) => {
+  app.put('/credentials/:id', ...protectedChain, async (req, res) => {
     try {
       const { id } = req.params;
       const { loginName, loginPassword, label } = req.body;
@@ -776,7 +873,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.delete('/credentials/:id', jwtAuthMiddleware, (req, res) => {
+  app.delete('/credentials/:id', ...protectedChain, (req, res) => {
     try {
       const { id } = req.params;
       const result = db.deleteCredential(id, req.user.id);
@@ -793,7 +890,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Device profile management routes (JWT auth required)
-  app.get('/device-profiles', jwtAuthMiddleware, (req, res) => {
+  app.get('/device-profiles', ...protectedChain, (req, res) => {
     try {
       const profiles = db.getDeviceProfilesByUser(req.user.id);
       res.json({ profiles });
@@ -803,7 +900,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.post('/device-profiles', jwtAuthMiddleware, (req, res) => {
+  app.post('/device-profiles', ...protectedChain, (req, res) => {
     try {
       const {
         name,
@@ -851,6 +948,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         geolocationLongitude: geolocationLongitude !== undefined ? geolocationLongitude : null
       });
 
+      req.logger?.info('audit_device_profile_created', { user_id: req.user.id, profile_id: id, name });
+
       res.status(201).json({ message: 'Device profile created', id });
     } catch (error) {
       req.logger?.error('Failed to create device profile:', error);
@@ -858,7 +957,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.put('/device-profiles/:id', jwtAuthMiddleware, (req, res) => {
+  app.put('/device-profiles/:id', ...protectedChain, (req, res) => {
     try {
       const { id } = req.params;
       const {
@@ -911,6 +1010,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         geolocationLongitude: updatedProfile.geolocation_longitude
       });
 
+      req.logger?.info('audit_device_profile_updated', { user_id: req.user.id, profile_id: id, name: updatedProfile.name });
+
       res.json({ message: 'Device profile updated' });
     } catch (error) {
       req.logger?.error('Failed to update device profile:', error);
@@ -918,7 +1019,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.delete('/device-profiles/:id', jwtAuthMiddleware, (req, res) => {
+  app.delete('/device-profiles/:id', ...protectedChain, (req, res) => {
     try {
       const { id } = req.params;
       const result = db.deleteDeviceProfile(id, req.user.id);
@@ -926,6 +1027,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
       if (result.changes === 0) {
         return fail(res, 404, 'PROFILE_NOT_FOUND', 'Device profile not found');
       }
+
+      req.logger?.info('audit_device_profile_deleted', { user_id: req.user.id, profile_id: id });
 
       return ok(res, { message: 'Device profile deleted' });
     } catch (error) {
@@ -935,7 +1038,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Protected operational routes (admin-only)
-  app.post('/downloads', jwtAuthMiddleware, requireAdmin, async (req, res) => {
+  app.post('/downloads', ...adminChain, async (req, res) => {
     try {
       const { userIds, deviceProfile, outputDir } = req.body || {};
 
@@ -960,7 +1063,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
         historyPath: DEFAULT_HISTORY_PATH,
         db,
         encryptionKey: ENCRYPTION_KEY,
-        logger: req.logger || logger
+        logger: req.logger || logger,
+        rateLimiter: app.locals.rateLimiter
       });
       return ok(res, { results });
     } catch (error) {
@@ -969,7 +1073,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.get('/history', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/history', ...adminChain, (req, res) => {
     try {
       const limit = Number.parseInt(req.query.limit, 10) || 50;
       if (limit < 1 || limit > 1000) {
@@ -982,7 +1086,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.get('/tickets/:userId', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/tickets/:userId', ...adminChain, (req, res) => {
     try {
       const { userId } = req.params;
       if (!userId || typeof userId !== 'string') {
@@ -996,7 +1100,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
   });
 
   // Observability endpoints from PR38
-  app.get('/admin/observability/errors', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/observability/errors', ...adminChain, (req, res) => {
     try {
       const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 200);
       const errors = db.getRecentErrors(limit);
@@ -1007,7 +1111,7 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.get('/admin/observability/job-summary', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/observability/job-summary', ...adminChain, (req, res) => {
     try {
       const hours = Math.max(1, Number(req.query.hours) || 24);
       const summary = db.summarizeJobsSince(hours);
@@ -1018,7 +1122,21 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
     }
   });
 
-  app.get('/admin/observability/base-ticket', jwtAuthMiddleware, requireAdmin, (req, res) => {
+  app.get('/admin/observability/queue', ...adminChain, (req, res) => {
+    try {
+      const metrics = jobSystem.queue?.getMetrics?.();
+      if (!metrics) {
+        return fail(res, 503, 'QUEUE_METRICS_UNAVAILABLE', 'Queue metrics not available');
+      }
+      const backendName = app.locals.queueBackend || process.env.JOB_QUEUE_BACKEND || 'memory';
+      return ok(res, { metrics: { ...metrics, backend: backendName } });
+    } catch (error) {
+      req.logger?.error('observability_queue_failed', { error });
+      return fail(res, 500, 'OBSERVABILITY_QUEUE_FAILED', 'Failed to load queue metrics');
+    }
+  });
+
+  app.get('/admin/observability/base-ticket', ...adminChain, (req, res) => {
     try {
       const state = db.getBaseTicketState();
       return ok(res, {
@@ -1037,11 +1155,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT } = {
 
   app.use(errorHandler);
 
-  return { app, db, jobQueue: jobSystem.queue, jobScheduler: jobSystem.scheduler };
+  return { app, db, jobQueue: jobSystem.queue, jobScheduler: jobSystem.scheduler, rateLimiter: jobSystem.rateLimiter };
 }
 
 function start() {
-  const { app, db, jobScheduler } = createApp();
+  const { app, db, jobScheduler, rateLimiter } = createApp();
   const server = app.listen(PORT, () => {
     logger.info('server_started', { port: PORT });
   });
@@ -1054,6 +1172,9 @@ function start() {
     server.close(() => {
       if (jobScheduler) {
         jobScheduler.stop();
+      }
+      if (rateLimiter) {
+        rateLimiter.stop();
       }
       db.close();
       process.exit(0);

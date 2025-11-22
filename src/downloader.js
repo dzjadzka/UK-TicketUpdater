@@ -166,11 +166,16 @@ async function downloadTicketForUser(user, options = {}) {
     historyPath,
     db,
     logger: providedLogger,
-    jobId
+    jobId,
+    rateLimiter
   } = options;
 
   if (!user || !user.id) {
     throw new Error('User object must contain id');
+  }
+
+  if (rateLimiter) {
+    await rateLimiter.acquire();
   }
 
   const credentials = resolveUserCredentials(user, db, options.encryptionKey);

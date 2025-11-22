@@ -103,6 +103,21 @@ function initSchema(db) {
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS job_queue (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      payload TEXT,
+      attempts INTEGER DEFAULT 0,
+      max_retries INTEGER DEFAULT 3,
+      retry_delay_ms INTEGER DEFAULT 1000,
+      backoff_factor REAL DEFAULT 2,
+      status TEXT DEFAULT 'pending',
+      available_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_job_queue_status_available ON job_queue(status, available_at);
+
     CREATE TABLE IF NOT EXISTS credentials (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,

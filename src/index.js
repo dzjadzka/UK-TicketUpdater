@@ -5,6 +5,7 @@ const { DEFAULT_HISTORY_PATH } = require('./history');
 const { createDatabase } = require('./db');
 const { getEncryptionKey } = require('./auth');
 const { parseArgs } = require('./cli');
+const { createRateLimiterFromEnv } = require('./rateLimiter');
 
 function loadUsers(configPath) {
   if (!fs.existsSync(configPath)) {
@@ -26,10 +27,18 @@ async function main() {
   const historyPath = path.resolve(args.history || DEFAULT_HISTORY_PATH);
   const dbPath = args.db ? path.resolve(args.db) : null;
 
+  if (args.concurrency) {
+    process.env.JOB_CONCURRENCY = String(args.concurrency);
+  }
+  if (args.queueBackend) {
+    process.env.JOB_QUEUE_BACKEND = args.queueBackend;
+  }
+
   const db = dbPath ? createDatabase(dbPath) : null;
   const encryptionKey = getEncryptionKey();
 
   try {
+    const rateLimiter = createRateLimiterFromEnv();
     let users;
     if (db) {
       users = db.listActiveUsers();
@@ -46,7 +55,8 @@ async function main() {
       outputRoot,
       historyPath,
       db,
-      encryptionKey
+      encryptionKey,
+      rateLimiter
     });
 
     results.forEach((result, index) => {

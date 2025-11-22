@@ -1,23 +1,35 @@
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    const [key, value] = argv[i].split('=');
-    if (!key.startsWith('--')) {
-      continue;
-    }
+const { Command, InvalidArgumentError } = require('commander');
 
-    const normalizedKey = key.replace(/^--/, '');
-    const nextValue = argv[i + 1];
-    if (value !== undefined) {
-      args[normalizedKey] = value;
-    } else if (nextValue && !nextValue.startsWith('--')) {
-      args[normalizedKey] = nextValue;
-      i += 1;
-    } else {
-      args[normalizedKey] = true;
-    }
+function parseInteger(value, previous) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    throw new InvalidArgumentError('Not a number.');
   }
-  return args;
+  return parsed || previous;
 }
 
-module.exports = { parseArgs };
+function buildProgram() {
+  const program = new Command();
+  program
+    .name('ticket-updater')
+    .description('NVV ticket downloader CLI')
+    .option('--users <path>', 'Path to users JSON config', './config/users.json')
+    .option('--output <path>', 'Output directory for downloaded tickets', './downloads')
+    .option('--device <name>', 'Device profile to emulate', 'desktop_chrome')
+    .option('--history <path>', 'History JSON path (ignored when using --db)', './data/history.json')
+    .option('--db <path>', 'SQLite database path for persistence')
+    .option('--concurrency <number>', 'Job concurrency override', parseInteger)
+    .option('--queue-backend <memory|persistent>', 'Queue backend', 'memory')
+    .helpOption('-h, --help', 'Display help for ticket-updater CLI');
+
+  return program;
+}
+
+function parseArgs(argv) {
+  const program = buildProgram();
+  program.exitOverride();
+  const parsed = program.parse(argv, { from: 'user' });
+  return parsed.opts();
+}
+
+module.exports = { buildProgram, parseArgs };

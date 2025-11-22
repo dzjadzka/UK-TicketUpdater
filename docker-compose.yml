@@ -1,0 +1,19 @@
+version: '3.9'
+services:
+  app:
+    build: .
+    image: uk-ticket-updater:latest
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/app.db
+      - OUTPUT_ROOT=/app/downloads
+      - JOB_QUEUE_BACKEND=persistent
+      - JWT_SECRET=change-me
+      - ENCRYPTION_KEY=change-me-32-bytes!
+      - AUTH_RATE_LIMIT_MAX=300
+    volumes:
+      - ./data:/app/data
+      - ./downloads:/app/downloads
+    ports:
+      - "3000:3000"
+    command: ["node", "src/server.js"]

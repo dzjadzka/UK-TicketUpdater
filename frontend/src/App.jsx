@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import DeviceProfiles from './pages/DeviceProfiles';
 import AdminLayout from './admin/AdminLayout';
 import AdminOverview from './admin/AdminOverview';
 import AdminUsers from './admin/AdminUsers';
@@ -26,6 +27,7 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/device-profiles" element={<DeviceProfiles />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>

@@ -15,6 +15,7 @@ const Layout = () => {
 
   const navItems = [
     { name: 'Dashboard', to: '/dashboard' },
+    { name: 'Devices', to: '/device-profiles' },
     { name: 'Settings', to: '/settings' }
   ];
 
