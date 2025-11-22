@@ -2,25 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createDatabase } = require('./db');
 const { loadUsers } = require('./index');
-
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    const [key, value] = argv[i].split('=');
-    if (key.startsWith('--')) {
-      const normalizedKey = key.replace(/^--/, '');
-      if (value !== undefined) {
-        args[normalizedKey] = value;
-      } else if (argv[i + 1] && !argv[i + 1].startsWith('--')) {
-        args[normalizedKey] = argv[i + 1];
-        i += 1;
-      } else {
-        args[normalizedKey] = true;
-      }
-    }
-  }
-  return args;
-}
+const { parseArgs } = require('./cli');
 
 function main() {
   const args = parseArgs(process.argv.slice(2));

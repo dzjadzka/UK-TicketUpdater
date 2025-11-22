@@ -36,11 +36,12 @@
 
 ## Testing instructions
 
-- No automated tests are present. Basic verification commands:
+- Automated Jest suites cover the API, jobs, downloader, and logger. Run them with `npm test` (lint runs first via the `pretest` script). Playwright e2e tests live under `tests/e2e/` and can be run with `npm run test:e2e`.
+- Basic manual verification commands:
   - `npm run download:sample` (uses placeholder users).
   - `npm run download -- --users ./config/users.json` (after filling credentials).
   - `npm run download:db` after running `npm run setup:db`.
-- Update tests when changing authentication logic to ensure `/downloads`, `/history`, and `/tickets/:userId` require JWT auth (and admin role where applicable).
+- Update tests when changing authentication logic to ensure `/downloads`, `/history`, and `/tickets/:userId` require JWT auth (and admin role where applicable). Console warnings about default secrets in tests are expected; set `JWT_SECRET`/`ENCRYPTION_KEY` if you want to silence them locally.
 - If Puppeteer cannot find a browser, either allow it to download Chromium (remove `PUPPETEER_SKIP_DOWNLOAD`) or install system Chromium/Chrome and rerun.
 
 ## Code style

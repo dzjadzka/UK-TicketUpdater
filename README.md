@@ -1,6 +1,6 @@
 # UK-TicketUpdater
 
-Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. **Phase 2** includes a background job queue, automated base ticket monitoring, and admin observability endpoints. The system automatically detects ticket changes and downloads updated tickets for users with auto-download enabled.
+Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. **Phase 2** now ships with a background job queue, automated base ticket monitoring, and admin observability endpoints. The system detects ticket changes and downloads updated tickets for users with auto-download enabled.
 
 ## What this project does
 - **Automated ticket monitoring**: Periodically checks for base ticket changes using admin credentials and triggers user downloads when changes are detected.
@@ -50,7 +50,7 @@ PUPPETEER_SKIP_DOWNLOAD=1 npm install
 cp config/users.sample.json config/users.json
 # Fill username/password and optional deviceProfile/outputDir per entry
 
-# (Optional) Initialize SQLite from JSON users
+# Initialize SQLite from JSON users (recommended path)
 npm run setup:db
 ```
 
@@ -102,11 +102,6 @@ npm run api
 
 See `src/server.js` for complete API documentation.
 
-## Legacy components
-- `legacy/ticket-downloader.js`: Original single-user Firefox/Puppeteer script.
-- `legacy/ticket-uploader.sh`: Example Nextcloud/WebDAV uploader.
-These are archived for reference and are not part of the main supported flow.
-
 ## How it works (Phase 2)
 
 ### Background Job System
@@ -131,6 +126,18 @@ These are archived for reference and are not part of the main supported flow.
 - **Retry with backoff**: Failed jobs retry up to 3 times with exponential backoff
 - **Dead letter queue**: Permanently failed jobs tracked for admin review
 - **Structured logging**: All job events logged as JSON with request IDs for tracing
+
+## Operations and observability
+- Background scheduler is enabled by default when running `npm run api` and can be disabled via `JOBS_SCHEDULER_ENABLED=false`.
+- Job concurrency can be tuned with `JOB_CONCURRENCY`, and scheduler cadence via `BASE_TICKET_CHECK_INTERVAL_HOURS`.
+- Observability endpoints surface recent errors, job summaries, and base ticket state for admins.
+- Logs redact credentials and include request/job IDs for correlation.
+
+## Testing and linting
+- Run unit/integration tests: `npm test` (runs ESLint first via `pretest`)
+- Lint code: `npm run lint`
+- End-to-end Playwright suite (API): `npm run test:e2e`
+- Tests log warnings when default `JWT_SECRET`/`ENCRYPTION_KEY` values are used; set these env vars locally if you want to silence the notices.
 
 ## Limitations and cautions
 - Job queue is in-memory (resets on restart); persistent queue planned for Phase 3.

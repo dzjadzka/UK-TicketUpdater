@@ -4,25 +4,7 @@ const { downloadTickets } = require('./downloader');
 const { DEFAULT_HISTORY_PATH } = require('./history');
 const { createDatabase } = require('./db');
 const { getEncryptionKey } = require('./auth');
-
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    const [key, value] = argv[i].split('=');
-    if (key.startsWith('--')) {
-      const normalizedKey = key.replace(/^--/, '');
-      if (value !== undefined) {
-        args[normalizedKey] = value;
-      } else if (argv[i + 1] && !argv[i + 1].startsWith('--')) {
-        args[normalizedKey] = argv[i + 1];
-        i += 1;
-      } else {
-        args[normalizedKey] = true;
-      }
-    }
-  }
-  return args;
-}
+const { parseArgs } = require('./cli');
 
 function loadUsers(configPath) {
   if (!fs.existsSync(configPath)) {
