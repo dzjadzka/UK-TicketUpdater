@@ -9,6 +9,7 @@
     "download": "node src/index.js --db ./data/app.db",
     "setup:db": "node src/setupDb.js --db ./data/app.db",
     "api": "node src/server.js",
+    "dev": "npm run dev:frontend",
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
     "preview:frontend": "cd frontend && npm run preview",
