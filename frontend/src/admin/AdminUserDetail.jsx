@@ -298,6 +298,7 @@ const AdminUserDetail = () => {
                     className="toggle toggle-info"
                     checked={autoDownload}
                     id="auto-download-toggle"
+                    aria-label="Auto-download"
                     onChange={(e) => setAutoDownload(e.target.checked)}
                   />
                 </div>
@@ -311,6 +312,7 @@ const AdminUserDetail = () => {
                     className="toggle toggle-success"
                     checked={isActive}
                     id="active-toggle"
+                    aria-label="Active account"
                     onChange={(e) => setIsActive(e.target.checked)}
                   />
                 </div>

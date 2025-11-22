@@ -25,7 +25,12 @@ api.interceptors.request.use(
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response?.data && typeof response.data === 'object' && 'data' in response.data) {
+      return { ...response, data: response.data.data };
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Clear token and redirect to login
