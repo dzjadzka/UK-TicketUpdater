@@ -24,7 +24,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "pretest": "npm run lint",
-    "start:test-api": "node scripts/start-test-api.js"
+    "start:test-api": "node scripts/start-test-api.js",
+    "init:admin": "node scripts/create-initial-admin.js"
   },
   "keywords": [],
   "author": "",
