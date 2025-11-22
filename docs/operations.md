@@ -4,7 +4,8 @@ This document captures how the current system starts, schedules background work,
 
 ## Runtime entrypoints
 - **API server**: `npm run api` (alias of `npm start`) executes `src/server.js`, initializes SQLite (`DB_PATH`, default `./data/app.db`), and starts the background scheduler unless `JOBS_SCHEDULER_ENABLED=false`.
-- **Downloader CLI**: `npm run download` (JSON users) or `npm run download:db` (SQLite-backed) executes `src/index.js` with the configured user source. Flags include `--users`, `--db`, `--output`, `--device`, `--history`, `--queue-backend`, and `--concurrency`. Run `npm run download -- --help` for full usage.
+- **Downloader CLI**: `npm run download` (JSON users) or `npm run download:db` (SQLite-backed) executes `src/index.js` with the configured user source. Flags include `--users`, `--db`, `--output`, `--device`, `--history`, `--queue-backend`, and `--concurrency`. Run `node src/index.js --help` for full usage.
+  - Deprecated alias: `--source` is accepted temporarily as an alias for `--users` and will be removed in v1.1.0.
 - **Database setup**: `npm run setup:db` seeds `data/app.db` from `config/users.json` when present.
 - **Frontend**: `npm run dev:frontend` for local development, `npm run build:frontend` for a production bundle. Point `VITE_API_BASE_URL` at the API origin when reverse-proxying.
 

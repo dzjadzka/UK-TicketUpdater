@@ -6,7 +6,7 @@ const { parseArgs } = require('./cli');
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const sourcePath = path.resolve(args.source || './config/users.json');
+  const sourcePath = path.resolve(args.users || './config/users.json');
   const dbPath = path.resolve(args.db || './data/app.db');
 
   const db = createDatabase(dbPath);

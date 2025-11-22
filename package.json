@@ -8,7 +8,7 @@
     "start": "node src/server.js",
     "download": "node src/index.js --users ./config/users.json",
     "download:sample": "node src/index.js --users ./config/users.sample.json",
-    "setup:db": "node src/setupDb.js --source ./config/users.json --db ./data/app.db",
+    "setup:db": "node src/setupDb.js --users ./config/users.json --db ./data/app.db",
     "download:db": "node src/index.js --db ./data/app.db",
     "api": "node src/server.js",
     "dev:frontend": "cd frontend && npm run dev",

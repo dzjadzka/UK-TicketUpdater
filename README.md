@@ -72,6 +72,9 @@ npm run download:sample
 
 # Using SQLite users/history/tickets (after npm run setup:db)
 npm run download:db
+
+# Show full CLI help (all flags)
+node src/index.js --help
 ```
 CLI flags:
 - `--users <path>`: Users config path (default `./config/users.json`).
@@ -79,8 +82,10 @@ CLI flags:
 - `--device <profile>`: Default device profile (`desktop_chrome`, `mobile_android`, `iphone_13`, `iphone_15_pro`, `desktop_firefox`, `mac_safari`, `tablet_ipad`).
 - `--history <path>`: JSON history path (default `./data/history.json`; ignored when using `--db`).
 - `--db <path>`: SQLite path; when set, users/history/tickets are read/written there.
-- `--queue-backend <memory|persistent>`: Switch background queue to SQLite-backed persistence (default `memory`).
+- `--queue-backend <memory|persistent>`: Switch background queue backend (default `memory` unless DB persistent mode chosen).
 - `--concurrency <number>`: Override job concurrency for CLI downloads.
+
+> Deprecated: The `--source` flag is still accepted as an alias for `--users` but will emit a warning and is scheduled for removal in v1.1.0. Migrate any scripts to use `--users`.
 
 ## API server
 ```bash

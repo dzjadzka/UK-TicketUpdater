@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Deprecated
+- CLI flag `--source` now emits a deprecation warning and will be removed in v1.1.0. Use `--users` instead.
+
 ## [1.0.0] - 2025-11-22
 
 This is the first major release of UK-TicketUpdater, marking the completion of Phases 1-4 and establishing a production-ready multi-user ticket automation system.
