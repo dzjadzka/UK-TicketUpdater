@@ -11,7 +11,10 @@ import Downloads from './pages/Downloads';
 import History from './pages/History';
 import Tickets from './pages/Tickets';
 import Profile from './pages/Profile';
-import Admin from './pages/Admin';
+import AdminLayout from './admin/AdminLayout';
+import AdminOverview from './admin/AdminOverview';
+import AdminUsers from './admin/AdminUsers';
+import AdminUserDetail from './admin/AdminUserDetail';
 
 function App() {
   return (
@@ -91,15 +94,20 @@ function App() {
             }
           />
           <Route
-            path="/admin"
+            path="/admin/*"
             element={
               <ProtectedRoute adminOnly={true}>
                 <Layout>
-                  <Admin />
+                  <AdminLayout />
                 </Layout>
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<AdminOverview />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:id" element={<AdminUserDetail />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

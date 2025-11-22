@@ -71,12 +71,19 @@ export const downloadsAPI = {
 
 // Admin API
 export const adminAPI = {
-  createInvite: (expiresInHours) => 
+  createInvite: (expiresInHours) =>
     api.post('/admin/invites', { expiresInHours }),
   getInvites: () => api.get('/admin/invites'),
   deleteInvite: (token) => api.delete(`/admin/invites/${token}`),
-  getUsers: () => api.get('/admin/users'),
-  disableUser: (id) => api.put(`/admin/users/${id}/disable`)
+  getUsers: (params = {}) => api.get('/admin/users', { params }),
+  getUser: (id) => api.get(`/admin/users/${id}`),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  getOverview: () => api.get('/admin/overview'),
+  triggerBaseTicketCheck: () => api.post('/admin/jobs/check-base-ticket'),
+  triggerDownloadAll: () => api.post('/admin/jobs/download-all'),
+  getUserTickets: (id) => api.get(`/tickets/${id}`),
+  getRecentErrors: (params = {}) => api.get('/admin/observability/errors', { params })
 };
 
 export default api;

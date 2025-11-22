@@ -27,7 +27,7 @@ const Layout = ({ children }) => {
   ];
 
   if (isAdmin) {
-    navigation.push({ name: t('nav.admin'), href: '/admin', icon: Cog6ToothIcon });
+    navigation.push({ name: t('nav.admin'), href: '/admin/overview', icon: Cog6ToothIcon });
   }
 
   const handleLogout = () => {
