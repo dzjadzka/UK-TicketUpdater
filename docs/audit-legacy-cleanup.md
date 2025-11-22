@@ -7,7 +7,7 @@
 - **Legacy isolation:** Legacy single-user scripts and old frontend docs live under `legacy/` and are not referenced by `src/` or npm scripts.
 - **Runtime path:** Backend entry points (`src/index.js`, `src/server.js`) rely solely on current modules; no imports from archived scripts are present.
 - **Package scripts:** npm commands target current backend files; frontend scripts remain but point to the scaffolding in `frontend/` rather than legacy code.
-- **Documentation:** Top-level README and frontend note clarify backend-only support and mark legacy components as reference-only.
+- **Documentation:** README and supporting docs now describe the Phase 2 backend; legacy materials remain quarantined in `legacy/` for archival only.
 
 ## Conclusion
 No blocking legacy code paths remain in production entry points. Repository is safe to build upon for further backend work.
