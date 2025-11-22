@@ -46,7 +46,7 @@ const Settings = () => {
     setError('');
     setSuccess('');
 
-    if (!ukNumber && !ukPassword && autoDownload === undefined) {
+    if (!ukNumber && !ukPassword) {
       setError('Provide a UK number or password to update your credentials.');
       return;
     }

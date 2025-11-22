@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import ProtectedRoute from '../../components/ProtectedRoute';
