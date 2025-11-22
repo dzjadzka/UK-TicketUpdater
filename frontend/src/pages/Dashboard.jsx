@@ -1,141 +1,129 @@
-import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  KeyIcon,
-  DevicePhoneMobileIcon,
-  ClockIcon,
-  TicketIcon,
-  ArrowDownTrayIcon,
-  SparklesIcon
-} from '@heroicons/react/24/outline';
+import { useEffect, useState } from 'react';
+import { ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { userAPI } from '../services/api';
+
+const statusStyles = {
+  success: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+  error: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+  pending: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+};
 
 const Dashboard = () => {
-  const { t } = useTranslation();
-  const { user } = useAuth();
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const cards = [
-    {
-      title: t('nav.credentials'),
-      description: t('credentials.description'),
-      icon: KeyIcon,
-      link: '/credentials',
-      color: 'bg-primary'
-    },
-    {
-      title: t('nav.devices'),
-      description: t('devices.description'),
-      icon: DevicePhoneMobileIcon,
-      link: '/devices',
-      color: 'bg-success'
-    },
-    {
-      title: t('downloads.title'),
-      description: t('downloads.description'),
-      icon: ArrowDownTrayIcon,
-      link: '/downloads',
-      color: 'bg-secondary'
-    },
-    {
-      title: t('nav.history'),
-      description: t('history.description'),
-      icon: ClockIcon,
-      link: '/history',
-      color: 'bg-warning'
-    },
-    {
-      title: t('nav.tickets'),
-      description: t('tickets.description'),
-      icon: TicketIcon,
-      link: '/tickets',
-      color: 'bg-accent'
+  const fetchTickets = async () => {
+    setError('');
+    try {
+      const response = await userAPI.getTickets();
+      setTickets(response.data.tickets || []);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Unable to load your tickets right now.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchTickets();
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="hero bg-gradient-to-r from-primary to-secondary rounded-box text-primary-content">
-        <div className="hero-content text-center py-12">
-          <div className="max-w-md">
-            <div className="flex justify-center mb-4">
-              <SparklesIcon className="h-12 w-12" />
-            </div>
-            <h1 className="text-4xl font-bold">
-              Hello, {user?.email?.split('@')[0] || 'User'}!
-            </h1>
-            <p className="py-6 text-lg">
-              {t('app.description')}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link to="/downloads" className="btn btn-neutral">
-                <ArrowDownTrayIcon className="h-5 w-5" />
-                Start Download
-              </Link>
-              <Link to="/history" className="btn btn-ghost btn-outline">
-                <ClockIcon className="h-5 w-5" />
-                View History
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Start Steps */}
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">Quick Start Guide</h2>
-          <p className="text-base-content/70">Get up and running in 3 simple steps</p>
-          <div className="steps steps-vertical lg:steps-horizontal mt-4">
-            <Link to="/credentials" className="step step-primary">Add Credentials</Link>
-            <Link to="/devices" className="step step-primary">Configure Devices</Link>
-            <Link to="/tickets" className="step">View Tickets</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Feature Cards */}
-      <div>
-        <h2 className="text-2xl font-bold mb-6">Features & Tools</h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
-            <Link
-              key={card.title}
-              to={card.link}
-              className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="card-body">
-                <div className={`avatar placeholder mb-4`}>
-                  <div className={`${card.color} text-white rounded-full w-16`}>
-                    <card.icon className="h-8 w-8" />
-                  </div>
-                </div>
-                <h2 className="card-title">{card.title}</h2>
-                <p className="text-base-content/70">{card.description}</p>
-                <div className="card-actions justify-end mt-4">
-                  <button className="btn btn-primary btn-sm">Learn More</button>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Help Alert */}
-      <div className="alert alert-info">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
+    <div className="space-y-6">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="font-bold">Need Help Getting Started?</h3>
-          <div className="text-sm">Check out our documentation on GitHub for guides and support.</div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-900">Your ticket history</h1>
+          <p className="text-sm text-slate-600">
+            Review past downloads, check their status, and re-download tickets when available.
+          </p>
         </div>
-        <button className="btn btn-sm">
-          <a href="https://github.com/dzjadzka/UK-TicketUpdater" target="_blank" rel="noopener noreferrer">
-            View Docs
-          </a>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <ArrowPathIcon className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
         </button>
-      </div>
+      </header>
+
+      {loading ? (
+        <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-600">
+          Loading your tickets…
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+          {error}
+        </div>
+      ) : tickets.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+          <p className="text-lg font-semibold text-slate-900">No tickets yet</p>
+          <p className="mt-2 text-sm text-slate-600">
+            When your account downloads a ticket, it will show up here with a download link.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Ticket</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Downloaded</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {tickets.map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                      {ticket.version || 'N/A'}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                      {ticket.downloaded_at ? new Date(ticket.downloaded_at).toLocaleString() : 'Pending'}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          statusStyles[ticket.status] || statusStyles.pending
+                        }`}
+                      >
+                        {ticket.status || 'pending'}
+                      </span>
+                      {ticket.error_message && (
+                        <p className="mt-1 text-xs text-rose-600">{ticket.error_message}</p>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      {ticket.download_url ? (
+                        <a
+                          href={ticket.download_url}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                        >
+                          <ArrowDownTrayIcon className="h-4 w-4" />
+                          Download
+                        </a>
+                      ) : (
+                        <span className="text-slate-500">Not available</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
