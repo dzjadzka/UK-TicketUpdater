@@ -58,7 +58,7 @@ describe('Frontend UI flows', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/recent tickets/i)).toBeInTheDocument();
+      expect(screen.getByText(/your ticket history/i)).toBeInTheDocument();
     });
   });
 
