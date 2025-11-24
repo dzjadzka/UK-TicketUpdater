@@ -6,32 +6,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import Button from '../components/ui/Button';
 import { validateEmail, validatePassword, validateRequired } from '../utils/validation';
 
+// Get initial values from URL params (extracted to avoid duplication)
+const getInitialUrlToken = () => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') || '';
+};
+
 const Register = () => {
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
-  const [inviteToken, setInviteToken] = useState('');
+  
+  const [inviteToken, setInviteToken] = useState(getInitialUrlToken);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [autoDownload, setAutoDownload] = useState(true);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [touched, setTouched] = useState({ inviteToken: false, email: false, password: false });
+  const [touched, setTouched] = useState(() => ({
+    inviteToken: !!getInitialUrlToken(),
+    email: false,
+    password: false
+  }));
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (token) {
-      setInviteToken(token);
-      setTouched(prev => ({ ...prev, inviteToken: true }));
-    }
-  }, []);
 
   const validateForm = () => {
     const errors = {};
