@@ -187,6 +187,7 @@ See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance 
 This repository is ready for deployment via Portainer stacks:
 
 1. **Prepare environment file:**
+
    ```bash
    cp stack.env.example stack.env
    ```
