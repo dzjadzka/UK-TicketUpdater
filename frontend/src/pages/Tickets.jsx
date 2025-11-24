@@ -204,16 +204,15 @@ const Tickets = () => {
                   </div>
                   <div className="flex gap-2 mt-auto">
                     {ticket.download_url ? (
-                      <Button 
-                        size="sm" 
-                        asChild
-                        className="w-full gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-[1.02]"
-                      >
-                        <a href={ticket.download_url} download>
+                      <a href={ticket.download_url} download className="w-full">
+                        <Button 
+                          size="sm"
+                          className="w-full gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-[1.02]"
+                        >
                           <ArrowDownTrayIcon className="h-4 w-4" />
                           Download
-                        </a>
-                      </Button>
+                        </Button>
+                      </a>
                     ) : (
                       <Button size="sm" variant="outline" disabled className="w-full">
                         Not Available

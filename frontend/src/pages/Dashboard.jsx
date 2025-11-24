@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowPathIcon, ArrowDownTrayIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ArrowDownTrayIcon, CheckCircleIcon, XCircleIcon, ClockIcon, TicketIcon } from '@heroicons/react/24/outline';
 import { userAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -178,9 +178,11 @@ const Dashboard = () => {
                   When your account downloads a ticket, it will appear here. Make sure your credentials are configured.
                 </p>
                 {!credentials && (
-                  <Button asChild className="mt-6 shadow-md hover:shadow-lg transition-all">
-                    <Link to="/settings">Configure Credentials</Link>
-                  </Button>
+                  <Link to="/settings">
+                    <Button className="mt-6 shadow-md hover:shadow-lg transition-all">
+                      Configure Credentials
+                    </Button>
+                  </Link>
                 )}
               </div>
             ) : (
@@ -215,16 +217,15 @@ const Dashboard = () => {
                       )}
                     </div>
                     {ticket.download_url && (
-                      <Button 
-                        size="sm" 
-                        asChild
-                        className="shrink-0 gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-105"
-                      >
-                        <a href={ticket.download_url}>
+                      <a href={ticket.download_url}>
+                        <Button 
+                          size="sm"
+                          className="shrink-0 gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-105"
+                        >
                           <ArrowDownTrayIcon className="h-4 w-4" />
                           <span className="hidden sm:inline">Download</span>
-                        </a>
-                      </Button>
+                        </Button>
+                      </a>
                     )}
                   </div>
                 ))}
