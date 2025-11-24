@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
 ### Deprecated
+
 - CLI flag `--source` now emits a deprecation warning and will be removed in v1.1.0. Use `--users` instead.
 
 ### Changed
+
 - Removed JSON users mode. The CLI and app now operate exclusively with the SQLite database. `users.sample.json` is retained as a legacy example but no longer used by scripts.
 
 ## [1.0.0] - 2025-11-22
@@ -19,6 +22,7 @@ This is the first major release of UK-TicketUpdater, marking the completion of P
 ### Summary
 
 UK-TicketUpdater is now a complete, release-ready system with:
+
 - **Hardened API** with JWT authentication, invite-only registration, and multi-level rate limiting
 - **Persistent job queue** (SQLite-backed) with scheduler, retry logic, and restart safety
 - **React frontend** for users (credential/profile management, ticket history) and admins (user management, job control, observability)
@@ -91,13 +95,11 @@ This release represents the culmination of 4 major development phases and over 1
   - Configurable job concurrency control (default 2 parallel downloads)
   - Exponential backoff retry logic (3 attempts) with dead letter queue tracking
   - Job handlers: `checkBaseTicket`, `downloadTicketsForAllUsers`, `downloadTicketForUser`
-  
 - **Base Ticket Detection**:
   - SHA-256 hash-based change detection for base ticket
   - Automatic fan-out downloads when base ticket changes
   - `base_ticket_state` table tracking current hash and timestamps
   - Admin credentials for base ticket checks (TICKET_ADMIN_USERNAME/PASSWORD)
-  
 - **Admin Observability API**:
   - `GET /admin/observability/errors` - Recent download failures
   - `GET /admin/observability/job-summary` - Job statistics (last N hours)
@@ -105,7 +107,6 @@ This release represents the culmination of 4 major development phases and over 1
   - `POST /admin/jobs/check-base-ticket` - Manual base ticket check
   - `POST /admin/jobs/download-all` - Manual download trigger for all users
   - `GET /admin/overview` - System overview (user counts, base ticket state)
-  
 - **Enhanced History & Tickets**:
   - `download_history` table with detailed run records (status, message, timestamps)
   - `tickets` table with version tracking and content-hash deduplication
@@ -118,26 +119,22 @@ This release represents the culmination of 4 major development phases and over 1
   - Queue state persistence: pending jobs survive API restarts
   - Job queue table with status tracking (pending, processing, completed, failed)
   - Metrics: enqueued, completed, failed, retries, pending jobs
-  
 - **Multi-Level Rate Limiting**:
   - Global IP rate limiter (100 requests per 15 minutes)
   - Per-user authenticated rate limiter (300 requests per 15 minutes, configurable)
   - Outbound provider rate limiter with token bucket (12 req/min default)
   - Rate limit configuration via environment variables
-  
 - **Health & Metrics Endpoints**:
   - `GET /health` - Liveness probe (always returns 200)
   - `GET /ready` - Readiness probe (checks DB + queue)
   - `GET /metrics` - Prometheus-compatible metrics (queue stats, rate limiters)
   - `GET /admin/observability/queue` - Queue backend and metrics details
-  
 - **Audit Logging**:
   - Structured JSON logs with severity levels (INFO, WARN, ERROR)
   - Request ID tracking for correlation across logs
   - Automatic credential field redaction
   - Audit events: invite creation/deletion, credential updates, device profile changes
   - Context enrichment: user_id, route, method, status, duration_ms
-  
 - **Security Enhancements**:
   - Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)
   - Request tracing with unique IDs
@@ -155,19 +152,16 @@ This release represents the culmination of 4 major development phases and over 1
   - Download history viewing and ticket access
   - Admin observability dashboards
   - Responsive design with Tailwind CSS
-  
 - **Docker Support**:
   - Multi-stage Dockerfile for production deployments
   - docker-compose.yml with volume mounts and environment configuration
   - Frontend build bundled and served by backend at `/app`
   - Health checks integrated for container orchestrators
-  
 - **CI/CD Pipeline**:
   - GitHub Actions workflow for automated testing (`.github/workflows/ci.yml`)
   - Lint, backend tests, frontend tests, Playwright e2e suite
   - Matrix testing on Node 18 and 20
   - Scheduled downloader workflow (`.github/workflows/scheduled-download.yml`)
-  
 - **Testing & Quality**:
   - 175 automated tests (Jest + Playwright)
   - Integration tests for API endpoints (auth, downloads, history, admin)
@@ -175,7 +169,6 @@ This release represents the culmination of 4 major development phases and over 1
   - Rate limiter tests
   - E2E tests covering full invite→login→credential→download flow
   - 60%+ test coverage for core modules
-  
 - **Documentation**:
   - Architecture overview with component diagrams and data flows (`docs/architecture.md`)
   - Operations guide with deployment checklist (`docs/operations.md`)
@@ -214,8 +207,9 @@ This release represents the culmination of 4 major development phases and over 1
 ### Known Limitations
 
 See [docs/future-work.md](docs/future-work.md) for detailed limitations and enhancement opportunities:
+
 - SQLite queue not designed for multi-instance deployments
-- In-process rate limiting not shared across API instances  
+- In-process rate limiting not shared across API instances
 - File-based download storage not suitable for distributed systems
 - No automatic credential rotation
 - No ticket content validation beyond hash comparison
@@ -224,6 +218,7 @@ See [docs/future-work.md](docs/future-work.md) for detailed limitations and enha
 ### Migration Notes
 
 **Upgrading from 1.1.0 or earlier**:
+
 1. Run `npm install` to get new dependencies
 2. Set required environment variables (see README)
 3. Database migrations are automatic on first run
@@ -231,6 +226,7 @@ See [docs/future-work.md](docs/future-work.md) for detailed limitations and enha
 5. For Docker: rebuild images with `docker-compose build`
 
 **First-time Setup**:
+
 1. Initialize database: `npm run setup:db`
 2. Set secrets: `JWT_SECRET`, `ENCRYPTION_KEY`, admin credentials
 3. Create first admin user via database seed

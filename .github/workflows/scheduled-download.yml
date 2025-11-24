@@ -31,7 +31,7 @@ jobs:
 
       - name: Skip when no users config is provided
         if: env.USERS_JSON == ''
-        run: echo "::notice:: USERS_JSON secret not configured; skipping scheduled downloader run."
+        run: 'echo "::notice:: USERS_JSON secret not configured; skipping scheduled downloader run."'
 
       - name: Write users config from secret
         if: env.USERS_JSON != ''

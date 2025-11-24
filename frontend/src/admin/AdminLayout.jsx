@@ -6,7 +6,7 @@ const AdminLayout = () => {
 
   const tabs = [
     { to: '/admin/overview', label: 'Overview', icon: ChartBarIcon },
-    { to: '/admin/users', label: 'Users', icon: UsersIcon },
+    { to: '/admin/users', label: 'Users', icon: UsersIcon }
   ];
 
   return (
@@ -30,9 +30,7 @@ const AdminLayout = () => {
           <NavLink
             key={tab.to}
             to={tab.to}
-            className={({ isActive }) =>
-              `tab whitespace-nowrap ${isActive ? 'tab-active' : ''}`
-            }
+            className={({ isActive }) => `tab whitespace-nowrap ${isActive ? 'tab-active' : ''}`}
           >
             <tab.icon className="h-5 w-5" />
             <span className="ml-2">{tab.label}</span>

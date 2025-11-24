@@ -122,10 +122,8 @@ const DeviceProfiles = () => {
       locale: form.locale.trim() || 'de-DE',
       timezone: form.timezone.trim() || 'Europe/Berlin',
       proxyUrl: form.proxyUrl.trim() || null,
-      geolocationLatitude:
-        form.geolocationLatitude === '' ? null : Number.parseFloat(form.geolocationLatitude),
-      geolocationLongitude:
-        form.geolocationLongitude === '' ? null : Number.parseFloat(form.geolocationLongitude)
+      geolocationLatitude: form.geolocationLatitude === '' ? null : Number.parseFloat(form.geolocationLatitude),
+      geolocationLongitude: form.geolocationLongitude === '' ? null : Number.parseFloat(form.geolocationLongitude)
     };
 
     try {
@@ -228,7 +226,9 @@ const DeviceProfiles = () => {
             <PlusIcon className="h-5 w-5" />
             <h2 className="text-lg font-semibold">New profile</h2>
           </div>
-          <p className="text-sm text-slate-600">Use a preset or enter custom values. All fields are required unless noted.</p>
+          <p className="text-sm text-slate-600">
+            Use a preset or enter custom values. All fields are required unless noted.
+          </p>
 
           <label className="block text-sm font-medium text-slate-700">Start from preset</label>
           <select
@@ -246,7 +246,9 @@ const DeviceProfiles = () => {
 
           <form className="space-y-3" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="profileName" className="block text-sm font-medium text-slate-700">Profile name</label>
+              <label htmlFor="profileName" className="block text-sm font-medium text-slate-700">
+                Profile name
+              </label>
               <input
                 id="profileName"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -257,7 +259,9 @@ const DeviceProfiles = () => {
             </div>
 
             <div>
-              <label htmlFor="userAgent" className="block text-sm font-medium text-slate-700">User agent</label>
+              <label htmlFor="userAgent" className="block text-sm font-medium text-slate-700">
+                User agent
+              </label>
               <textarea
                 id="userAgent"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -270,7 +274,9 @@ const DeviceProfiles = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="viewportWidth" className="block text-sm font-medium text-slate-700">Viewport width</label>
+                <label htmlFor="viewportWidth" className="block text-sm font-medium text-slate-700">
+                  Viewport width
+                </label>
                 <input
                   id="viewportWidth"
                   type="number"
@@ -281,7 +287,9 @@ const DeviceProfiles = () => {
                 />
               </div>
               <div>
-                <label htmlFor="viewportHeight" className="block text-sm font-medium text-slate-700">Viewport height</label>
+                <label htmlFor="viewportHeight" className="block text-sm font-medium text-slate-700">
+                  Viewport height
+                </label>
                 <input
                   id="viewportHeight"
                   type="number"
@@ -295,7 +303,9 @@ const DeviceProfiles = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="locale" className="block text-sm font-medium text-slate-700">Locale</label>
+                <label htmlFor="locale" className="block text-sm font-medium text-slate-700">
+                  Locale
+                </label>
                 <input
                   id="locale"
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -304,7 +314,9 @@ const DeviceProfiles = () => {
                 />
               </div>
               <div>
-                <label htmlFor="timezone" className="block text-sm font-medium text-slate-700">Timezone</label>
+                <label htmlFor="timezone" className="block text-sm font-medium text-slate-700">
+                  Timezone
+                </label>
                 <input
                   id="timezone"
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -315,7 +327,9 @@ const DeviceProfiles = () => {
             </div>
 
             <div>
-              <label htmlFor="proxyUrl" className="block text-sm font-medium text-slate-700">Proxy URL (optional)</label>
+              <label htmlFor="proxyUrl" className="block text-sm font-medium text-slate-700">
+                Proxy URL (optional)
+              </label>
               <input
                 id="proxyUrl"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -327,7 +341,9 @@ const DeviceProfiles = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="geolocationLatitude" className="block text-sm font-medium text-slate-700">Latitude (optional)</label>
+                <label htmlFor="geolocationLatitude" className="block text-sm font-medium text-slate-700">
+                  Latitude (optional)
+                </label>
                 <input
                   id="geolocationLatitude"
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -337,7 +353,9 @@ const DeviceProfiles = () => {
                 />
               </div>
               <div>
-                <label htmlFor="geolocationLongitude" className="block text-sm font-medium text-slate-700">Longitude (optional)</label>
+                <label htmlFor="geolocationLongitude" className="block text-sm font-medium text-slate-700">
+                  Longitude (optional)
+                </label>
                 <input
                   id="geolocationLongitude"
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"

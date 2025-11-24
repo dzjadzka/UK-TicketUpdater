@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowPathIcon, ArrowDownTrayIcon, CheckCircleIcon, XCircleIcon, ClockIcon, TicketIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowPathIcon,
+  ArrowDownTrayIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  TicketIcon
+} from '@heroicons/react/24/outline';
 import { userAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -16,10 +23,7 @@ const Dashboard = () => {
   const fetchData = async () => {
     setError('');
     try {
-      const [ticketsRes, credentialsRes] = await Promise.all([
-        userAPI.getTickets(),
-        userAPI.getCredentials()
-      ]);
+      const [ticketsRes, credentialsRes] = await Promise.all([userAPI.getTickets(), userAPI.getCredentials()]);
       setTickets(ticketsRes.data.tickets || []);
       setCredentials(credentialsRes.data.credential);
     } catch (err) {
@@ -40,8 +44,8 @@ const Dashboard = () => {
   };
 
   const latestTicket = tickets.length > 0 ? tickets[0] : null;
-  const successCount = tickets.filter(t => t.status === 'success').length;
-  const errorCount = tickets.filter(t => t.status === 'error').length;
+  const successCount = tickets.filter((t) => t.status === 'success').length;
+  const errorCount = tickets.filter((t) => t.status === 'error').length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -60,7 +64,7 @@ const Dashboard = () => {
           variant="outline"
           size="sm"
           className="gap-2 hover:shadow-md transition-all duration-200"
-          aria-label={refreshing ? "Refreshing dashboard data" : "Refresh dashboard data"}
+          aria-label={refreshing ? 'Refreshing dashboard data' : 'Refresh dashboard data'}
         >
           <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           Refresh
@@ -80,14 +84,14 @@ const Dashboard = () => {
               )}
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight">
-                {credentials ? 'Configured' : 'Not Set'}
-              </div>
+              <div className="text-3xl font-bold tracking-tight">{credentials ? 'Configured' : 'Not Set'}</div>
               <p className="text-xs text-muted-foreground mt-2">
                 {credentials ? (
                   <>Auto-download: {credentials.auto_download_enabled ? 'Enabled' : 'Disabled'}</>
                 ) : (
-                  <Link to="/settings" className="text-primary hover:underline font-medium">Configure now →</Link>
+                  <Link to="/settings" className="text-primary hover:underline font-medium">
+                    Configure now →
+                  </Link>
                 )}
               </p>
             </CardContent>
@@ -101,7 +105,8 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-3xl font-bold tracking-tight">{tickets.length}</div>
               <p className="text-xs text-muted-foreground mt-2">
-                <span className="text-green-600 font-medium">{successCount} successful</span> · <span className="text-red-600 font-medium">{errorCount} failed</span>
+                <span className="text-green-600 font-medium">{successCount} successful</span> ·{' '}
+                <span className="text-red-600 font-medium">{errorCount} failed</span>
               </p>
             </CardContent>
           </Card>
@@ -116,10 +121,9 @@ const Dashboard = () => {
                 {latestTicket ? latestTicket.version || 'N/A' : 'None'}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {latestTicket?.downloaded_at 
+                {latestTicket?.downloaded_at
                   ? new Date(latestTicket.downloaded_at).toLocaleDateString()
-                  : 'No downloads yet'
-                }
+                  : 'No downloads yet'}
               </p>
             </CardContent>
           </Card>
@@ -144,7 +148,12 @@ const Dashboard = () => {
               <div>
                 <h3 className="font-semibold text-destructive">Error loading data</h3>
                 <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                <Button onClick={handleRefresh} variant="outline" size="sm" className="mt-3 hover:shadow-md transition-shadow">
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 hover:shadow-md transition-shadow"
+                >
                   Try Again
                 </Button>
               </div>
@@ -160,7 +169,10 @@ const Dashboard = () => {
                 <CardDescription className="mt-1.5">
                   Your latest ticket downloads
                   {tickets.length > 5 && (
-                    <Link to="/tickets" className="text-primary hover:underline ml-2 font-medium inline-flex items-center">
+                    <Link
+                      to="/tickets"
+                      className="text-primary hover:underline ml-2 font-medium inline-flex items-center"
+                    >
                       View all →
                     </Link>
                   )}
@@ -180,9 +192,7 @@ const Dashboard = () => {
                 </p>
                 {!credentials && (
                   <Link to="/settings">
-                    <Button className="mt-6 shadow-md hover:shadow-lg transition-all">
-                      Configure Credentials
-                    </Button>
+                    <Button className="mt-6 shadow-md hover:shadow-lg transition-all">Configure Credentials</Button>
                   </Link>
                 )}
               </div>
@@ -196,22 +206,21 @@ const Dashboard = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <p className="font-semibold text-foreground truncate">
-                          {ticket.version || 'N/A'}
-                        </p>
-                        <Badge variant={
-                          ticket.status === 'success' ? 'success' : 
-                          ticket.status === 'error' ? 'destructive' : 
-                          'warning'
-                        }>
+                        <p className="font-semibold text-foreground truncate">{ticket.version || 'N/A'}</p>
+                        <Badge
+                          variant={
+                            ticket.status === 'success'
+                              ? 'success'
+                              : ticket.status === 'error'
+                                ? 'destructive'
+                                : 'warning'
+                          }
+                        >
                           {ticket.status || 'pending'}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5">
-                        {ticket.downloaded_at 
-                          ? new Date(ticket.downloaded_at).toLocaleString()
-                          : 'Pending'
-                        }
+                        {ticket.downloaded_at ? new Date(ticket.downloaded_at).toLocaleString() : 'Pending'}
                       </p>
                       {ticket.error_message && (
                         <p className="text-xs text-destructive mt-1.5 line-clamp-1">{ticket.error_message}</p>
@@ -219,7 +228,7 @@ const Dashboard = () => {
                     </div>
                     {ticket.download_url && (
                       <a href={ticket.download_url} aria-label={`Download ticket ${ticket.version || ticket.id}`}>
-                        <Button 
+                        <Button
                           size="sm"
                           className="shrink-0 gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-105"
                           aria-hidden="true"

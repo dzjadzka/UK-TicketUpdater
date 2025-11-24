@@ -13,6 +13,7 @@ The SQLite database implementation is **production-ready** with comprehensive sc
 **Overall Grade:** A- (90/100)
 
 ### Strengths
+
 ✅ Comprehensive schema with proper foreign keys and indexes  
 ✅ Prepared statements prevent SQL injection  
 ✅ Transaction support for batch operations  
@@ -22,6 +23,7 @@ The SQLite database implementation is **production-ready** with comprehensive sc
 ✅ Backward compatibility maintained during JSON → DB migration
 
 ### Areas for Improvement
+
 ⚠️ Missing migration system for schema changes  
 ⚠️ No database backup/restore utilities  
 ⚠️ Some redundant table structures (credentials vs user_credentials)  
@@ -34,6 +36,7 @@ The SQLite database implementation is **production-ready** with comprehensive sc
 ### 1.1 Core Tables
 
 #### ✅ `users` - Well-designed with appropriate constraints
+
 ```sql
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
@@ -49,12 +52,14 @@ CREATE TABLE users (
 ```
 
 **Strengths:**
+
 - Soft delete via `deleted_at` preserves audit trail
 - Separate email and login fields for flexibility
 - Role-based access control built-in
 - Proper unique constraints
 
 **Issues:**
+
 - `flags TEXT DEFAULT '{}'` - JSON in SQLite works but limits queryability
 - Consider JSON1 extension for complex flag queries
 
@@ -63,6 +68,7 @@ CREATE TABLE users (
 ---
 
 #### ✅ `user_credentials` - Secure credential storage
+
 ```sql
 CREATE TABLE user_credentials (
   user_id TEXT PRIMARY KEY,
@@ -74,11 +80,13 @@ CREATE TABLE user_credentials (
 ```
 
 **Strengths:**
+
 - One-to-one relationship with users (PK = FK)
 - Encrypted password storage
 - Login telemetry for debugging
 
 **Issues:**
+
 - No index on `last_login_at` for time-based queries
 - `uk_number` not encrypted (PII concern)
 
@@ -87,6 +95,7 @@ CREATE TABLE user_credentials (
 ---
 
 #### ⚠️ `credentials` - Redundant table
+
 ```sql
 CREATE TABLE credentials (
   id TEXT PRIMARY KEY,
@@ -100,12 +109,14 @@ CREATE TABLE credentials (
 **Issue:** This table is **never used** in the current codebase. Appears to be a leftover from earlier design iterations or planned feature.
 
 **Evidence:**
+
 ```bash
 grep -r "createCredential\|getCredentialsByUser" src/
 # Only defined in db.js, never called
 ```
 
-**Recommendation:**  
+**Recommendation:**
+
 - **Option A:** Remove table and methods if not needed (simplify schema)
 - **Option B:** Document intended use case and implement feature
 - **Option C:** Deprecate with migration plan if keeping for backward compatibility
@@ -113,6 +124,7 @@ grep -r "createCredential\|getCredentialsByUser" src/
 ---
 
 #### ✅ `tickets` - Excellent deduplication design
+
 ```sql
 CREATE TABLE tickets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,6 +137,7 @@ CREATE TABLE tickets (
 ```
 
 **Strengths:**
+
 - Dual deduplication: version + hash
 - Status tracking for validation
 - Proper timestamp fields
@@ -136,6 +149,7 @@ CREATE TABLE tickets (
 ---
 
 #### ✅ `download_history` - Comprehensive audit trail
+
 ```sql
 CREATE TABLE download_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,15 +163,18 @@ CREATE TABLE download_history (
 ```
 
 **Strengths:**
+
 - Immutable log (no updates, only inserts)
 - Captures both success and failure paths
 - Device profile tracking for debugging
 
 **Issues:**
+
 - No index on `(user_id, downloaded_at)` for user history queries
 - No retention policy (table grows indefinitely)
 
 **Recommendations:**
+
 1. Add composite index: `CREATE INDEX idx_history_user_time ON download_history(user_id, downloaded_at DESC)`
 2. Implement retention policy (archive/delete records older than X months)
 3. Consider partitioning for very large deployments
@@ -165,6 +182,7 @@ CREATE TABLE download_history (
 ---
 
 #### ✅ `base_ticket_state` - Singleton pattern correctly implemented
+
 ```sql
 CREATE TABLE base_ticket_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),  -- Enforces singleton ✓
@@ -174,6 +192,7 @@ CREATE TABLE base_ticket_state (
 ```
 
 **Strengths:**
+
 - Singleton constraint prevents multiple rows
 - Tracks change detection for scheduler
 
@@ -182,6 +201,7 @@ CREATE TABLE base_ticket_state (
 ---
 
 #### ✅ `job_queue` - Persistent queue with retry logic
+
 ```sql
 CREATE TABLE job_queue (
   id TEXT PRIMARY KEY,
@@ -196,6 +216,7 @@ CREATE INDEX idx_job_queue_status_available ON job_queue(status, available_at);
 ```
 
 **Strengths:**
+
 - Supports exponential backoff
 - Index optimized for queue polling
 - Status tracking
@@ -209,7 +230,9 @@ CREATE INDEX idx_job_queue_status_available ON job_queue(status, available_at);
 ### 1.2 Relationships & Constraints
 
 #### Foreign Keys
+
 All foreign keys properly defined:
+
 ```sql
 FOREIGN KEY (user_id) REFERENCES users(id)
 FOREIGN KEY (created_by) REFERENCES users(id)
@@ -218,6 +241,7 @@ FOREIGN KEY (created_by) REFERENCES users(id)
 **Issue:** Foreign keys are **not enforced** by default in SQLite.
 
 **Critical Fix Required:**
+
 ```javascript
 function createDatabase(dbPath) {
   const db = new Database(dbPath);
@@ -234,6 +258,7 @@ function createDatabase(dbPath) {
 ### 1.3 Indexes
 
 **Existing indexes:** ✅ Well-chosen
+
 ```sql
 idx_invite_tokens_expires
 idx_credentials_user
@@ -244,6 +269,7 @@ idx_job_queue_status_available
 ```
 
 **Missing indexes for common queries:**
+
 ```sql
 -- Add these for performance:
 CREATE INDEX idx_tickets_user_time ON tickets(user_id, downloaded_at DESC);
@@ -261,15 +287,18 @@ CREATE INDEX idx_users_active ON users(is_active, deleted_at);
 **Current structure:** Monolithic object with 50+ methods
 
 **Pros:**
+
 - Single import point
 - Clear namespacing
 
 **Cons:**
+
 - Difficult to navigate
 - No logical grouping
 - Hard to mock in tests
 
 **Recommendation:** Consider splitting into logical modules:
+
 ```javascript
 const db = createDatabase(dbPath);
 return {
@@ -292,6 +321,7 @@ return {
 **Excellent:** All queries use prepared statements ✅
 
 Example:
+
 ```javascript
 const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL');
 ```
@@ -306,6 +336,7 @@ const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ? AND d
 ### 2.3 Error Handling
 
 **Pattern used consistently:**
+
 ```javascript
 methodName: (arg) => {
   try {
@@ -316,10 +347,11 @@ methodName: (arg) => {
     console.error('Failed to [action]:', error);
     throw error;
   }
-}
+};
 ```
 
 **Strengths:**
+
 - Consistent error logging
 - Preserves stack traces
 - Fails fast
@@ -327,6 +359,7 @@ methodName: (arg) => {
 **Issue:** `console.error` in production should use structured logger
 
 **Recommendation:**
+
 ```javascript
 const { logger } = require('./logger');
 
@@ -337,7 +370,7 @@ methodName: (arg) => {
     logger.error('db_method_failed', { method: 'methodName', error });
     throw error;
   }
-}
+};
 ```
 
 ---
@@ -347,6 +380,7 @@ methodName: (arg) => {
 **Current state:** Minimal validation before queries
 
 Examples of good validation:
+
 ```javascript
 if (!userId) {
   throw new Error('userId is required');
@@ -357,11 +391,13 @@ if (!Array.isArray(ids)) {
 ```
 
 **Issues found:**
+
 1. Some methods accept undefined/null without validation
 2. No type checking (e.g., expecting string but receiving number)
 3. No length limits on text fields
 
 **Recommendation:** Add validation helper:
+
 ```javascript
 function validate(schema, data) {
   // Use joi, zod, or custom validator
@@ -369,13 +405,16 @@ function validate(schema, data) {
 }
 
 createUser: (data) => {
-  validate({
-    id: 'string:required:max:255',
-    email: 'email:required',
-    password_hash: 'string:required:min:60'
-  }, data);
+  validate(
+    {
+      id: 'string:required:max:255',
+      email: 'email:required',
+      password_hash: 'string:required:min:60'
+    },
+    data
+  );
   // ...
-}
+};
 ```
 
 ---
@@ -385,6 +424,7 @@ createUser: (data) => {
 ### 3.1 Transaction Usage
 
 **Current:** Only one transaction found:
+
 ```javascript
 const insertMany = db.transaction((items) => {
   items.forEach((user) => {
@@ -396,15 +436,17 @@ const insertMany = db.transaction((items) => {
 **Issue:** Other batch operations don't use transactions
 
 **Example - should be transactional:**
+
 ```javascript
 // src/setupDb.js - imports multiple users
-users.forEach(user => db.upsertUser(user));  // ← Not atomic!
+users.forEach((user) => db.upsertUser(user)); // ← Not atomic!
 ```
 
 **Recommendation:** Wrap batch operations in transactions:
+
 ```javascript
 const upsertUsersTransaction = db.transaction((users) => {
-  users.forEach(u => upsertUserStmt.run(u));
+  users.forEach((u) => upsertUserStmt.run(u));
 });
 
 upsertUsers: (users) => {
@@ -414,7 +456,7 @@ upsertUsers: (users) => {
     console.error('Failed to upsert users:', error);
     throw error;
   }
-}
+};
 ```
 
 ---
@@ -424,50 +466,60 @@ upsertUsers: (users) => {
 **Observed patterns:**
 
 #### ✅ Good: Single-user queries
+
 ```javascript
-db.getUserById(id)
-db.getUserCredential(userId)
-db.listTicketsByUser(userId)
+db.getUserById(id);
+db.getUserCredential(userId);
+db.listTicketsByUser(userId);
 ```
+
 Properly indexed, efficient
 
 #### ⚠️ Potentially slow: Batch user queries
+
 ```javascript
-db.listActiveUsers()  // Returns ALL active users
+db.listActiveUsers(); // Returns ALL active users
 ```
 
 **Issue:** No pagination support
 
 **Recommendation for large deployments:**
+
 ```javascript
 listActiveUsers: (limit = 100, offset = 0) => {
-  return db.prepare(
-    `SELECT * FROM users 
+  return db
+    .prepare(
+      `SELECT * FROM users 
      WHERE deleted_at IS NULL AND is_active = 1 
      ORDER BY created_at DESC 
      LIMIT ? OFFSET ?`
-  ).all(limit, offset);
-}
+    )
+    .all(limit, offset);
+};
 ```
 
 #### ⚠️ N+1 query problem potential
+
 ```javascript
 // jobs/handlers.js
 const users = db.listActiveUsers();
-users.forEach(user => {
-  const cred = db.getUserCredential(user.id);  // ← N queries
-  const profile = db.getDeviceProfileById(id, user.id);  // ← N queries
+users.forEach((user) => {
+  const cred = db.getUserCredential(user.id); // ← N queries
+  const profile = db.getDeviceProfileById(id, user.id); // ← N queries
 });
 ```
 
 **Recommendation:** Add batch fetch methods:
+
 ```javascript
 getUserCredentialsForUsers: (userIds) => {
-  return db.prepare(
-    `SELECT * FROM user_credentials 
+  return db
+    .prepare(
+      `SELECT * FROM user_credentials 
      WHERE user_id IN (SELECT value FROM json_each(?))`
-  ).all(JSON.stringify(userIds));
-}
+    )
+    .all(JSON.stringify(userIds));
+};
 ```
 
 ---
@@ -479,17 +531,19 @@ getUserCredentialsForUsers: (userIds) => {
 **Issue:** Database handle created per request/job
 
 Example from server.js:
+
 ```javascript
-app.locals.db = createDatabase(dbPath);  // ✓ Good - single instance
+app.locals.db = createDatabase(dbPath); // ✓ Good - single instance
 ```
 
 Example from index.js:
+
 ```javascript
 const db = createDatabase(dbPath);
 try {
   // use db
 } finally {
-  db.close();  // ✓ Good - proper cleanup
+  db.close(); // ✓ Good - proper cleanup
 }
 ```
 
@@ -504,6 +558,7 @@ try {
 **File:** `__tests__/db.test.js` (100 lines, 9 tests)
 
 **Coverage:**
+
 - ✅ Schema creation
 - ✅ User CRUD
 - ✅ Credentials storage
@@ -512,6 +567,7 @@ try {
 - ✅ Base ticket state
 
 **Missing tests:**
+
 - ❌ Foreign key enforcement
 - ❌ Unique constraint violations
 - ❌ Soft delete cascade behavior
@@ -522,11 +578,12 @@ try {
 - ❌ Very long strings (e.g., 10MB error messages)
 
 **Recommendation:** Add comprehensive test suite:
+
 ```javascript
 describe('database edge cases', () => {
   it('enforces foreign keys', () => {
-    expect(() => db.createUserCredential({ 
-      userId: 'nonexistent', ... 
+    expect(() => db.createUserCredential({
+      userId: 'nonexistent', ...
     })).toThrow(/foreign key/);
   });
 
@@ -560,8 +617,9 @@ describe('database edge cases', () => {
 **Status:** ✅ **PROTECTED**
 
 All queries use parameterized statements:
+
 ```javascript
-db.prepare('SELECT * FROM users WHERE email = ?').get(email);  // ✓ Safe
+db.prepare('SELECT * FROM users WHERE email = ?').get(email); // ✓ Safe
 ```
 
 **No string concatenation found.**
@@ -571,15 +629,18 @@ db.prepare('SELECT * FROM users WHERE email = ?').get(email);  // ✓ Safe
 ### 5.2 Sensitive Data
 
 **Encrypted fields:**
+
 - ✅ `user_credentials.uk_password_encrypted`
 - ✅ `credentials.login_password_encrypted`
 
 **Plain text PII (concern):**
+
 - ⚠️ `user_credentials.uk_number` - User ID number
 - ⚠️ `users.email` - Email address
 - ⚠️ `users.login` - Login name
 
 **Recommendation for compliance (GDPR/CCPA):**
+
 1. Document data retention policy
 2. Implement user data export API
 3. Implement user data deletion (cascade from soft delete)
@@ -592,6 +653,7 @@ db.prepare('SELECT * FROM users WHERE email = ?').get(email);  // ✓ Safe
 **Database level:** No row-level security (not supported in SQLite)
 
 **Application level:** Enforced in API routes:
+
 - JWT authentication checks user identity
 - `requireAdmin` middleware for admin routes
 - User ID scoped queries (e.g., `WHERE user_id = ?`)
@@ -609,6 +671,7 @@ db.prepare('SELECT * FROM users WHERE email = ?').get(email);  // ✓ Safe
 **For typical deployment (<1000 users):** Excellent
 
 **Benchmarks (estimated based on schema):**
+
 - User lookup by email: <1ms (indexed)
 - Insert ticket: <2ms
 - List history (50 rows): <5ms
@@ -621,27 +684,30 @@ db.prepare('SELECT * FROM users WHERE email = ?').get(email);  // ✓ Safe
 **Large deployments (10k+ users):**
 
 1. **Full table scans:**
+
    ```javascript
-   db.listActiveUsers()  // Returns all rows
+   db.listActiveUsers(); // Returns all rows
    ```
+
    **Impact:** Memory usage scales linearly with user count
    **Fix:** Add pagination (limit/offset)
 
 2. **History table growth:**
    - 10k users × 10 downloads/month = 100k rows/month
    - 1 year = 1.2M rows
-   **Impact:** Queries slow down without indexes
-   **Fix:** Add retention policy + archival
+     **Impact:** Queries slow down without indexes
+     **Fix:** Add retention policy + archival
 
 3. **Job queue cleanup:**
    - Completed jobs accumulate
-   **Fix:** Periodic cleanup of old jobs
+     **Fix:** Periodic cleanup of old jobs
 
 ---
 
 ### 6.3 Optimization Recommendations
 
 **Immediate (add to migration):**
+
 ```sql
 CREATE INDEX idx_tickets_user_time ON tickets(user_id, downloaded_at DESC);
 CREATE INDEX idx_history_user_status_time ON download_history(user_id, status, downloaded_at DESC);
@@ -649,6 +715,7 @@ CREATE INDEX idx_users_active_created ON users(is_active, deleted_at, created_at
 ```
 
 **Future (for >10k users):**
+
 - Implement query result caching (Redis)
 - Consider read replicas
 - Archive old history to separate DB
@@ -664,6 +731,7 @@ CREATE INDEX idx_users_active_created ON users(is_active, deleted_at, created_at
 **Issue:** No migration tracking
 
 **Problems:**
+
 1. Can't upgrade production DB safely
 2. No rollback capability
 3. Breaking changes overwrite schema
@@ -674,6 +742,7 @@ CREATE INDEX idx_users_active_created ON users(is_active, deleted_at, created_at
 ### 7.2 Recommended Migration System
 
 **Add schema version table:**
+
 ```sql
 CREATE TABLE schema_migrations (
   version INTEGER PRIMARY KEY,
@@ -683,6 +752,7 @@ CREATE TABLE schema_migrations (
 ```
 
 **Migration runner:**
+
 ```javascript
 const migrations = [
   {
@@ -706,18 +776,19 @@ const migrations = [
 ];
 
 function runMigrations(db) {
-  const currentVersion = db.prepare(
-    'SELECT MAX(version) as v FROM schema_migrations'
-  ).get().v || 0;
-  
-  migrations.filter(m => m.version > currentVersion).forEach(migration => {
-    db.transaction(() => {
-      migration.up(db);
-      db.prepare(
-        'INSERT INTO schema_migrations (version, description) VALUES (?, ?)'
-      ).run(migration.version, migration.description);
-    })();
-  });
+  const currentVersion = db.prepare('SELECT MAX(version) as v FROM schema_migrations').get().v || 0;
+
+  migrations
+    .filter((m) => m.version > currentVersion)
+    .forEach((migration) => {
+      db.transaction(() => {
+        migration.up(db);
+        db.prepare('INSERT INTO schema_migrations (version, description) VALUES (?, ?)').run(
+          migration.version,
+          migration.description
+        );
+      })();
+    });
 }
 ```
 
@@ -730,6 +801,7 @@ function runMigrations(db) {
 **Backup strategy:** ❌ Not implemented
 
 **Issues:**
+
 1. No automated backups
 2. No point-in-time recovery
 3. No backup verification
@@ -739,13 +811,16 @@ function runMigrations(db) {
 ### 8.2 Recommendations
 
 **Development:**
+
 ```bash
 # Add to npm scripts
 "db:backup": "cp data/app.db data/backups/app-$(date +%Y%m%d-%H%M%S).db"
 ```
 
 **Production:**
+
 1. Use SQLite `.backup` command:
+
    ```javascript
    const backupDb = new Database('backup.db');
    db.db.backup(backupDb);
@@ -753,6 +828,7 @@ function runMigrations(db) {
    ```
 
 2. Schedule daily backups:
+
    ```javascript
    // Add to scheduler
    schedule.scheduleJob('0 2 * * *', () => {
@@ -770,6 +846,7 @@ function runMigrations(db) {
 ### 9.1 Current Documentation
 
 **Files:**
+
 - ✅ `docs/db-schema.md` - High-level overview
 - ✅ Inline comments in `src/db.js`
 - ❌ No API reference
@@ -783,6 +860,7 @@ function runMigrations(db) {
 ### 9.2 Recommended Documentation
 
 **Add:**
+
 1. **API Reference** (`docs/db-api.md`)
    - Every method with params, return values, examples
    - Error conditions
@@ -805,14 +883,16 @@ function runMigrations(db) {
 ### Priority 1 - Critical (Do Now)
 
 1. **Enable foreign key enforcement**
+
    ```javascript
    // src/db.js line 142
    const db = new Database(resolvedPath);
-   db.pragma('foreign_keys = ON');  // ← ADD THIS
+   db.pragma('foreign_keys = ON'); // ← ADD THIS
    initSchema(db);
    ```
 
 2. **Add missing indexes**
+
    ```sql
    CREATE INDEX idx_tickets_user_time ON tickets(user_id, downloaded_at DESC);
    CREATE INDEX idx_history_user_time ON download_history(user_id, downloaded_at DESC);
@@ -866,17 +946,20 @@ function runMigrations(db) {
 The database implementation is **solid and production-ready** for small to medium deployments. The schema design shows good understanding of relational database principles, and the prepared statement usage eliminates SQL injection risks.
 
 **Key strengths:**
+
 - Clean schema with proper constraints
 - Consistent error handling
 - Good separation of concerns
 - Comprehensive feature coverage
 
 **Must fix before scaling:**
+
 1. Enable foreign key enforcement (1-line change)
 2. Add backup system
 3. Implement retention policies for growing tables
 
 **Technical debt to address:**
+
 - Migration system for schema evolution
 - Pagination for large result sets
 - Remove redundant `credentials` table
@@ -904,7 +987,7 @@ base_ticket_state (singleton)
 job_queue (*)
 ```
 
-Legend: (1) = one, (*) = many
+Legend: (1) = one, (\*) = many
 
 ---
 
@@ -915,19 +998,19 @@ Legend: (1) = one, (*) = many
 SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();
 
 -- Check table row counts
-SELECT 
+SELECT
   (SELECT COUNT(*) FROM users) as users,
   (SELECT COUNT(*) FROM tickets) as tickets,
   (SELECT COUNT(*) FROM download_history) as history,
   (SELECT COUNT(*) FROM job_queue WHERE status = 'pending') as pending_jobs;
 
 -- Check for orphaned records (if FK enforcement was off)
-SELECT COUNT(*) FROM user_credentials uc 
+SELECT COUNT(*) FROM user_credentials uc
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = uc.user_id);
 
 -- Check old jobs (cleanup candidates)
-SELECT COUNT(*), status 
-FROM job_queue 
+SELECT COUNT(*), status
+FROM job_queue
 WHERE created_at < datetime('now', '-7 days')
 GROUP BY status;
 
@@ -942,4 +1025,3 @@ ORDER BY date;
 ---
 
 **Review completed.** Ready for stakeholder review and prioritization of action items.
-

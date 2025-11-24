@@ -8,12 +8,7 @@ function nowIso() {
 }
 
 class PersistentJobQueue {
-  constructor({
-    db,
-    concurrency = DEFAULT_CONCURRENCY,
-    logger = console,
-    pollIntervalMs = 250
-  } = {}) {
+  constructor({ db, concurrency = DEFAULT_CONCURRENCY, logger = console, pollIntervalMs = 250 } = {}) {
     this.db = db;
     this.concurrency = concurrency;
     this.logger = logger || console;
@@ -38,7 +33,7 @@ class PersistentJobQueue {
   }
 
   isOpen() {
-    return !!(this.db?.db?.open);
+    return !!this.db?.db?.open;
   }
 
   ensureSchema() {
@@ -112,7 +107,7 @@ class PersistentJobQueue {
     }
     const rows = this.db.db
       .prepare(
-        'SELECT * FROM job_queue WHERE status IN (\'pending\',\'running\') ORDER BY datetime(available_at) ASC, created_at ASC'
+        "SELECT * FROM job_queue WHERE status IN ('pending','running') ORDER BY datetime(available_at) ASC, created_at ASC"
       )
       .all();
     rows.forEach((row) => this.queue.push(this.deserializeJob(row)));
@@ -127,7 +122,7 @@ class PersistentJobQueue {
     }
     const rows = this.db.db
       .prepare(
-        'SELECT * FROM job_queue WHERE status = \'pending\' AND datetime(available_at) <= datetime(\'now\') ORDER BY datetime(available_at) ASC, created_at ASC LIMIT 50'
+        "SELECT * FROM job_queue WHERE status = 'pending' AND datetime(available_at) <= datetime('now') ORDER BY datetime(available_at) ASC, created_at ASC LIMIT 50"
       )
       .all();
     rows.forEach((row) => {
@@ -211,7 +206,7 @@ class PersistentJobQueue {
 
   markJobRunning(id) {
     this.db.db
-      .prepare('UPDATE job_queue SET status=\'running\', updated_at=@updated_at WHERE id=@id')
+      .prepare("UPDATE job_queue SET status='running', updated_at=@updated_at WHERE id=@id")
       .run({ id, updated_at: nowIso() });
   }
 
@@ -227,7 +222,7 @@ class PersistentJobQueue {
       this.metrics.completed += 1;
       const duration = Date.now() - startedAt;
       this.db.db
-        .prepare('UPDATE job_queue SET status=\'completed\', updated_at=@updated_at WHERE id=@id')
+        .prepare("UPDATE job_queue SET status='completed', updated_at=@updated_at WHERE id=@id")
         .run({ id: job.id, updated_at: nowIso(), duration_ms: duration });
     } catch (error) {
       job.attempts += 1;
@@ -255,7 +250,7 @@ class PersistentJobQueue {
         this.metrics.lastFailure = { id: job.id, type: job.type, error: error.message, at: nowIso() };
         this.logger.error(`Job ${job.type} exhausted retries: ${error.message}`);
         this.db.db
-          .prepare('UPDATE job_queue SET status=\'failed\', updated_at=@updated_at, attempts=@attempts WHERE id=@id')
+          .prepare("UPDATE job_queue SET status='failed', updated_at=@updated_at, attempts=@attempts WHERE id=@id")
           .run({ id: job.id, updated_at: nowIso(), attempts: job.attempts });
       }
     }
@@ -269,15 +264,9 @@ class PersistentJobQueue {
   }
 
   getMetrics() {
-    const pending = this.db.db
-      .prepare('SELECT COUNT(*) as count FROM job_queue WHERE status=\'pending\'')
-      .get().count;
-    const running = this.db.db
-      .prepare('SELECT COUNT(*) as count FROM job_queue WHERE status=\'running\'')
-      .get().count;
-    const failed = this.db.db
-      .prepare('SELECT COUNT(*) as count FROM job_queue WHERE status=\'failed\'')
-      .get().count;
+    const pending = this.db.db.prepare("SELECT COUNT(*) as count FROM job_queue WHERE status='pending'").get().count;
+    const running = this.db.db.prepare("SELECT COUNT(*) as count FROM job_queue WHERE status='running'").get().count;
+    const failed = this.db.db.prepare("SELECT COUNT(*) as count FROM job_queue WHERE status='failed'").get().count;
 
     return {
       ...this.metrics,

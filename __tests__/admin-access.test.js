@@ -123,9 +123,7 @@ describe('API auth, tickets, and jobs', () => {
     expect(userTickets.body.data.tickets[0]).toMatchObject({ version: 'Spring 25', status: 'success' });
     expect(userTickets.body.data.tickets[1]).toMatchObject({ version: 'Winter 24', status: 'error' });
 
-    const adminTickets = await request(app)
-      .get('/tickets/user-1')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const adminTickets = await request(app).get('/tickets/user-1').set('Authorization', `Bearer ${adminToken}`);
     expect(adminTickets.status).toBe(200);
     expect(adminTickets.body.data.tickets.some((ticket) => ticket.ticket_version === 'Winter 24')).toBe(true);
 

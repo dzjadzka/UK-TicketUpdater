@@ -30,13 +30,13 @@ function parseArgs(argv) {
   program.exitOverride();
   const parsed = program.parse(argv, { from: 'user' });
   const opts = parsed.opts();
-  
+
   // Handle deprecated --source option
   if (opts.source && !opts.users) {
     console.warn('DEPRECATED: --source is deprecated. Use --users instead.');
     opts.users = opts.source;
   }
-  
+
   return opts;
 }
 

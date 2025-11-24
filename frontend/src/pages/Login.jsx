@@ -24,7 +24,7 @@ const Login = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
       errors.email = emailValidation.error;
@@ -61,7 +61,7 @@ const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    
+
     // Mark all fields as touched
     setTouched({ email: true, password: true });
 
@@ -92,24 +92,23 @@ const Login = () => {
             <TicketIcon className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">UK Ticket Center</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Automated ticket management for university students
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">Automated ticket management for university students</p>
         </div>
 
         {/* Login Card */}
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Welcome back</CardTitle>
-            <CardDescription>
-              Sign in to access your ticket downloads and manage your credentials
-            </CardDescription>
+            <CardDescription>Sign in to access your ticket downloads and manage your credentials</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit} noValidate>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground" htmlFor="email">
-                  Email address <span className="text-destructive" aria-label="required">*</span>
+                  Email address{' '}
+                  <span className="text-destructive" aria-label="required">
+                    *
+                  </span>
                 </label>
                 <input
                   id="email"
@@ -132,7 +131,10 @@ const Login = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground" htmlFor="password">
-                  Password <span className="text-destructive" aria-label="required">*</span>
+                  Password{' '}
+                  <span className="text-destructive" aria-label="required">
+                    *
+                  </span>
                 </label>
                 <input
                   id="password"
@@ -154,16 +156,16 @@ const Login = () => {
               </div>
 
               {error && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert" aria-live="polite">
+                <div
+                  className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {error}
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full"
-              >
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>

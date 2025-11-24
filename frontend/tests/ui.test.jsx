@@ -58,14 +58,16 @@ describe('Frontend UI flows', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/recent tickets/i)).toBeInTheDocument();
+      expect(screen.getByText(/your ticket history/i)).toBeInTheDocument();
     });
   });
 
   it('renders ticket history rows on the dashboard', async () => {
     setAuthenticatedUser();
     mocks.getProfileMock.mockResolvedValue({ data: { user: { id: '1', email: 'user@example.com' } } });
-    mocks.getCredentialsMock.mockResolvedValue({ data: { credential: { uk_number_masked: '******1234', has_password: true } } });
+    mocks.getCredentialsMock.mockResolvedValue({
+      data: { credential: { uk_number_masked: '******1234', has_password: true } }
+    });
     mocks.getTicketsMock.mockResolvedValue({
       data: {
         tickets: [
@@ -98,7 +100,9 @@ describe('Frontend UI flows', () => {
 
   it('updates credentials and auto-download preference', async () => {
     setAuthenticatedUser();
-    mocks.getProfileMock.mockResolvedValue({ data: { user: { id: '1', email: 'user@example.com', auto_download_enabled: true } } });
+    mocks.getProfileMock.mockResolvedValue({
+      data: { user: { id: '1', email: 'user@example.com', auto_download_enabled: true } }
+    });
     mocks.getCredentialsMock.mockResolvedValue({
       data: {
         user: { auto_download_enabled: true },

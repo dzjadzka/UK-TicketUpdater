@@ -46,7 +46,7 @@ const Settings = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (ukNumber) {
       const ukNumberValidation = validateUKNumber(ukNumber);
       if (!ukNumberValidation.valid) {
@@ -152,16 +152,22 @@ const Settings = () => {
       </header>
 
       {loading ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-600">Loading…</div>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-600">
+          Loading…
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
             <header className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900">UK credentials</h2>
-                <p className="mt-1 text-sm text-slate-600">Your UK number is masked. Update the password whenever it changes.</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Your UK number is masked. Update the password whenever it changes.
+                </p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{autoDownload ? 'Auto-download on' : 'Auto-download off'}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                {autoDownload ? 'Auto-download on' : 'Auto-download off'}
+              </span>
             </header>
 
             <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -179,7 +185,9 @@ const Settings = () => {
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Last updated</dt>
-                <dd className="mt-2 text-sm text-slate-900">{lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Never'}</dd>
+                <dd className="mt-2 text-sm text-slate-900">
+                  {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Never'}
+                </dd>
               </div>
             </dl>
 
@@ -197,14 +205,18 @@ const Settings = () => {
                   onChange={handleUkNumberChange}
                   onBlur={() => handleBlur('ukNumber')}
                   aria-invalid={touched.ukNumber && validationErrors.ukNumber ? 'true' : 'false'}
-                  aria-describedby={touched.ukNumber && validationErrors.ukNumber ? 'uk-number-error' : 'uk-number-help'}
+                  aria-describedby={
+                    touched.ukNumber && validationErrors.ukNumber ? 'uk-number-error' : 'uk-number-help'
+                  }
                 />
                 {touched.ukNumber && validationErrors.ukNumber ? (
                   <p id="uk-number-error" className="mt-1 text-xs text-rose-600" role="alert">
                     {validationErrors.ukNumber}
                   </p>
                 ) : (
-                  <p id="uk-number-help" className="mt-1 text-xs text-slate-500">We'll mask and store your number securely.</p>
+                  <p id="uk-number-help" className="mt-1 text-xs text-slate-500">
+                    We'll mask and store your number securely.
+                  </p>
                 )}
               </div>
 
@@ -221,14 +233,18 @@ const Settings = () => {
                   onChange={handleUkPasswordChange}
                   onBlur={() => handleBlur('ukPassword')}
                   aria-invalid={touched.ukPassword && validationErrors.ukPassword ? 'true' : 'false'}
-                  aria-describedby={touched.ukPassword && validationErrors.ukPassword ? 'uk-password-error' : 'uk-password-help'}
+                  aria-describedby={
+                    touched.ukPassword && validationErrors.ukPassword ? 'uk-password-error' : 'uk-password-help'
+                  }
                 />
                 {touched.ukPassword && validationErrors.ukPassword ? (
                   <p id="uk-password-error" className="mt-1 text-xs text-rose-600" role="alert">
                     {validationErrors.ukPassword}
                   </p>
                 ) : (
-                  <p id="uk-password-help" className="mt-1 text-xs text-slate-500">We never display your password. Save to replace it.</p>
+                  <p id="uk-password-help" className="mt-1 text-xs text-slate-500">
+                    We never display your password. Save to replace it.
+                  </p>
                 )}
               </div>
 
@@ -246,12 +262,18 @@ const Settings = () => {
               </label>
 
               {error && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+                <div
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+                  role="alert"
+                >
                   {error}
                 </div>
               )}
               {success && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="alert">
+                <div
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                  role="alert"
+                >
                   {success}
                 </div>
               )}
@@ -276,7 +298,9 @@ const Settings = () => {
             </header>
 
             <div className="rounded-lg border border-rose-200 bg-white px-4 py-3 text-sm text-slate-700">
-              <p>Type <span className="font-semibold">DELETE</span> to confirm. You will be signed out immediately.</p>
+              <p>
+                Type <span className="font-semibold">DELETE</span> to confirm. You will be signed out immediately.
+              </p>
               <input
                 type="text"
                 value={confirmText}

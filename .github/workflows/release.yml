@@ -42,7 +42,7 @@ jobs:
         run: |
           # Get the previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
+
           if [ -z "$PREV_TAG" ]; then
             echo "changelog<<EOF" >> $GITHUB_OUTPUT
             git log --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
@@ -71,12 +71,12 @@ jobs:
           body: |
             ## What's Changed
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ## Docker Image
             ```bash
             docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ```
-            
+
             ## Installation
             See [README.md](README.md) for setup instructions.
           files: uk-ticket-updater-${{ github.ref_name }}.tar.gz

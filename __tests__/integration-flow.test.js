@@ -128,9 +128,7 @@ describe('End-to-end invite/login/download flow', () => {
     jobQueue.enqueue('downloadTicketForUser', { userId });
     await jobQueue.waitForIdle();
 
-    const tickets = await request(app)
-      .get('/me/tickets')
-      .set('Authorization', `Bearer ${userToken}`);
+    const tickets = await request(app).get('/me/tickets').set('Authorization', `Bearer ${userToken}`);
 
     expect(tickets.status).toBe(200);
     expect(tickets.body.data.tickets.length).toBeGreaterThan(0);

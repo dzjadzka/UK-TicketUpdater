@@ -66,8 +66,7 @@ export const deviceAPI = {
 
 // Admin API
 export const adminAPI = {
-  createInvite: (expiresInHours) =>
-    api.post('/admin/invites', { expiresInHours }),
+  createInvite: (expiresInHours) => api.post('/admin/invites', { expiresInHours }),
   getInvites: () => api.get('/admin/invites'),
   deleteInvite: (token) => api.delete(`/admin/invites/${token}`),
   getUsers: (params = {}) => api.get('/admin/users', { params }),

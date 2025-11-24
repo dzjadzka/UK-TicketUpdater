@@ -39,13 +39,9 @@ const Credentials = () => {
       if (editingId) {
         await credentialsAPI.update(editingId, formData);
       } else {
-        await credentialsAPI.create(
-          formData.loginName,
-          formData.loginPassword,
-          formData.label
-        );
+        await credentialsAPI.create(formData.loginName, formData.loginPassword, formData.label);
       }
-      
+
       setFormData({ loginName: '', loginPassword: '', label: '' });
       setShowForm(false);
       setEditingId(null);
@@ -189,9 +185,7 @@ const Credentials = () => {
               <li key={credential.id} className="px-6 py-4 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {credential.label || credential.login_name}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{credential.label || credential.login_name}</p>
                     <p className="text-sm text-gray-500">{credential.login_name}</p>
                     <p className="text-xs text-gray-400 mt-1">
                       {t('credentials.created')}: {new Date(credential.created_at).toLocaleDateString()}

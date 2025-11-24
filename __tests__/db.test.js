@@ -95,9 +95,9 @@ describe('database', () => {
         filePath: '/ticket/a.html'
       });
 
-      expect(
-        db.isTicketVersionNew({ userId: 'user-1', ticketVersion: '2024S', contentHash: 'something-else' })
-      ).toBe(false);
+      expect(db.isTicketVersionNew({ userId: 'user-1', ticketVersion: '2024S', contentHash: 'something-else' })).toBe(
+        false
+      );
       expect(db.isTicketVersionNew({ userId: 'user-1', contentHash: 'abc' })).toBe(false);
 
       db.recordTicket({
