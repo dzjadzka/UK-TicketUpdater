@@ -75,12 +75,14 @@ const Tickets = () => {
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Status Filter */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter tickets by status">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('all')}
                 className="transition-all hover:shadow-md"
+                aria-label={`Show all tickets (${statusCounts.all} total)`}
+                aria-pressed={filter === 'all'}
               >
                 All ({statusCounts.all})
               </Button>
@@ -89,6 +91,8 @@ const Tickets = () => {
                 size="sm"
                 onClick={() => setFilter('success')}
                 className="transition-all hover:shadow-md"
+                aria-label={`Show successful tickets (${statusCounts.success} total)`}
+                aria-pressed={filter === 'success'}
               >
                 Success ({statusCounts.success})
               </Button>
@@ -97,6 +101,8 @@ const Tickets = () => {
                 size="sm"
                 onClick={() => setFilter('error')}
                 className="transition-all hover:shadow-md"
+                aria-label={`Show failed tickets (${statusCounts.error} total)`}
+                aria-pressed={filter === 'error'}
               >
                 Errors ({statusCounts.error})
               </Button>
@@ -105,6 +111,8 @@ const Tickets = () => {
                 size="sm"
                 onClick={() => setFilter('pending')}
                 className="transition-all hover:shadow-md"
+                aria-label={`Show pending tickets (${statusCounts.pending} total)`}
+                aria-pressed={filter === 'pending'}
               >
                 Pending ({statusCounts.pending})
               </Button>
@@ -112,12 +120,15 @@ const Tickets = () => {
 
             {/* Search */}
             <div className="relative flex-1 max-w-sm">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <label htmlFor="ticket-search" className="sr-only">Search tickets</label>
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <input
+                id="ticket-search"
                 type="text"
                 placeholder="Search tickets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search tickets by version or error message"
                 className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow hover:shadow-sm"
               />
             </div>
@@ -204,17 +215,19 @@ const Tickets = () => {
                   </div>
                   <div className="flex gap-2 mt-auto">
                     {ticket.download_url ? (
-                      <a href={ticket.download_url} download className="w-full">
+                      <a href={ticket.download_url} download className="w-full" aria-label={`Download ticket ${ticket.version || ticket.id}`}>
                         <Button 
                           size="sm"
                           className="w-full gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-[1.02]"
+                          aria-hidden="true"
+                          tabIndex={-1}
                         >
-                          <ArrowDownTrayIcon className="h-4 w-4" />
+                          <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                           Download
                         </Button>
                       </a>
                     ) : (
-                      <Button size="sm" variant="outline" disabled className="w-full">
+                      <Button size="sm" variant="outline" disabled className="w-full" aria-label="Ticket download not available">
                         Not Available
                       </Button>
                     )}

@@ -60,8 +60,9 @@ const Dashboard = () => {
           variant="outline"
           size="sm"
           className="gap-2 hover:shadow-md transition-all duration-200"
+          aria-label={refreshing ? "Refreshing dashboard data" : "Refresh dashboard data"}
         >
-          <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           Refresh
         </Button>
       </div>
@@ -217,12 +218,14 @@ const Dashboard = () => {
                       )}
                     </div>
                     {ticket.download_url && (
-                      <a href={ticket.download_url}>
+                      <a href={ticket.download_url} aria-label={`Download ticket ${ticket.version || ticket.id}`}>
                         <Button 
                           size="sm"
                           className="shrink-0 gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-105"
+                          aria-hidden="true"
+                          tabIndex={-1}
                         >
-                          <ArrowDownTrayIcon className="h-4 w-4" />
+                          <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                           <span className="hidden sm:inline">Download</span>
                         </Button>
                       </a>
