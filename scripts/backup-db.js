@@ -56,7 +56,6 @@ function backupDatabase() {
 
     // Clean up old backups (keep last 7)
     cleanupOldBackups(backupDir, 7);
-
   } catch (error) {
     console.error('Backup failed:', error.message);
     process.exit(1);
@@ -65,9 +64,10 @@ function backupDatabase() {
 
 function cleanupOldBackups(backupDir, keepCount) {
   try {
-    const files = fs.readdirSync(backupDir)
-      .filter(f => f.endsWith('.db'))
-      .map(f => ({
+    const files = fs
+      .readdirSync(backupDir)
+      .filter((f) => f.endsWith('.db'))
+      .map((f) => ({
         name: f,
         path: path.join(backupDir, f),
         mtime: fs.statSync(path.join(backupDir, f)).mtime
@@ -77,7 +77,7 @@ function cleanupOldBackups(backupDir, keepCount) {
     if (files.length > keepCount) {
       const toDelete = files.slice(keepCount);
       console.log(`Cleaning up ${toDelete.length} old backup(s)...`);
-      toDelete.forEach(file => {
+      toDelete.forEach((file) => {
         fs.unlinkSync(file.path);
         console.log(`  Deleted: ${file.name}`);
       });
@@ -92,4 +92,3 @@ if (require.main === module) {
 }
 
 module.exports = { backupDatabase };
-

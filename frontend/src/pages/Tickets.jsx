@@ -39,14 +39,15 @@ const Tickets = () => {
 
     // Filter by status
     if (filter !== 'all') {
-      filtered = filtered.filter(t => t.status === filter);
+      filtered = filtered.filter((t) => t.status === filter);
     }
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(t =>
-        t.version?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.error_message?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (t) =>
+          t.version?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          t.error_message?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -55,9 +56,9 @@ const Tickets = () => {
 
   const statusCounts = {
     all: tickets.length,
-    success: tickets.filter(t => t.status === 'success').length,
-    error: tickets.filter(t => t.status === 'error').length,
-    pending: tickets.filter(t => t.status === 'pending' || !t.status).length,
+    success: tickets.filter((t) => t.status === 'success').length,
+    error: tickets.filter((t) => t.status === 'error').length,
+    pending: tickets.filter((t) => t.status === 'pending' || !t.status).length
   };
 
   return (
@@ -121,8 +122,13 @@ const Tickets = () => {
 
             {/* Search */}
             <div className="relative flex-1 max-w-sm">
-              <label htmlFor="ticket-search" className="sr-only">Search tickets</label>
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <label htmlFor="ticket-search" className="sr-only">
+                Search tickets
+              </label>
+              <MagnifyingGlassIcon
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <input
                 id="ticket-search"
                 type="text"
@@ -151,7 +157,12 @@ const Tickets = () => {
         <Card className="border-destructive/50 animate-in fade-in duration-300">
           <CardContent className="py-8 text-center">
             <p className="text-destructive">{error}</p>
-            <Button onClick={fetchTickets} variant="outline" size="sm" className="mt-4 hover:shadow-md transition-shadow">
+            <Button
+              onClick={fetchTickets}
+              variant="outline"
+              size="sm"
+              className="mt-4 hover:shadow-md transition-shadow"
+            >
               Try Again
             </Button>
           </CardContent>
@@ -176,12 +187,7 @@ const Tickets = () => {
             <CardTitle className="text-xl">
               {filteredTickets.length} {filteredTickets.length === 1 ? 'Ticket' : 'Tickets'}
             </CardTitle>
-            <CardDescription>
-              {filter !== 'all' 
-                ? `Showing ${filter} tickets` 
-                : 'Showing all tickets'
-              }
-            </CardDescription>
+            <CardDescription>{filter !== 'all' ? `Showing ${filter} tickets` : 'Showing all tickets'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -194,19 +200,20 @@ const Tickets = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap mb-2">
                       <h4 className="font-semibold text-foreground truncate">{ticket.version || 'N/A'}</h4>
-                      <Badge variant={
-                        ticket.status === 'success' ? 'success' : 
-                        ticket.status === 'error' ? 'destructive' : 
-                        'warning'
-                      }>
+                      <Badge
+                        variant={
+                          ticket.status === 'success'
+                            ? 'success'
+                            : ticket.status === 'error'
+                              ? 'destructive'
+                              : 'warning'
+                        }
+                      >
                         {ticket.status || 'pending'}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {ticket.downloaded_at 
-                        ? new Date(ticket.downloaded_at).toLocaleString()
-                        : 'Download pending'
-                      }
+                      {ticket.downloaded_at ? new Date(ticket.downloaded_at).toLocaleString() : 'Download pending'}
                     </p>
                     {ticket.error_message && (
                       <div className="mt-2 rounded-md bg-destructive/10 px-2.5 py-1.5">
@@ -216,8 +223,13 @@ const Tickets = () => {
                   </div>
                   <div className="flex gap-2 mt-auto">
                     {ticket.download_url ? (
-                      <a href={ticket.download_url} download className="w-full" aria-label={`Download ticket ${ticket.version || ticket.id}`}>
-                        <Button 
+                      <a
+                        href={ticket.download_url}
+                        download
+                        className="w-full"
+                        aria-label={`Download ticket ${ticket.version || ticket.id}`}
+                      >
+                        <Button
                           size="sm"
                           className="w-full gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-[1.02]"
                           aria-hidden="true"
@@ -228,7 +240,13 @@ const Tickets = () => {
                         </Button>
                       </a>
                     ) : (
-                      <Button size="sm" variant="outline" disabled className="w-full" aria-label="Ticket download not available">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="w-full"
+                        aria-label="Ticket download not available"
+                      >
                         Not Available
                       </Button>
                     )}

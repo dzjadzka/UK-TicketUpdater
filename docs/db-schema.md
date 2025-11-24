@@ -12,6 +12,7 @@ SQLite is the primary persistence layer for the downloader, API, and job system.
 - **credentials**: General-purpose encrypted login store (currently unused by the main downloader flow) to support future integrations.
 
 Key helper surfaces in `src/db.js`:
+
 - User lifecycle: upsert/list active users, invite token management, soft deletion, role and flag updates.
 - Credential management: read/write encrypted NVV credentials with login status updates; resolve custom device profiles per user.
 - Ticket ingest: `isTicketVersionNew`, `recordTicket`, and `recordRun` for versioned storage and history logging.

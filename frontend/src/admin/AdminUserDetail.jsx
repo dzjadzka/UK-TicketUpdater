@@ -247,7 +247,9 @@ const AdminUserDetail = () => {
               <CredentialStatus credential={detail?.credential} />
               <form className="grid gap-3 md:grid-cols-2" onSubmit={handleCredentialSave}>
                 <div className="form-control">
-                  <label className="label text-sm" htmlFor="uk-number-input">UK number</label>
+                  <label className="label text-sm" htmlFor="uk-number-input">
+                    UK number
+                  </label>
                   <input
                     id="uk-number-input"
                     className="input input-bordered"
@@ -261,7 +263,9 @@ const AdminUserDetail = () => {
                   </label>
                 </div>
                 <div className="form-control">
-                  <label className="label text-sm" htmlFor="uk-password-input">UK password</label>
+                  <label className="label text-sm" htmlFor="uk-password-input">
+                    UK password
+                  </label>
                   <input
                     id="uk-password-input"
                     className="input input-bordered"
@@ -292,7 +296,9 @@ const AdminUserDetail = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Auto-download</p>
-                    <p className="text-sm text-base-content/70">Trigger background downloads for this user when jobs run.</p>
+                    <p className="text-sm text-base-content/70">
+                      Trigger background downloads for this user when jobs run.
+                    </p>
                   </div>
                   <input
                     type="checkbox"

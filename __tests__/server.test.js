@@ -69,9 +69,7 @@ describe('protected operational routes', () => {
     const { app, db } = createApp({ dbPath: testDbPath });
     const user = await createUser(db, { role: 'user', email: 'user@example.com' });
 
-    const loginResponse = await request(app)
-      .post('/auth/login')
-      .send({ email: user.email, password: user.password });
+    const loginResponse = await request(app).post('/auth/login').send({ email: user.email, password: user.password });
 
     const token = loginResponse.body.token;
     expect(token).toBeTruthy();
@@ -88,28 +86,20 @@ describe('protected operational routes', () => {
     const { app, db } = createApp({ dbPath: testDbPath });
     const admin = await createUser(db, { role: 'admin', email: 'admin@example.com' });
 
-    const loginResponse = await request(app)
-      .post('/auth/login')
-      .send({ email: admin.email, password: admin.password });
+    const loginResponse = await request(app).post('/auth/login').send({ email: admin.email, password: admin.password });
 
     const token = loginResponse.body.token;
     expect(token).toBeTruthy();
 
-    const downloadResponse = await request(app)
-      .post('/downloads')
-      .set('Authorization', `Bearer ${token}`);
+    const downloadResponse = await request(app).post('/downloads').set('Authorization', `Bearer ${token}`);
     expect(downloadTickets).toHaveBeenCalled();
     expect(downloadResponse.status).not.toBe(401);
     expect(downloadResponse.status).not.toBe(403);
 
-    const historyResponse = await request(app)
-      .get('/history')
-      .set('Authorization', `Bearer ${token}`);
+    const historyResponse = await request(app).get('/history').set('Authorization', `Bearer ${token}`);
     expect(historyResponse.status).toBe(200);
 
-    const ticketsResponse = await request(app)
-      .get(`/tickets/${admin.id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const ticketsResponse = await request(app).get(`/tickets/${admin.id}`).set('Authorization', `Bearer ${token}`);
     expect(ticketsResponse.status).toBe(200);
   });
 });

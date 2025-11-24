@@ -92,7 +92,9 @@ describe('admin & user API integration', () => {
     expect(job.status).toBe(200);
     expect(downloadTickets).toHaveBeenCalled();
 
-    const baseJob = await request(app).post('/admin/jobs/check-base-ticket').set('Authorization', `Bearer ${adminToken}`);
+    const baseJob = await request(app)
+      .post('/admin/jobs/check-base-ticket')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(baseJob.status).toBe(200);
     expect(baseJob.body.data.state).toBeTruthy();
   });

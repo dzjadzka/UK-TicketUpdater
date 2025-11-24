@@ -94,21 +94,21 @@ describe('downloader module', () => {
     });
 
     test('should throw error for invalid user object - missing id', async () => {
-      await expect(
-        downloadTicketForUser({ username: 'test', password: 'pass' })
-      ).rejects.toThrow('User object must contain id');
+      await expect(downloadTicketForUser({ username: 'test', password: 'pass' })).rejects.toThrow(
+        'User object must contain id'
+      );
     });
 
     test('should throw error for invalid user object - missing username', async () => {
-      await expect(
-        downloadTicketForUser({ id: '123', password: 'pass' })
-      ).rejects.toThrow('User credentials not found');
+      await expect(downloadTicketForUser({ id: '123', password: 'pass' })).rejects.toThrow(
+        'User credentials not found'
+      );
     });
 
     test('should throw error for invalid user object - missing password', async () => {
-      await expect(
-        downloadTicketForUser({ id: '123', username: 'test' })
-      ).rejects.toThrow('User credentials not found');
+      await expect(downloadTicketForUser({ id: '123', username: 'test' })).rejects.toThrow(
+        'User credentials not found'
+      );
     });
 
     test('should create output directory if it does not exist', async () => {
@@ -116,10 +116,7 @@ describe('downloader module', () => {
 
       await downloadTicketForUser(validUser);
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining('user123'),
-        { recursive: true }
-      );
+      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining('user123'), { recursive: true });
     });
 
     test('should use custom output directory from user config', async () => {
@@ -130,10 +127,7 @@ describe('downloader module', () => {
 
       await downloadTicketForUser(userWithCustomDir);
 
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('/custom/path'),
-        expect.any(String)
-      );
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('/custom/path'), expect.any(String));
     });
 
     test('should use custom device profile from user config', async () => {
@@ -178,10 +172,7 @@ describe('downloader module', () => {
 
       const result = await downloadTicketForUser(userWithDbProfile, { db: mockDb });
 
-      expect(mockDb.getDeviceProfileById).toHaveBeenCalledWith(
-        '550e8400-e29b-41d4-a716-446655440000',
-        'user123'
-      );
+      expect(mockDb.getDeviceProfileById).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000', 'user123');
       expect(result.deviceProfile).toBe('custom_db_profile');
       expect(mockPage.setUserAgent).toHaveBeenCalledWith('DB Custom Agent');
     });
@@ -209,16 +200,16 @@ describe('downloader module', () => {
         name: 'geo_profile',
         userAgent: 'Test Agent',
         viewport: { width: 1920, height: 1080 },
-        geolocation_latitude: 52.5200,
-        geolocation_longitude: 13.4050
+        geolocation_latitude: 52.52,
+        geolocation_longitude: 13.405
       };
       getDeviceProfile.mockReturnValue(profileWithGeo);
 
       await downloadTicketForUser(validUser);
 
       expect(mockPage.setGeolocation).toHaveBeenCalledWith({
-        latitude: 52.5200,
-        longitude: 13.4050
+        latitude: 52.52,
+        longitude: 13.405
       });
     });
 
@@ -331,10 +322,7 @@ describe('downloader module', () => {
 
       await downloadTicketForUser(userWithSnakeCaseDir);
 
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('/snake/case/path'),
-        expect.any(String)
-      );
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('/snake/case/path'), expect.any(String));
     });
 
     test('should use device_profile (snake_case) if deviceProfile not available', async () => {
@@ -399,7 +387,7 @@ describe('downloader module', () => {
       const mockBrowser1 = { ...mockBrowser };
       const mockBrowser2 = { ...mockBrowser };
       const mockBrowser3 = { ...mockBrowser };
-      
+
       const mockPage2 = { ...mockPage };
       mockPage2.waitForSelector = jest.fn().mockRejectedValue(new Error('Login failed'));
       mockBrowser2.newPage = jest.fn().mockResolvedValue(mockPage2);
@@ -426,11 +414,7 @@ describe('downloader module', () => {
 
       await downloadTickets(users, options);
 
-      expect(appendHistory).toHaveBeenCalledWith(
-        expect.any(Object),
-        '/tmp/history.json',
-        undefined
-      );
+      expect(appendHistory).toHaveBeenCalledWith(expect.any(Object), '/tmp/history.json', undefined);
     });
 
     test('should handle empty user array', async () => {
@@ -463,15 +447,11 @@ describe('downloader module', () => {
     };
 
     test('should handle null user object', async () => {
-      await expect(downloadTicketForUser(null)).rejects.toThrow(
-        'User object must contain id'
-      );
+      await expect(downloadTicketForUser(null)).rejects.toThrow('User object must contain id');
     });
 
     test('should handle undefined user object', async () => {
-      await expect(downloadTicketForUser(undefined)).rejects.toThrow(
-        'User object must contain id'
-      );
+      await expect(downloadTicketForUser(undefined)).rejects.toThrow('User object must contain id');
     });
 
     test('should handle file system write errors', async () => {
@@ -504,7 +484,7 @@ describe('downloader module', () => {
       });
 
       const result = await downloadTicketForUser(validUser);
-      
+
       expect(result).toBeDefined();
       expect(result.deviceProfile).toBe('default');
     });
@@ -541,10 +521,7 @@ describe('downloader module', () => {
           viewport_height: 768
         });
 
-        await downloadTicketForUser(
-          { ...validUser, deviceProfile: uuid },
-          { db: mockDb }
-        );
+        await downloadTicketForUser({ ...validUser, deviceProfile: uuid }, { db: mockDb });
 
         expect(mockDb.getDeviceProfileById).toHaveBeenCalledWith(uuid, validUser.id);
       }
@@ -554,10 +531,7 @@ describe('downloader module', () => {
       const nonUUIDProfiles = ['desktop_chrome', 'mobile', 'custom-profile-name'];
 
       for (const profileName of nonUUIDProfiles) {
-        await downloadTicketForUser(
-          { ...validUser, deviceProfile: profileName },
-          { db: mockDb }
-        );
+        await downloadTicketForUser({ ...validUser, deviceProfile: profileName }, { db: mockDb });
 
         expect(getDeviceProfile).toHaveBeenCalledWith(profileName);
       }

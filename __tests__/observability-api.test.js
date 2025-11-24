@@ -88,9 +88,7 @@ describe('Admin observability endpoints', () => {
   });
 
   it('returns recent errors per user', async () => {
-    const response = await request(app)
-      .get('/admin/observability/errors')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const response = await request(app).get('/admin/observability/errors').set('Authorization', `Bearer ${adminToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeDefined();
@@ -124,9 +122,7 @@ describe('Admin observability endpoints', () => {
   });
 
   it('returns queue metrics', async () => {
-    const response = await request(app)
-      .get('/admin/observability/queue')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const response = await request(app).get('/admin/observability/queue').set('Authorization', `Bearer ${adminToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.data.metrics).toHaveProperty('pending');

@@ -189,15 +189,11 @@ function createDatabase(dbPath) {
       status=excluded.status,
       error_message=excluded.error_message`
   );
-  const listHistoryStmt = db.prepare(
-    'SELECT * FROM download_history ORDER BY downloaded_at DESC, id DESC LIMIT ?'
-  );
+  const listHistoryStmt = db.prepare('SELECT * FROM download_history ORDER BY downloaded_at DESC, id DESC LIMIT ?');
   const listTicketsByUserStmt = db.prepare(
     'SELECT * FROM tickets WHERE user_id = ? ORDER BY downloaded_at DESC, id DESC'
   );
-  const getTicketByVersionStmt = db.prepare(
-    'SELECT * FROM tickets WHERE user_id = ? AND ticket_version = ?'
-  );
+  const getTicketByVersionStmt = db.prepare('SELECT * FROM tickets WHERE user_id = ? AND ticket_version = ?');
   const getTicketByHashStmt = db.prepare(
     'SELECT * FROM tickets WHERE user_id = ? AND content_hash = ? ORDER BY downloaded_at DESC LIMIT 1'
   );
@@ -238,9 +234,7 @@ function createDatabase(dbPath) {
   // Auth-related prepared statements
   const getUserByEmailStmt = db.prepare('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL');
   const getUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  const getActiveUserByIdStmt = db.prepare(
-    'SELECT * FROM users WHERE id = ? AND deleted_at IS NULL AND is_active = 1'
-  );
+  const getActiveUserByIdStmt = db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL AND is_active = 1');
   const createUserStmt = db.prepare(
     'INSERT INTO users (id, login, email, password_hash, role, invite_token, invited_by, locale, is_active, auto_download_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   );
@@ -259,9 +253,7 @@ function createDatabase(dbPath) {
   );
   const getInviteTokenStmt = db.prepare('SELECT * FROM invite_tokens WHERE token = ?');
   const markInviteTokenUsedStmt = db.prepare('UPDATE invite_tokens SET used_by = ? WHERE token = ?');
-  const listInviteTokensStmt = db.prepare(
-    'SELECT * FROM invite_tokens WHERE created_by = ? ORDER BY created_at DESC'
-  );
+  const listInviteTokensStmt = db.prepare('SELECT * FROM invite_tokens WHERE created_by = ? ORDER BY created_at DESC');
   const deleteInviteTokenStmt = db.prepare('DELETE FROM invite_tokens WHERE token = ?');
 
   // Credentials statements
@@ -372,12 +364,7 @@ function createDatabase(dbPath) {
             password_hash: user.password_hash || null,
             created_at: user.created_at || null,
             updated_at: user.updated_at || null,
-            is_active:
-              user.is_active !== undefined
-                ? user.is_active
-                : user.isActive !== undefined
-                  ? user.isActive
-                  : 1
+            is_active: user.is_active !== undefined ? user.is_active : user.isActive !== undefined ? user.isActive : 1
           });
         });
       });
@@ -505,10 +492,7 @@ function createDatabase(dbPath) {
       }
       try {
         const rows = aggregateStatsStmt.all(userId);
-        return rows.reduce(
-          (acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }),
-          { success: 0, error: 0 }
-        );
+        return rows.reduce((acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }), { success: 0, error: 0 });
       } catch (error) {
         console.error('Failed to aggregate ticket stats:', error);
         throw error;
@@ -526,10 +510,7 @@ function createDatabase(dbPath) {
       try {
         const window = `-${Math.max(1, Number(windowHours) || 24)} hours`;
         const rows = getJobSummarySinceStmt.all({ window });
-        return rows.reduce(
-          (acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }),
-          { success: 0, error: 0 }
-        );
+        return rows.reduce((acc, row) => ({ ...acc, [row.status || 'unknown']: row.count }), { success: 0, error: 0 });
       } catch (error) {
         console.error('Failed to summarize jobs:', error);
         throw error;
@@ -599,7 +580,18 @@ function createDatabase(dbPath) {
         throw error;
       }
     },
-    createUser: ({ id, login, email, passwordHash, role, inviteToken, invitedBy, locale, isActive, autoDownloadEnabled }) => {
+    createUser: ({
+      id,
+      login,
+      email,
+      passwordHash,
+      role,
+      inviteToken,
+      invitedBy,
+      locale,
+      isActive,
+      autoDownloadEnabled
+    }) => {
       try {
         const resolvedLogin = login || email;
         if (!resolvedLogin) {

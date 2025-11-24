@@ -42,4 +42,3 @@ describe('CLI argument parsing', () => {
     expect(() => parseArgs(['--concurrency', 'abc'])).toThrow();
   });
 });
-

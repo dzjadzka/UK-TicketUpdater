@@ -65,7 +65,10 @@ function getUserHistory(userId, { limit = 50, historyPath = DEFAULT_HISTORY_PATH
   }
 
   const history = readHistory(historyPath);
-  return history.filter((entry) => entry.userId === userId).slice(-limit).reverse();
+  return history
+    .filter((entry) => entry.userId === userId)
+    .slice(-limit)
+    .reverse();
 }
 
 function summarizeHistory(userId, { historyPath = DEFAULT_HISTORY_PATH, db } = {}) {

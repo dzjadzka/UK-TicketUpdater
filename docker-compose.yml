@@ -15,5 +15,5 @@ services:
       - ./data:/app/data
       - ./downloads:/app/downloads
     ports:
-      - "3000:3000"
-    command: ["node", "src/server.js"]
+      - '3000:3000'
+    command: ['node', 'src/server.js']

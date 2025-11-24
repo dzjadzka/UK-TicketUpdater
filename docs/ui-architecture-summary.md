@@ -4,39 +4,39 @@
 
 ## User Roles
 
-| Role | Key Capabilities |
-|------|------------------|
-| **User** | Self-service: credentials, device profiles, ticket history |
+| Role      | Key Capabilities                                                            |
+| --------- | --------------------------------------------------------------------------- |
+| **User**  | Self-service: credentials, device profiles, ticket history                  |
 | **Admin** | All user capabilities + user management + system operations + observability |
 
 ## Page Overview
 
 ### 🔓 Public Pages (No Auth)
 
-| Page | URL | Main Purpose |
-|------|-----|--------------|
-| Login | `/login` | User authentication |
+| Page     | URL                       | Main Purpose              |
+| -------- | ------------------------- | ------------------------- |
+| Login    | `/login`                  | User authentication       |
 | Register | `/register?token=<token>` | Invite-based registration |
 
 ### 👤 User Pages (JWT Required)
 
-| Page | URL | Main Purpose | Primary API Endpoints |
-|------|-----|--------------|----------------------|
-| Dashboard | `/dashboard` | Home with ticket status & quick actions | `GET /me`, `GET /me/credentials`, `GET /me/tickets` |
-| Settings | `/settings` | Manage UK credentials & auto-download | `GET /me/credentials`, `PUT /me/credentials` |
-| Device Profiles | `/device-profiles` | Custom device profile management | `GET/POST/PUT/DELETE /device-profiles` |
-| Tickets | `/tickets` | Ticket download history | `GET /me/tickets` |
-| Profile | `/profile` | User profile view/edit | `GET /me` |
+| Page            | URL                | Main Purpose                            | Primary API Endpoints                               |
+| --------------- | ------------------ | --------------------------------------- | --------------------------------------------------- |
+| Dashboard       | `/dashboard`       | Home with ticket status & quick actions | `GET /me`, `GET /me/credentials`, `GET /me/tickets` |
+| Settings        | `/settings`        | Manage UK credentials & auto-download   | `GET /me/credentials`, `PUT /me/credentials`        |
+| Device Profiles | `/device-profiles` | Custom device profile management        | `GET/POST/PUT/DELETE /device-profiles`              |
+| Tickets         | `/tickets`         | Ticket download history                 | `GET /me/tickets`                                   |
+| Profile         | `/profile`         | User profile view/edit                  | `GET /me`                                           |
 
 ### 👨‍💼 Admin Pages (JWT + Admin Role Required)
 
-| Page | URL | Main Purpose | Primary API Endpoints |
-|------|-----|--------------|----------------------|
-| Admin Overview | `/admin/overview` | System dashboard with stats & job controls | `GET /admin/overview`, `GET /admin/observability/*`, `POST /admin/jobs/*` |
-| Admin Users | `/admin/users` | User list with search/filters | `GET /admin/users` |
-| Admin User Detail | `/admin/users/:id` | Full user profile & management | `GET /admin/users/:id`, `PUT /admin/users/:id`, `GET /tickets/:userId` |
-| Admin Invites | `/admin/invites` | Invite token management | `GET/POST/DELETE /admin/invites` |
-| Admin Observability | `/admin/observability` | System monitoring & job logs | `GET /admin/observability/errors`, `GET /admin/observability/job-summary`, etc. |
+| Page                | URL                    | Main Purpose                               | Primary API Endpoints                                                           |
+| ------------------- | ---------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| Admin Overview      | `/admin/overview`      | System dashboard with stats & job controls | `GET /admin/overview`, `GET /admin/observability/*`, `POST /admin/jobs/*`       |
+| Admin Users         | `/admin/users`         | User list with search/filters              | `GET /admin/users`                                                              |
+| Admin User Detail   | `/admin/users/:id`     | Full user profile & management             | `GET /admin/users/:id`, `PUT /admin/users/:id`, `GET /tickets/:userId`          |
+| Admin Invites       | `/admin/invites`       | Invite token management                    | `GET/POST/DELETE /admin/invites`                                                |
+| Admin Observability | `/admin/observability` | System monitoring & job logs               | `GET /admin/observability/errors`, `GET /admin/observability/job-summary`, etc. |
 
 ## API Endpoints by Category
 
@@ -117,33 +117,37 @@ GET /metrics  - Prometheus metrics
 ## Key User Flows
 
 ### 1. New User Onboarding
+
 ```
 Admin creates invite → User registers → Auto-login → Dashboard → Add credentials
 ```
 
 ### 2. Ticket Download (Automatic)
+
 ```
 Scheduler checks base ticket (6h) → Hash changed? → Queue user downloads → Users see new tickets
 ```
 
 ### 3. Admin User Management
+
 ```
 Admin overview → User list → Search/filter → User detail → Edit/disable/delete
 ```
 
 ### 4. Device Profile Setup
+
 ```
 Dashboard → Device Profiles → Create custom profile → Configure (viewport, user-agent, etc.) → Save
 ```
 
 ## UI States (All Pages)
 
-| State | UI Treatment |
-|-------|--------------|
+| State       | UI Treatment                                |
+| ----------- | ------------------------------------------- |
 | **Loading** | Skeleton loaders, spinners, disabled inputs |
-| **Empty** | Empty state message + CTA to add data |
-| **Error** | Error banner/toast + retry option |
-| **Success** | Display data + enable interactions |
+| **Empty**   | Empty state message + CTA to add data       |
+| **Error**   | Error banner/toast + retry option           |
+| **Success** | Display data + enable interactions          |
 
 ## Common Components
 
@@ -159,6 +163,7 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 ## Tech Stack
 
 ### Frontend
+
 - React 18 + Vite
 - React Router
 - Tailwind CSS
@@ -166,6 +171,7 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 - React Context (state)
 
 ### Backend
+
 - Node.js 18+ + Express 5
 - SQLite (better-sqlite3)
 - JWT + bcrypt
@@ -175,6 +181,7 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 ## Current Frontend Status
 
 ### ✅ Implemented Features:
+
 - Login/Register pages
 - Dashboard (basic with credential status)
 - Settings (credentials management)
@@ -185,6 +192,7 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 - Protected routes (user/admin)
 
 ### ❌ Planned Features (Not Yet Implemented):
+
 These are described in the architecture as **ideal state** features that can be added incrementally:
 
 - **Separate Tickets page**: Currently, ticket history is shown in dashboard. A dedicated page would provide more advanced features (filtering, sorting, pagination, detailed views).
@@ -194,7 +202,9 @@ These are described in the architecture as **ideal state** features that can be 
 - **Advanced features**: Real-time updates (WebSocket/SSE), notification system, export functionality (CSV/PDF), bulk actions.
 
 ### Implementation Flexibility
+
 The architecture describes pages that can be implemented as:
+
 - **Standalone pages**: Full dedicated routes (e.g., `/tickets`, `/profile`, `/admin/invites`)
 - **Integrated sections**: Combined into existing pages to reduce clicks (e.g., Profile in Settings)
 - **Modal overlays**: Quick actions without page navigation (e.g., Create Invite modal in Admin Overview)

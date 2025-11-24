@@ -13,12 +13,14 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 ### Phase 1 Concepts Location
 
 ✅ **User Model & Roles**
+
 - Location: `src/db.js` (schema lines 13-30)
 - Users table with `role` field (user/admin)
 - Fields: `id`, `email`, `password_hash`, `role`, `is_active`, `auto_download_enabled`, `deleted_at`
 - Status: **Intact and functional**
 
 ✅ **Auth Flows & Middleware**
+
 - Location: `src/server.js` (lines 91-120)
 - JWT authentication via `jwtAuthMiddleware`
 - Role-based access via `requireAdmin`
@@ -26,6 +28,7 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 - Status: **Intact and functional**
 
 ✅ **Data Model**
+
 - `users` table: Core user accounts
 - `user_credentials` table: UK credentials with encryption (lines 41-51)
 - `tickets` table: Ticket download history with versioning (lines 70-83)
@@ -34,12 +37,14 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 - Status: **Complete and well-structured**
 
 ✅ **Secrets Management**
+
 - JWT_SECRET: Required in production, validated (src/auth.js lines 10-17)
 - ENCRYPTION_KEY: Required in production, used for UK password encryption (src/auth.js lines 183-191)
 - UK credentials stored encrypted at rest (src/db.js line 44: `uk_password_encrypted`)
 - Status: **Secure and compliant**
 
 ✅ **No Sensitive Data in Logs**
+
 - Structured logger with credential redaction (src/logger.js lines 1-75)
 - Sensitive keys redacted: `password`, `token`, `secret`, `authorization`, `cookie`
 - Test coverage: `__tests__/logger.test.js` verifies redaction
@@ -56,6 +61,7 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 ### Background Jobs and Queue ✅
 
 **Job System**: `src/jobs/`
+
 - ✅ Job queue with retry/backoff (`src/jobs/queue.js`)
   - Concurrency limits (configurable via `JOB_CONCURRENCY` env var)
   - Retry with exponential backoff
@@ -69,6 +75,7 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
   - `downloadTicketForUser`: Individual user download with versioning
 
 **Implementation Quality**: Excellent
+
 - Uses crypto.randomUUID() for job IDs (unique and secure)
 - Proper error handling with structured logging
 - Test coverage: `__tests__/jobs/handlers.test.js`
@@ -78,13 +85,16 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 **Location**: `src/jobs/handlers.js` lines 103-117
 
 ✅ **Fetch base ticket using admin credentials**
+
 - Env vars: `TICKET_ADMIN_USERNAME`, `TICKET_ADMIN_PASSWORD`
 - Uses Puppeteer to log in and download
 
 ✅ **Compute hash/version**
+
 - SHA-256 content hash (line 39)
 
 ✅ **Compare with stored state**
+
 - Reads from `base_ticket_state` table
 - If unchanged: updates `lastCheckedAt`, no user jobs (line 110)
 - If changed: updates `baseTicketHash` and `effectiveFrom`, enqueues user downloads (lines 114-116)
@@ -96,21 +106,26 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 **Location**: `src/jobs/handlers.js` lines 128-216
 
 ✅ **Respects `auto_download_enabled`**
+
 - Lines 122-125: Only enqueues users with `auto_download_enabled` truthy
 - Line 137-140: Skips download if disabled
 
 ✅ **Loads credentials securely**
+
 - Lines 142-150: Fetches from DB, decrypts UK password
 
 ✅ **Uses Puppeteer**
+
 - Lines 167-170: Launches browser, logs in, downloads ticket
 
 ✅ **Ticket versioning & deduplication**
+
 - Lines 185-186: Computes SHA-256 content hash as version
 - Line 187: Checks if version is new via `db.isTicketVersionNew()`
 - Line 188: Sets status to 'duplicate' if not new
 
 ✅ **Updates records**
+
 - Lines 189-195: Records ticket with version/hash
 - Lines 196-201: Records run history
 - Line 202: Updates `last_login_status`, `last_login_error` in credentials
@@ -122,26 +137,32 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 **Location**: `src/server.js` lines 440-1037
 
 ✅ **List/search users**: `GET /admin/users` (lines 481-526)
+
 - Supports filtering by status (active/disabled/deleted)
 - Supports search by email/ID
 - Includes credential status and error indicators
 
 ✅ **View/edit user details**: `GET/PUT /admin/users/:id` (lines 528-627)
+
 - View: Returns user, credential status, last ticket, ticket stats
 - Edit: Update UK credentials, auto_download_enabled, is_active
 
 ✅ **See user errors**: `GET /admin/observability/errors` (lines 999-1008)
+
 - Returns recent failed downloads per user
 - Configurable limit (1-200, default 50)
 
 ✅ **Access user tickets**: Via `GET /admin/users/:id` (line 549)
+
 - Returns latest ticket and ticket stats
 
 ✅ **Trigger jobs**:
+
 - `POST /admin/jobs/check-base-ticket` (lines 641-656)
 - `POST /admin/jobs/download-all` (lines 658-677)
 
 ✅ **View summary/overview**:
+
 - `GET /admin/overview` (lines 682-702): User counts, login errors, base ticket state
 - `GET /admin/observability/job-summary` (lines 1010-1019): Job stats by status/timeframe
 - `GET /admin/observability/base-ticket` (lines 1021-1035): Current base ticket state
@@ -151,22 +172,26 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 ### Observability & Error Handling ✅
 
 ✅ **Structured Logging**: `src/logger.js`
+
 - JSON output with severity, timestamp, message, context
 - Child loggers for request/job tracking
 - Credential redaction for sensitive keys
 - Test coverage: `__tests__/logger.test.js`
 
 ✅ **Consistent API Responses**: `{data, error}` envelope
+
 - `ok(res, data, status)` helper (line 31)
 - `fail(res, status, code, message)` helper (line 35)
 - All endpoints use this pattern
 
 ✅ **Centralized Error Handling**: `errorHandler` middleware (lines 40-58)
+
 - Logs errors with request context
 - Sanitizes error messages (no secrets)
 - Returns consistent format
 
 ✅ **Admin Observability Endpoints**:
+
 - Recent errors: `GET /admin/observability/errors`
 - Job summary: `GET /admin/observability/job-summary`
 - Base ticket state: `GET /admin/observability/base-ticket`
@@ -180,25 +205,31 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 ### Analysis Results
 
 ✅ **No duplicate job queue implementations found**
+
 - Single coherent queue in `src/jobs/queue.js`
 
 ✅ **No competing scheduler designs**
+
 - Single scheduler in `src/jobs/scheduler.js`
 
 ✅ **Consistent naming**
+
 - Job types: `checkBaseTicket`, `downloadTicketsForAllUsers`, `downloadTicketForUser`
 - Database fields: consistent snake_case
 - No conflicting names found
 
 ✅ **Per-user ticket handling is correct**
+
 - Respects `auto_download_enabled` (verified in handlers.js lines 122, 137)
 - Implements ticket versioning via content hash (line 185)
 
 ✅ **Admin endpoints properly secured**
+
 - All use `jwtAuthMiddleware, requireAdmin`
 - All return `{data, error}` envelope
 
 ✅ **Error handling is consistent**
+
 - All handlers use try/catch with ok/fail helpers
 - Centralized errorHandler middleware
 - Structured logging throughout
@@ -206,6 +237,7 @@ The Phase 2 implementation (job queue, base ticket detection, admin API, and obs
 ### Conflicts Resolved (Already Done in Merge)
 
 The merge agent already resolved the major conflicts:
+
 1. ✅ Combined PR#37's `{data, error}` envelope with PR#38's structured logging
 2. ✅ Preserved PR#36's ticket hashing while adding PR#38's logging to downloader
 3. ✅ Unified error handling pattern across all endpoints
@@ -227,20 +259,24 @@ Time:        ~3.6 seconds
 ### Phase 2 Test Coverage
 
 ✅ **Base Ticket Check Logic**: `__tests__/jobs/handlers.test.js`
+
 - ✅ Unchanged base ticket → no user jobs enqueued
 - ✅ Changed base ticket → user jobs enqueued
 
 ✅ **Per-User Download Logic**: `__tests__/jobs/handlers.test.js`
+
 - ✅ auto_download_enabled=false → job skipped
 - ⚠️ Missing: Successful download updates ticket records (covered indirectly via downloader.test.js)
 - ⚠️ Missing: Failure updates error status (covered indirectly via downloader.test.js)
 
 ✅ **Admin Job Endpoints**: `__tests__/api/admin-api.test.js`
+
 - ✅ Non-admin users forbidden from admin endpoints
 - ✅ Admin can trigger download-all job
 - ✅ Admin can view users and overview
 
 ✅ **Observability Endpoints**: `__tests__/observability-api.test.js`
+
 - ✅ Recent errors endpoint works
 - ✅ Job summary endpoint works
 - ✅ Base ticket state endpoint works
@@ -250,6 +286,7 @@ Time:        ~3.6 seconds
 **Overall Coverage**: Good (85%+ estimated)
 
 **Gaps** (Minor):
+
 1. No explicit test for `POST /admin/jobs/check-base-ticket` triggering the queue
 2. No test for duplicate ticket detection returning 'duplicate' status
 3. No test for credential status update after successful/failed download
@@ -263,6 +300,7 @@ Time:        ~3.6 seconds
 ### Environment Variables
 
 ✅ **Currently Used in Code**:
+
 - `JWT_SECRET` (required in prod) ✅ Documented in README
 - `JWT_EXPIRY` (optional) ✅ Documented
 - `ENCRYPTION_KEY` (required in prod) ✅ Documented
@@ -280,6 +318,7 @@ Time:        ~3.6 seconds
 ### README Status
 
 ⚠️ **README is outdated** - Still describes Phase 1 behavior:
+
 - Line 3: "Phase 1 provides an authenticated API and CLI to trigger downloads on demand"
 - Line 7: "Records run history (status/message/file path) in data/history.json or in SQLite"
 - Line 11: "Downloads run when invoked (no scheduler/polling loop yet)" - **OUTDATED**
@@ -403,11 +442,13 @@ Time:        ~3.6 seconds
 ✅ Code is coherent and well-structured
 ⚠️ Documentation needs updating to reflect Phase 2 capabilities
 
-**Recommended Action**: 
+**Recommended Action**:
+
 1. Update README and environment variable documentation (20-30 minutes)
 2. Optional: Add minor test coverage for edge cases
 3. Proceed to Phase 3 (CI/CD, UI, scaling)
 
 **Quality Assessment**: ⭐⭐⭐⭐⭐ 9/10
+
 - Deducting 1 point only for outdated documentation
 - Code quality, test coverage, and architecture are excellent

@@ -5,6 +5,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ## Known Limitations
 
 ### L1: Single-Instance Queue Design
+
 **Description**: The SQLite-backed persistent queue is designed for single-instance deployments. Multiple API instances writing to the same SQLite file can cause lock contention and race conditions. Job deduplication is not guaranteed across instances.
 
 **Impact**: Prevents horizontal scaling of the API server with guaranteed job execution.
@@ -16,6 +17,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### L2: In-Process Rate Limiting
+
 **Description**: Rate limiters in `src/rateLimiter.js` maintain counters in Node.js process memory. When running multiple API instances behind a load balancer, each instance has independent rate limits, allowing clients to bypass limits by hitting different instances.
 
 **Impact**: Rate limiting is not enforced consistently across multiple API instances.
@@ -27,6 +29,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### L3: File-Based Download Storage
+
 **Description**: Downloaded tickets are stored as HTML files under `downloads/<user-id>/` on local disk. This works for single-instance deployments but doesn't scale to multi-instance or distributed systems. Ticket files are not accessible across API instances.
 
 **Impact**: Users may see different download history depending on which API instance handles their request. File downloads fail if files are on a different instance.
@@ -38,6 +41,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### L4: No Automatic Credential Rotation
+
 **Description**: User UK credentials are stored encrypted but never automatically rotated or expire. If credentials change externally (password reset on provider side), users must manually update them in the system.
 
 **Impact**: Stale credentials cause download failures until manually updated. No proactive detection of credential expiration.
@@ -49,6 +53,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### L5: Limited Ticket Content Validation
+
 **Description**: Ticket downloads are validated only by SHA-256 hash comparison. No structural validation of HTML content, no detection of error pages served with 200 status, no verification that ticket data is present.
 
 **Impact**: Corrupted or invalid downloads may be stored as valid tickets. Users may download provider error pages instead of tickets.
@@ -60,6 +65,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### L6: Browser Instance Reuse
+
 **Description**: Each ticket download launches a new Puppeteer browser instance and closes it after download completes. This wastes resources (CPU, memory, time) on browser startup/teardown.
 
 **Impact**: Slower downloads, higher resource usage, potential for resource leaks if browser cleanup fails.
@@ -73,6 +79,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ## Enhancement Opportunities
 
 ### E1: Distributed Tracing Integration
+
 **Title**: Add OpenTelemetry support for distributed tracing
 
 **Description**: Currently uses request IDs for correlation within a single service. Add OpenTelemetry tracing to track requests across API, queue, and download flows. Visualize end-to-end request paths with trace spans for database queries, job processing, and external API calls.
@@ -86,6 +93,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E2: Webhook Notifications
+
 **Title**: Support webhooks for download completion and failure events
 
 **Description**: Allow users and admins to register webhook URLs that receive HTTP callbacks when downloads complete, fail, or when base ticket changes are detected. Webhook payloads include event type, user ID, ticket info, status, and timestamps.
@@ -99,6 +107,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E3: Ticket Retention Policies
+
 **Title**: Implement configurable ticket retention and cleanup
 
 **Description**: Add per-user or system-wide policies for ticket retention. Automatically delete or archive old tickets after N days. Support retention rules like "keep last 5 tickets per user" or "delete tickets older than 90 days". Add cleanup job that runs periodically.
@@ -112,6 +121,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E4: Multi-Language Frontend
+
 **Title**: Add German language support to frontend with i18next
 
 **Description**: The backend supports locale preferences (`locale` field in users table), but frontend is English-only. Add react-i18next and German translations for all UI strings. Support runtime language switching with persistence in localStorage or user preferences.
@@ -125,6 +135,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E5: Ticket Preview and Rendering
+
 **Title**: Add in-browser ticket preview with HTML sanitization
 
 **Description**: Currently users can download ticket HTML but must open it locally to view. Add preview functionality in the frontend that fetches and displays ticket HTML in a sandboxed iframe or sanitized container.
@@ -138,6 +149,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E6: Bulk User Import
+
 **Title**: Support CSV/JSON bulk user import for admins
 
 **Description**: Admins currently create users one-by-one via invite tokens. Add bulk import feature that accepts CSV or JSON file with user email list, generates invite tokens for all, and optionally sends invitation emails (if email service is configured).
@@ -151,6 +163,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E7: Download Analytics Dashboard
+
 **Title**: Add analytics dashboard for download trends and patterns
 
 **Description**: Admins currently see job summaries and error lists. Add analytics dashboard with charts showing: downloads over time, success/failure rates, average download duration, top error types, per-user download frequency, device profile usage distribution.
@@ -164,6 +177,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E8: Email Notifications
+
 **Title**: Support email notifications for download failures and ticket changes
 
 **Description**: Notify users via email when: their download fails repeatedly, credentials are invalid, new ticket version is available. Allow users to configure notification preferences (frequency, events).
@@ -177,6 +191,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E9: API Rate Limit Visualization
+
 **Title**: Show current rate limit status in API responses
 
 **Description**: Add rate limit headers to API responses: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. Display rate limit status in frontend for user awareness. Show "slow down" warnings when nearing limits.
@@ -190,6 +205,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E10: Backup and Restore Tools
+
 **Title**: Add CLI commands for database backup and restore
 
 **Description**: Provide CLI tools to backup SQLite database (including blob exports for encrypted credentials), verify backup integrity, and restore from backup. Support scheduled backups via cron or built-in scheduler.
@@ -203,6 +219,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E11: Provider Change Detection
+
 **Title**: Detect and alert on provider site changes
 
 **Description**: Monitor ticket provider website for structural changes (DOM element changes, authentication flow changes). Alert admins when Puppeteer selectors may be outdated. Log detected changes for investigation.
@@ -216,6 +233,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E12: Performance Benchmarking
+
 **Title**: Add performance test suite and benchmarks
 
 **Description**: Create benchmark suite measuring: API request latency (p50, p95, p99), download duration, job throughput, database query performance. Track benchmarks over time to detect regressions. Add to CI pipeline.
@@ -229,6 +247,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E13: Credential Audit Trail
+
 **Title**: Add detailed audit log for credential access and modifications
 
 **Description**: Track all credential reads (decryption events), updates, and deletions with timestamps, user IDs, and IP addresses. Provide audit trail view for admins. Alert on suspicious patterns (many failed decryptions, unusual access times).
@@ -242,6 +261,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E14: Mobile-Responsive Admin Dashboard
+
 **Title**: Improve mobile/tablet experience for admin dashboard
 
 **Description**: Current frontend works on mobile but admin dashboard is optimized for desktop. Improve responsive design for admin pages: user list, user detail, observability charts. Use collapsible sections, bottom sheets, mobile-friendly tables.
@@ -255,6 +275,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### E15: Test Environment Provisioning
+
 **Title**: Add scripts for local test environment setup
 
 **Description**: Provide one-command setup of complete test environment with: seeded database, test users (admin + regular), sample credentials, mock tickets. Enable developers to quickly spin up environment for testing and demo.
@@ -270,6 +291,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ## Technical Debt
 
 ### T1: Test Coverage Gaps
+
 **Title**: Increase test coverage for downloader and job handlers
 
 **Description**: Core modules like `src/downloader.js` (14% coverage) and complex job flows are under-tested. Puppeteer integration tests are difficult but unit-testable logic exists. Job handlers have integration tests but lack unit tests for edge cases.
@@ -283,6 +305,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### T2: Error Handling Consistency
+
 **Title**: Standardize error handling and error response format
 
 **Description**: Error handling varies across modules. API error responses don't follow consistent format. Some errors logged but not returned to client. Some stack traces leak in production.
@@ -296,6 +319,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### T3: Environment Variable Validation
+
 **Title**: Add startup validation for required environment variables
 
 **Description**: Some environment variables (JWT_SECRET, ENCRYPTION_KEY) use defaults in development. No validation of format or security requirements. Server starts even with insecure defaults in production.
@@ -309,6 +333,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### T4: Database Migration System
+
 **Title**: Implement formal database migration framework
 
 **Description**: Database schema changes are currently manual or via `setupDb.js` seed script. No versioning, no rollback capability, no production migration path. Schema changes risk data loss or inconsistency.
@@ -322,6 +347,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### T5: Dependency Updates and Security Scanning
+
 **Title**: Automate dependency updates and vulnerability scanning
 
 **Description**: Dependencies are manually updated. No automated checks for outdated packages or known vulnerabilities. Dependabot is not configured.
@@ -337,6 +363,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ## Operational Improvements
 
 ### O1: Structured Logging Levels
+
 **Title**: Add configurable log levels and filtering
 
 **Description**: Logger supports INFO/WARN/ERROR but no runtime configuration of log levels. Cannot filter logs by module or user. All logs written regardless of severity.
@@ -350,6 +377,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### O2: Graceful Shutdown Handling
+
 **Title**: Implement graceful shutdown for API server and job scheduler
 
 **Description**: SIGTERM/SIGINT kill server immediately, potentially interrupting in-flight requests and job processing. No cleanup of browser instances or database connections.
@@ -363,6 +391,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### O3: Job Priority System
+
 **Title**: Add priority levels for different job types
 
 **Description**: All jobs processed in FIFO order. Manual admin-triggered downloads compete with scheduled downloads. No way to expedite urgent jobs or throttle low-priority ones.
@@ -376,6 +405,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### O4: Configuration Management UI
+
 **Title**: Add admin UI for runtime configuration management
 
 **Description**: Most configuration is via environment variables, requiring restart to change. No visibility into current settings. Admins can't adjust rate limits, concurrency, or intervals without deployment.
@@ -389,6 +419,7 @@ This document tracks known limitations, technical debt, and natural next feature
 ---
 
 ### O5: Job Scheduling Dashboard
+
 **Title**: Add visual timeline of scheduled and running jobs
 
 **Description**: Admins see job counts and recent errors but not job schedule or active job details. No visibility into what jobs will run next or which users are being processed.

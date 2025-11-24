@@ -25,7 +25,11 @@ describe('Persistent job queue resume', () => {
 
   it('restores pending jobs after a restart', async () => {
     const observed = [];
-    const queue1 = new PersistentJobQueue({ db, concurrency: 1, logger: { info: () => {}, error: () => {}, warn: () => {} } });
+    const queue1 = new PersistentJobQueue({
+      db,
+      concurrency: 1,
+      logger: { info: () => {}, error: () => {}, warn: () => {} }
+    });
     queue1.registerHandler('demo', async ({ value }) => {
       observed.push(`run-${value}`);
     });

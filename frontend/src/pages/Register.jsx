@@ -15,7 +15,7 @@ const getInitialUrlToken = () => {
 const Register = () => {
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
-  
+
   const [inviteToken, setInviteToken] = useState(getInitialUrlToken);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +37,7 @@ const Register = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     const tokenValidation = validateRequired(inviteToken, 'Invite token');
     if (!tokenValidation.valid) {
       errors.inviteToken = tokenValidation.error;
@@ -86,7 +86,7 @@ const Register = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    
+
     // Mark all fields as touched
     setTouched({ inviteToken: true, email: true, password: true });
 
@@ -115,23 +115,22 @@ const Register = () => {
             <TicketIcon className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">UK Ticket Center</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Automated ticket management for university students
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">Automated ticket management for university students</p>
         </div>
 
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Create your account</CardTitle>
-            <CardDescription>
-              Enter your invite token and credentials to get started
-            </CardDescription>
+            <CardDescription>Enter your invite token and credentials to get started</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit} noValidate>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium text-foreground" htmlFor="invite">
-                  Invite token <span className="text-destructive" aria-label="required">*</span>
+                  Invite token{' '}
+                  <span className="text-destructive" aria-label="required">
+                    *
+                  </span>
                 </label>
                 <input
                   id="invite"
@@ -154,7 +153,10 @@ const Register = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground" htmlFor="email">
-                  Email address <span className="text-destructive" aria-label="required">*</span>
+                  Email address{' '}
+                  <span className="text-destructive" aria-label="required">
+                    *
+                  </span>
                 </label>
                 <input
                   id="email"
@@ -177,7 +179,10 @@ const Register = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground" htmlFor="password">
-                  Password <span className="text-destructive" aria-label="required">*</span>
+                  Password{' '}
+                  <span className="text-destructive" aria-label="required">
+                    *
+                  </span>
                 </label>
                 <input
                   id="password"
@@ -213,15 +218,17 @@ const Register = () => {
                   />
                   <div>
                     <p className="text-sm font-semibold text-foreground">Enable automatic downloads</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your tickets will be fetched automatically
-                    </p>
+                    <p className="text-sm text-muted-foreground">Your tickets will be fetched automatically</p>
                   </div>
                 </label>
               </div>
 
               {error && (
-                <div className="md:col-span-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert" aria-live="polite">
+                <div
+                  className="md:col-span-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {error}
                 </div>
               )}

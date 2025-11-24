@@ -5,6 +5,7 @@ This document provides a high-level overview of the UK-TicketUpdater system arch
 ## System Purpose
 
 UK-TicketUpdater is a multi-user automation system that:
+
 - Periodically monitors NVV semester tickets for changes
 - Automatically downloads updated tickets for registered users
 - Provides a web UI and API for user management and ticket access
@@ -158,9 +159,11 @@ UK-TicketUpdater is a multi-user automation system that:
 ## Core Components
 
 ### 1. API Server (`src/server.js`)
+
 **Purpose**: Provides REST API for all client interactions
 
 **Key Features**:
+
 - JWT-based authentication with invite-only registration
 - Role-based access control (admin/user)
 - Per-IP and per-user rate limiting
@@ -169,6 +172,7 @@ UK-TicketUpdater is a multi-user automation system that:
 - Prometheus-compatible metrics endpoint
 
 **Environment Configuration**:
+
 - `JWT_SECRET`: JWT signing key (required in production)
 - `ENCRYPTION_KEY`: AES-256 key for credential encryption (required)
 - `PORT`: Server port (default 3000)
@@ -176,19 +180,23 @@ UK-TicketUpdater is a multi-user automation system that:
 - `AUTH_RATE_LIMIT_WINDOW_MS`: Rate limit window (default 15 minutes)
 
 ### 2. Background Job System (`src/jobs/`)
+
 **Purpose**: Handles scheduled and on-demand ticket downloads
 
 **Components**:
+
 - **Scheduler** (`scheduler.js`): Periodic base ticket checks
 - **Queue** (`queue.js`, `persistentQueue.js`): Job queuing with concurrency control
 - **Handlers** (`handlers.js`): Job execution logic
 
 **Job Types**:
+
 1. **checkBaseTicket**: Detects changes to the base ticket
 2. **downloadTicketsForAllUsers**: Fan-out job enqueuing per-user downloads
 3. **downloadTicketForUser**: Individual user ticket download
 
 **Queue Features**:
+
 - Two backends: in-memory (dev) or SQLite-backed (production)
 - Configurable concurrency to avoid overwhelming provider
 - Retry logic with exponential backoff (3 attempts)
@@ -196,6 +204,7 @@ UK-TicketUpdater is a multi-user automation system that:
 - Metrics tracking: enqueued, completed, failed, retries
 
 **Environment Configuration**:
+
 - `JOB_QUEUE_BACKEND`: `memory` or `persistent` (default: persistent when DB available)
 - `JOB_CONCURRENCY`: Max parallel jobs (default 2)
 - `BASE_TICKET_CHECK_INTERVAL_HOURS`: Scheduler interval (default 6)
@@ -204,9 +213,11 @@ UK-TicketUpdater is a multi-user automation system that:
 - `TICKET_ADMIN_PASSWORD`: Admin account password
 
 ### 3. Downloader (`src/downloader.js`)
+
 **Purpose**: Puppeteer-based ticket download automation
 
 **Features**:
+
 - Device profile emulation (viewport, user-agent, timezone, locale)
 - Custom device profiles with proxy and geolocation support
 - Session management and authentication
@@ -214,19 +225,23 @@ UK-TicketUpdater is a multi-user automation system that:
 - Browser cleanup and resource management
 
 **Device Profiles** (`src/deviceProfiles.js`):
+
 - Preset profiles: `desktop_chrome`, `mobile_android`, `iphone_13`, `iphone_15_pro`, `desktop_firefox`, `mac_safari`, `tablet_ipad`
 - Custom profiles: User-defined with proxy/geolocation/timezone
 
 **Environment Configuration**:
+
 - `DEFAULT_DEVICE`: Default device profile (default: desktop_chrome)
 - `PUPPETEER_SKIP_DOWNLOAD`: Skip Chromium download during install
 - `TICKET_RATE_LIMIT_PER_MINUTE`: Outbound rate limit (default 12)
 - `TICKET_RATE_LIMIT_WINDOW_MS`: Rate limit window (default 60000)
 
 ### 4. Database Layer (`src/db.js`)
+
 **Purpose**: SQLite persistence for all system data
 
 **Key Operations**:
+
 - User management (CRUD, soft delete, role/flag updates)
 - Invite token generation and validation
 - Credential encryption/decryption (AES-256-GCM)
@@ -236,17 +251,21 @@ UK-TicketUpdater is a multi-user automation system that:
 - Base ticket state management
 
 **Environment Configuration**:
+
 - `DB_PATH`: SQLite database file path (default: ./data/app.db)
 - `OUTPUT_ROOT`: Base directory for downloads (default: ./downloads)
 
 ### 5. Frontend (`frontend/src/`)
+
 **Purpose**: React-based web UI for users and admins
 
 **Pages**:
+
 - **User Pages**: Login, Register, Dashboard, Profile, Credentials, Device Profiles, Tickets, History, Downloads
 - **Admin Pages**: Overview, User Management, User Detail, Manual Job Triggers
 
 **Features**:
+
 - JWT authentication with secure token storage
 - Role-based route protection
 - CRUD interfaces for credentials and device profiles
@@ -254,25 +273,31 @@ UK-TicketUpdater is a multi-user automation system that:
 - Admin observability dashboards
 
 **Environment Configuration**:
+
 - `VITE_API_BASE_URL`: API base URL (default: /api for reverse proxy)
 
 ### 6. Rate Limiter (`src/rateLimiter.js`)
+
 **Purpose**: Multi-level rate limiting and traffic control
 
 **Limiters**:
+
 1. **Global IP Limiter**: 100 requests per 15 minutes per IP
 2. **Authenticated User Limiter**: 300 requests per 15 minutes per user
 3. **Provider Rate Limiter**: Token bucket for outbound calls (12/min default)
 
 **Features**:
+
 - In-memory sliding window counters
 - Token bucket algorithm for outbound rate limiting
 - Configurable via environment variables
 
 ### 7. Logger (`src/logger.js`)
+
 **Purpose**: Structured JSON logging with credential redaction
 
 **Features**:
+
 - Severity levels: INFO, WARN, ERROR
 - Request ID tracking for correlation
 - Automatic credential field redaction
@@ -412,13 +437,13 @@ UK-TicketUpdater is a multi-user automation system that:
 3. Admin observability
    GET /admin/observability/errors
    → recent download failures from download_history
-   
+
    GET /admin/observability/job-summary
    → job statistics over last N hours
-   
+
    GET /admin/observability/base-ticket
    → current base ticket hash and last check time
-   
+
    GET /admin/observability/queue
    → queue backend, pending/running counts, retry/failure counters
 ```
@@ -444,24 +469,28 @@ UK-TicketUpdater is a multi-user automation system that:
 ## Security Architecture
 
 ### Authentication & Authorization
+
 - **Invite-Only Registration**: Prevents open signups, tokens expire and are single-use
 - **JWT Tokens**: Stateless authentication, configurable expiry (default 7 days)
 - **Role-Based Access**: Admin/user roles with middleware enforcement
 - **Password Security**: Bcrypt hashing (10 rounds), strength validation (8+ chars, mixed case, number)
 
 ### Data Protection
+
 - **Credential Encryption**: AES-256-GCM for UK passwords at rest
 - **Secure Key Management**: `ENCRYPTION_KEY` from environment, 32-byte requirement
 - **Credential Redaction**: Logger automatically redacts sensitive fields
 - **No Plaintext Secrets**: All secrets from environment variables
 
 ### Network Security
+
 - **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
 - **Rate Limiting**: Multi-level protection (IP, user, outbound)
 - **Request Tracking**: Unique request IDs for audit trail
 - **TLS Termination**: Expected from reverse proxy in production
 
 ### Audit Logging
+
 - **User Actions**: Registration, login, credential updates, device profile changes
 - **Admin Actions**: Invite creation, user management, manual job triggers
 - **Job Events**: Job enqueue, start, complete, fail, retry
@@ -470,6 +499,7 @@ UK-TicketUpdater is a multi-user automation system that:
 ## Deployment Considerations
 
 ### Docker Deployment
+
 - **Multi-stage build**: Slim production image (~200MB)
 - **Frontend bundled**: React build served at `/app` by backend
 - **Persistent volumes**: Mount `./data` and `./downloads`
@@ -477,12 +507,14 @@ UK-TicketUpdater is a multi-user automation system that:
 - **Queue backend**: Use `JOB_QUEUE_BACKEND=persistent` for restart safety
 
 ### High Availability
+
 - **Stateless API**: JWT auth enables horizontal scaling
 - **Queue persistence**: SQLite-backed queue survives restarts
 - **Health probes**: `/health` (liveness) and `/ready` (readiness)
 - **Graceful degradation**: Scheduler disabled if `JOBS_SCHEDULER_ENABLED=false`
 
 ### Limitations
+
 - **Single-instance queue**: SQLite queue not designed for multi-instance deployments
 - **In-process rate limiting**: Rate limits not shared across API instances
 - **File storage**: Downloads stored locally, not distributed
@@ -492,6 +524,7 @@ UK-TicketUpdater is a multi-user automation system that:
 ## Technology Stack
 
 ### Backend
+
 - **Runtime**: Node.js 18+
 - **Framework**: Express 5
 - **Database**: SQLite (better-sqlite3)
@@ -502,6 +535,7 @@ UK-TicketUpdater is a multi-user automation system that:
 - **Testing**: Jest 29, Playwright
 
 ### Frontend
+
 - **Framework**: React 18 + Vite
 - **Styling**: Tailwind CSS
 - **Routing**: React Router
@@ -510,6 +544,7 @@ UK-TicketUpdater is a multi-user automation system that:
 - **Testing**: Vitest, React Testing Library
 
 ### DevOps
+
 - **CI/CD**: GitHub Actions (lint, test, e2e)
 - **Linting**: ESLint 9 (flat config)
 - **Formatting**: Prettier
@@ -518,16 +553,19 @@ UK-TicketUpdater is a multi-user automation system that:
 ## Performance Characteristics
 
 ### Scalability
+
 - **Concurrent downloads**: Limited by `JOB_CONCURRENCY` (default 2)
 - **API throughput**: Rate limited at 100 req/15min per IP
 - **Database**: SQLite suitable for 100s of users, 1000s of tickets
 
 ### Resource Usage
+
 - **Memory**: ~200-300MB per Node.js process (API + scheduler)
 - **Disk**: ~1-2MB per ticket HTML, plus SQLite overhead
 - **CPU**: Spiky during Puppeteer launches, idle otherwise
 
 ### Optimization Opportunities
+
 - **Browser reuse**: Currently launches new browser per download
 - **Caching**: No response caching, could cache user profiles
 - **CDN**: Static frontend assets could be CDN-hosted

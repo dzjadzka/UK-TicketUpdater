@@ -66,7 +66,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:javascript"
+          category: '/language:javascript'
 
   trivy-scan:
     name: Trivy Container Scan

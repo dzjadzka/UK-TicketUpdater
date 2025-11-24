@@ -6,6 +6,7 @@
 Multi-user automation to download NVV semester tickets from `https://ticket.astakassel.de` using Puppeteer. Phase 3 adds a selectable persistent queue backend, end-to-end rate limiting for the ticket provider, Prometheus-friendly metrics, and a minimal React dashboard for users and admins.
 
 ## What this project does
+
 - **Automated ticket monitoring**: Periodically checks for base ticket changes using admin credentials and triggers user downloads when changes are detected.
 - **Background job queue**: Processes ticket downloads with configurable concurrency, retry logic, and error handling (memory or SQLite-backed persistence).
 - **User management**: JWT-protected API for users to manage credentials and view their ticket history.
@@ -15,6 +16,7 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - **Frontend dashboard**: React UI for users (tickets, credentials, device profiles) and admins (overview, user management, manual jobs).
 
 ## Architecture at a glance
+
 - **API server:** `src/server.js` hosts JWT-protected routes for user and admin operations.
 - **Job system:** `src/jobs/` provides a background queue with scheduler for automated base ticket checks and user downloads.
 - **Downloader:** `src/downloader.js` handles Puppeteer interactions with device-profile presets from `src/deviceProfiles.js`.
@@ -22,6 +24,7 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - **Observability:** Structured JSON logging (`src/logger.js`) with credential redaction and admin observability endpoints.
 
 ## Prerequisites
+
 - Node.js 18+ and npm.
 - Chromium/Chrome available for Puppeteer (set `PUPPETEER_SKIP_DOWNLOAD=1` if you provide the browser yourself).
 - Network access to `https://ticket.astakassel.de`.
@@ -29,12 +32,14 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 ## Configuration (environment variables)
 
 ### Required in Production
+
 - `JWT_SECRET`: Secret used to sign JWTs. Dev default only outside production.
 - `ENCRYPTION_KEY`: 32-byte key for encrypting stored UK credentials.
 - `TICKET_ADMIN_USERNAME` (or `ADMIN_TICKET_USERNAME`): Admin account username for base ticket checks.
 - `TICKET_ADMIN_PASSWORD` (or `ADMIN_TICKET_PASSWORD`): Admin account password for base ticket checks.
 
 ### Optional
+
 - `JWT_EXPIRY`: Token lifetime (default `7d`).
 - `DB_PATH`: SQLite database path (default `./data/app.db`).
 - `OUTPUT_ROOT`: Base output directory for downloads (default `./downloads`).
@@ -50,6 +55,7 @@ Multi-user automation to download NVV semester tickets from `https://ticket.asta
 - `AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW_MS`: Per-user/IP API limiter (default 300 requests per 15 minutes).
 
 ## Setup
+
 ```bash
 # Install dependencies (skip Chromium download if you have one installed)
 PUPPETEER_SKIP_DOWNLOAD=1 npm install
@@ -65,6 +71,7 @@ npm run api
 ```
 
 ## Running downloads (CLI)
+
 ```bash
 # Always DB-backed now
 echo "Ensure users exist in the DB with credentials set (via API)"
@@ -75,7 +82,9 @@ npm run download -- --db ./data/app.db --device desktop_chrome --output ./downlo
 # Show full CLI help (all flags)
 node src/index.js --help
 ```
+
 CLI flags (DB-only):
+
 - `--db <path>`: SQLite path (default `./data/app.db`).
 - `--output <path>`: Base download directory (default `./downloads`).
 - `--device <profile>`: Default device profile.
@@ -85,6 +94,7 @@ CLI flags (DB-only):
 > Deprecated: The `--source` flag is still accepted as an alias for `--users` but will emit a warning and is scheduled for removal in v1.1.0. Migrate any scripts to use `--users`.
 
 ## API server
+
 ```bash
 # Start the API server with background job scheduler
 JWT_SECRET=your-secret ENCRYPTION_KEY=32-byte-key \
@@ -95,12 +105,14 @@ npm run api
 The server starts the base ticket scheduler automatically unless `JOBS_SCHEDULER_ENABLED=false`. Scheduler cadence comes from `BASE_TICKET_CHECK_INTERVAL_HOURS` (default 6h) and each `checkBaseTicket` run enqueues per-user downloads when the base ticket hash changes. Request rate limiting caps traffic at 100 requests per 15 minutes per IP plus a per-user limiter (`AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW_MS`). Health probes: `GET /health` (liveness) and `GET /ready` (DB + queue readiness).
 
 ## Frontend dashboard
+
 - Development server: `npm run dev:frontend`
 - Production build: `npm run build:frontend`
 
 The dashboard expects the API at `VITE_API_BASE_URL` (default `/api` when reverse-proxied). Users can log in, view ticket history, update credentials, and manage device profiles. Admins see an overview tab, user management, and manual job triggers. In Docker images, the static build is served at `/app` by the backend container.
 
 ### User Routes
+
 - `POST /auth/register`: Register with invite token
 - `POST /auth/login`: Authenticate and get JWT
 - `GET /me`: Get current user profile
@@ -109,6 +121,7 @@ The dashboard expects the API at `VITE_API_BASE_URL` (default `/api` when revers
 - `DELETE /me`: Delete account
 
 ### Admin Routes
+
 - `GET /admin/users`: List/search users with filtering
 - `GET /admin/users/:id`: View user detail with credential status
 - `PUT /admin/users/:id`: Update user credentials/flags
@@ -125,6 +138,7 @@ See `src/server.js` for complete API documentation.
 ## How it works (Phase 2)
 
 ### Background Job System
+
 1. **Scheduler** runs base ticket check every N hours (configurable via `BASE_TICKET_CHECK_INTERVAL_HOURS`)
 2. **Base ticket check** job:
    - Logs in using admin credentials
@@ -142,6 +156,7 @@ See `src/server.js` for complete API documentation.
    - Update ticket history and credential status
 
 ### Job Queue Features
+
 - **Concurrency control**: Limit parallel downloads to avoid overwhelming the ticket site
 - **Retry with backoff**: Failed jobs retry up to 3 times with exponential backoff
 - **Dead letter queue**: Permanently failed jobs tracked for admin review
@@ -150,6 +165,7 @@ See `src/server.js` for complete API documentation.
 See [`docs/operations.md`](docs/operations.md) for an operations-focused view of how jobs are started, controlled, monitored, and rate-limited in production.
 
 ## Operations and observability
+
 - Background scheduler is enabled by default when running `npm run api`; set `JOBS_SCHEDULER_ENABLED=false` to disable.
 - Job concurrency can be tuned with `JOB_CONCURRENCY`, scheduler cadence via `BASE_TICKET_CHECK_INTERVAL_HOURS`, and queue backend via `JOB_QUEUE_BACKEND` (`persistent` recommended for API/server runs).
 - Observability endpoints surface recent errors, job summaries, base ticket state, queue metrics (`/admin/observability/queue`), and Prometheus text metrics at `/metrics`.
@@ -161,11 +177,13 @@ See [`docs/operations.md`](docs/operations.md) for an operations-focused view of
 See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance and [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) for pre-deployment validation.
 
 ## Docker / deployment
+
 - Build: `docker build -t uk-ticket-updater .`
 - Run locally: `docker-compose up --build` (serves API on `localhost:3000`, mounts `./data` and `./downloads`).
 - Configure via environment variables listed above; `JOB_QUEUE_BACKEND=persistent` is recommended for containers so jobs survive restarts.
 
 ## Testing and linting
+
 - Run unit/integration tests: `npm test` (runs ESLint first via `pretest`)
 - Lint code: `npm run lint`
 - End-to-end Playwright suite (API): `npm run test:e2e`
@@ -174,6 +192,7 @@ See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance 
 ## Documentation
 
 ### Architecture & Design
+
 - [**Architecture Overview**](docs/architecture.md) - System components, data flows, and technology stack
 - [**UI Information Architecture**](docs/ui-information-architecture.md) - Complete web UI specification with user flows, page layouts, and API mappings
 - [**UI Architecture Quick Reference**](docs/ui-architecture-summary.md) - Condensed UI guide for developers
@@ -181,15 +200,18 @@ See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance 
 - [Operations Guide](docs/operations.md) - Deployment, monitoring, and operational procedures
 
 ### Release & Planning
+
 - [**CHANGELOG**](CHANGELOG.md) - Version history and release notes (see v1.0.0 for complete feature list)
 - [**Release Checklist**](RELEASE_CHECKLIST.md) - Pre-deployment validation and production readiness
 - [Future Work & Limitations](docs/future-work.md) - Known limitations and enhancement roadmap
 
 ### Development
+
 - [CONTRIBUTING](CONTRIBUTING.md) - Development setup and contribution guidelines
 - [AGENTS](AGENTS.md) - AI agent instructions and project overview
 
 ## Limitations and known issues
+
 - SQLite-backed persistence is provided for both app data and the job queue; ensure the database file is backed up or mounted on durable storage in production.
 - Rate limiting is in-process; distributed deployments should externalize limits (e.g., Redis) if multiple API instances run concurrently.
 - Single-instance queue design: the SQLite queue is not designed for multi-instance horizontal scaling.

@@ -20,7 +20,9 @@ vi.mock('../src/services/api', () => ({
 describe('DeviceProfiles page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.list.mockResolvedValue({ data: { profiles: [{ id: 'p1', name: 'desktop', locale: 'de-DE', timezone: 'Europe/Berlin' }] } });
+    mocks.list.mockResolvedValue({
+      data: { profiles: [{ id: 'p1', name: 'desktop', locale: 'de-DE', timezone: 'Europe/Berlin' }] }
+    });
     mocks.create.mockResolvedValue({ data: { id: 'new' } });
     mocks.remove.mockResolvedValue({});
   });

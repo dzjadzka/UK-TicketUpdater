@@ -45,7 +45,7 @@ function errorHandler(err, req, res, next) {
   const status = err.status || 500;
   const code = err.code || (status >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
   const message = err.expose ? err.message : 'Unexpected server error';
-  
+
   logger.error('request_failed', {
     request_id: req?.requestId,
     route: req?.originalUrl,
@@ -360,7 +360,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT, jobO
       // Mark invite as used
       db.markInviteTokenUsed(inviteToken, userId);
 
-      req.logger?.info('audit_invite_redeemed', { invite_token: inviteToken, user_id: userId, invited_by: invite.created_by });
+      req.logger?.info('audit_invite_redeemed', {
+        invite_token: inviteToken,
+        user_id: userId,
+        invited_by: invite.created_by
+      });
 
       // Generate JWT token
       const token = generateToken({ id: userId, email, role: 'user' });
@@ -989,7 +993,8 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT, jobO
         timezone: timezone || existing.timezone,
         proxy_url: proxyUrl !== undefined ? proxyUrl : existing.proxy_url,
         geolocation_latitude: geolocationLatitude !== undefined ? geolocationLatitude : existing.geolocation_latitude,
-        geolocation_longitude: geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
+        geolocation_longitude:
+          geolocationLongitude !== undefined ? geolocationLongitude : existing.geolocation_longitude
       };
 
       // Validate updated profile
@@ -1012,7 +1017,11 @@ function createApp({ dbPath = DEFAULT_DB_PATH, outputRoot = DEFAULT_OUTPUT, jobO
         geolocationLongitude: updatedProfile.geolocation_longitude
       });
 
-      req.logger?.info('audit_device_profile_updated', { user_id: req.user.id, profile_id: id, name: updatedProfile.name });
+      req.logger?.info('audit_device_profile_updated', {
+        user_id: req.user.id,
+        profile_id: id,
+        name: updatedProfile.name
+      });
 
       res.json({ message: 'Device profile updated' });
     } catch (error) {

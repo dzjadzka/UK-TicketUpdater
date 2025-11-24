@@ -208,12 +208,22 @@ function createJobHandlers({
         message: isNew ? 'Ticket downloaded' : 'Duplicate ticket detected',
         filePath
       });
-      db.updateUserCredentialStatus({ userId: user.id, status: finalStatus, error: null, loggedInAt: new Date().toISOString() });
+      db.updateUserCredentialStatus({
+        userId: user.id,
+        status: finalStatus,
+        error: null,
+        loggedInAt: new Date().toISOString()
+      });
     } catch (error) {
       errorMessage = error.message;
       logger.error(`Failed to download ticket for user ${userId}: ${errorMessage}`);
       db.recordRun({ userId, status: 'error', message: 'Download failed', errorMessage });
-      db.updateUserCredentialStatus({ userId, status: 'error', error: errorMessage, loggedInAt: new Date().toISOString() });
+      db.updateUserCredentialStatus({
+        userId,
+        status: 'error',
+        error: errorMessage,
+        loggedInAt: new Date().toISOString()
+      });
       throw error;
     } finally {
       if (browser) {

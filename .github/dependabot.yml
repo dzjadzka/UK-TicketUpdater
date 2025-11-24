@@ -1,71 +1,71 @@
 version: 2
 updates:
   # Backend dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 10
     commit-message:
-      prefix: "deps"
+      prefix: 'deps'
     labels:
-      - "dependencies"
-      - "backend"
+      - 'dependencies'
+      - 'backend'
     groups:
       production-deps:
         patterns:
-          - "*"
+          - '*'
         exclude-patterns:
-          - "@playwright/*"
-          - "eslint*"
-          - "prettier*"
-          - "jest*"
-          - "supertest*"
+          - '@playwright/*'
+          - 'eslint*'
+          - 'prettier*'
+          - 'jest*'
+          - 'supertest*'
 
   # Frontend dependencies
-  - package-ecosystem: "npm"
-    directory: "/frontend"
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 10
     commit-message:
-      prefix: "deps(frontend)"
+      prefix: 'deps(frontend)'
     labels:
-      - "dependencies"
-      - "frontend"
+      - 'dependencies'
+      - 'frontend'
     groups:
       react-deps:
         patterns:
-          - "react*"
-          - "@types/react*"
+          - 'react*'
+          - '@types/react*'
       testing-deps:
         patterns:
-          - "@testing-library/*"
-          - "vitest*"
-          - "jsdom*"
+          - '@testing-library/*'
+          - 'vitest*'
+          - 'jsdom*'
 
   # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     commit-message:
-      prefix: "ci"
+      prefix: 'ci'
     labels:
-      - "dependencies"
-      - "ci"
+      - 'dependencies'
+      - 'ci'
 
   # Docker base images
-  - package-ecosystem: "docker"
-    directory: "/"
+  - package-ecosystem: 'docker'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     commit-message:
-      prefix: "docker"
+      prefix: 'docker'
     labels:
-      - "dependencies"
-      - "docker"
+      - 'dependencies'
+      - 'docker'

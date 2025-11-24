@@ -90,7 +90,9 @@ const AdminOverview = () => {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-base-content">System overview</h2>
-          <p className="text-sm text-base-content/70">Track the health of the downloader and quickly kick off maintenance jobs.</p>
+          <p className="text-sm text-base-content/70">
+            Track the health of the downloader and quickly kick off maintenance jobs.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button

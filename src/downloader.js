@@ -332,7 +332,11 @@ async function downloadTickets(users, options = {}) {
   const successCount = results.filter((r) => r.status === 'success').length;
   const failureCount = results.length - successCount;
 
-  jobLogger.info('job_completed', { user_count: users.length, success_count: successCount, failure_count: failureCount });
+  jobLogger.info('job_completed', {
+    user_count: users.length,
+    success_count: successCount,
+    failure_count: failureCount
+  });
   return results;
 }
 

@@ -8,7 +8,9 @@
 ## What Was Done
 
 ### 1. Comprehensive Database Review ✅
+
 Created detailed analysis document at `docs/db-review.md` covering:
+
 - Schema design analysis (all 9 tables)
 - API surface evaluation (50+ methods)
 - Security review
@@ -18,6 +20,7 @@ Created detailed analysis document at `docs/db-review.md` covering:
 - 10 prioritized action items
 
 **Key findings:**
+
 - Overall Grade: **A- (90/100)**
 - Database is production-ready for deployments up to 10k users
 - Identified 3 critical issues and 7 improvement opportunities
@@ -27,6 +30,7 @@ Created detailed analysis document at `docs/db-review.md` covering:
 ### 2. Critical Fixes Applied ✅
 
 #### Fix 1: Foreign Key Enforcement
+
 **Problem:** SQLite foreign keys disabled by default = no referential integrity  
 **Solution:** Added `db.pragma('foreign_keys = ON')` in `createDatabase()`  
 **Impact:** Prevents orphaned records, enforces cascading deletes  
@@ -34,11 +38,12 @@ Created detailed analysis document at `docs/db-review.md` covering:
 
 ```javascript
 const db = new Database(resolvedPath);
-db.pragma('foreign_keys = ON');  // ← Added
+db.pragma('foreign_keys = ON'); // ← Added
 initSchema(db);
 ```
 
 #### Fix 2: Performance Indexes
+
 **Problem:** Missing indexes on frequently queried columns  
 **Solution:** Added 3 composite indexes  
 **Impact:** 10-100x faster queries on large datasets  
@@ -51,19 +56,23 @@ CREATE INDEX idx_users_active ON users(is_active, deleted_at);
 ```
 
 #### Fix 3: Backup System
+
 **Problem:** No automated database backups  
 **Solution:** Created backup utility with automatic cleanup  
 **Impact:** Disaster recovery capability  
-**Files:** 
+**Files:**
+
 - `scripts/backup-db.js` (new)
 - `package.json` (added `db:backup` script)
 
 **Usage:**
+
 ```bash
 npm run db:backup  # Creates timestamped backup
 ```
 
 **Features:**
+
 - Uses SQLite's native `.backup()` API (online backup, no locks)
 - Automatic cleanup (keeps last 7 backups)
 - Configurable via env vars (DB_PATH, BACKUP_DIR)
@@ -74,6 +83,7 @@ npm run db:backup  # Creates timestamped backup
 ## Test Results
 
 All existing tests pass with new changes:
+
 - ✅ Database schema creation
 - ✅ User CRUD operations
 - ✅ Ticket deduplication
@@ -94,12 +104,14 @@ All existing tests pass with new changes:
 ## Remaining Action Items
 
 ### Priority 2 - Important (Next)
+
 - [ ] Add comprehensive edge case tests (foreign keys, transactions, concurrency)
 - [ ] Document or remove unused `credentials` table
 - [ ] Implement data retention policy for old records
 - [ ] Switch from `console.error` to structured logger in db.js
 
 ### Priority 3 - Nice to Have
+
 - [ ] Implement migration system with version tracking
 - [ ] Add pagination to `listActiveUsers()` and `listHistory()`
 - [ ] Refactor API surface into logical groups
@@ -112,11 +124,13 @@ See full details in `docs/db-review.md`.
 ## How to Use
 
 ### Run Backup
+
 ```bash
 npm run db:backup
 ```
 
 ### Verify Foreign Keys Work
+
 ```javascript
 const db = createDatabase('./test.db');
 // This will now throw an error (before: silently succeeded):
@@ -125,10 +139,11 @@ db.createUserCredential({ userId: 'nonexistent', ... });
 ```
 
 ### Check Index Usage
+
 ```sql
-EXPLAIN QUERY PLAN 
-SELECT * FROM tickets 
-WHERE user_id = 'user-1' 
+EXPLAIN QUERY PLAN
+SELECT * FROM tickets
+WHERE user_id = 'user-1'
 ORDER BY downloaded_at DESC;
 -- Now uses: idx_tickets_user_time (not SCAN TABLE)
 ```
@@ -140,11 +155,13 @@ ORDER BY downloaded_at DESC;
 Before deploying to production:
 
 1. **Backup existing database**
+
    ```bash
    npm run db:backup
    ```
 
 2. **Test restore procedure**
+
    ```bash
    cp data/backups/app-TIMESTAMP.db data/app-restored.db
    DB_PATH=./data/app-restored.db npm run api
@@ -152,6 +169,7 @@ Before deploying to production:
    ```
 
 3. **Schedule automated backups** (cron/systemd timer)
+
    ```bash
    0 2 * * * cd /app && npm run db:backup
    ```
@@ -203,4 +221,3 @@ A: Yes! SQLite's `.backup()` is online (no downtime)
 ---
 
 **Review completed and critical fixes applied. Database is now hardened for production use.**
-

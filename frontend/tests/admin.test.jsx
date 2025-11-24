@@ -61,12 +61,20 @@ describe('Admin UI flows', () => {
 
   it('renders the admin user list and surfaces login errors', async () => {
     setAdminSession();
-    apiMocks.getProfile.mockResolvedValue({ data: { user: { id: 'admin-1', email: 'admin@example.com', role: 'admin' } } });
+    apiMocks.getProfile.mockResolvedValue({
+      data: { user: { id: 'admin-1', email: 'admin@example.com', role: 'admin' } }
+    });
     apiMocks.getUsers.mockResolvedValue({
       data: {
         users: [
           {
-            user: { id: 'user-1', email: 'user@example.com', role: 'user', is_active: true, auto_download_enabled: true },
+            user: {
+              id: 'user-1',
+              email: 'user@example.com',
+              role: 'user',
+              is_active: true,
+              auto_download_enabled: true
+            },
             credential_status: {
               last_login_status: 'error',
               last_login_error: 'Invalid credentials',
@@ -92,7 +100,9 @@ describe('Admin UI flows', () => {
 
   it('updates user automation flags from the admin detail page', async () => {
     setAdminSession();
-    apiMocks.getProfile.mockResolvedValue({ data: { user: { id: 'admin-1', email: 'admin@example.com', role: 'admin' } } });
+    apiMocks.getProfile.mockResolvedValue({
+      data: { user: { id: 'admin-1', email: 'admin@example.com', role: 'admin' } }
+    });
     apiMocks.getUser.mockResolvedValue({
       data: {
         user: {

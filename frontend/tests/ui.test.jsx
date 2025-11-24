@@ -65,7 +65,9 @@ describe('Frontend UI flows', () => {
   it('renders ticket history rows on the dashboard', async () => {
     setAuthenticatedUser();
     mocks.getProfileMock.mockResolvedValue({ data: { user: { id: '1', email: 'user@example.com' } } });
-    mocks.getCredentialsMock.mockResolvedValue({ data: { credential: { uk_number_masked: '******1234', has_password: true } } });
+    mocks.getCredentialsMock.mockResolvedValue({
+      data: { credential: { uk_number_masked: '******1234', has_password: true } }
+    });
     mocks.getTicketsMock.mockResolvedValue({
       data: {
         tickets: [
@@ -98,7 +100,9 @@ describe('Frontend UI flows', () => {
 
   it('updates credentials and auto-download preference', async () => {
     setAuthenticatedUser();
-    mocks.getProfileMock.mockResolvedValue({ data: { user: { id: '1', email: 'user@example.com', auto_download_enabled: true } } });
+    mocks.getProfileMock.mockResolvedValue({
+      data: { user: { id: '1', email: 'user@example.com', auto_download_enabled: true } }
+    });
     mocks.getCredentialsMock.mockResolvedValue({
       data: {
         user: { auto_download_enabled: true },

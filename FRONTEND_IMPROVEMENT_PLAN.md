@@ -17,15 +17,15 @@ Purpose: document how the persistent backend should run, what controls exist for
 
 ## Supported flows
 
-1) **Persistent polling + queueing**
+1. **Persistent polling + queueing**
    - Keep the server process running; the polling loop should periodically touch the base ticket page and enqueue per-user jobs.
    - Jobs run sequentially today; future iterations can add concurrency controls.
 
-2) **Admin controls**
+2. **Admin controls**
    - Trigger a full run via `/downloads`.
    - Enable/disable users in the database and manage device presets to influence subsequent jobs.
 
-3) **User controls**
+3. **User controls**
    - Maintain credentials and per-user device profiles via the backend endpoints.
    - Request a refresh for their own ticket to place a job on the queue.
 
@@ -33,6 +33,7 @@ Purpose: document how the persistent backend should run, what controls exist for
 
 - Keep this file aligned with backend changes; remove any references to UI-level workflows until a frontend is reintroduced.
 - Add API examples (curl or HTTPie) once the polling loop cadence and job lifecycle endpoints are finalized.
+
 # Frontend documentation archive
 
 The previous "Frontend Improvement Plan" outlined a prospective UI that has not been implemented. That planning note now lives at `legacy/FRONTEND_IMPROVEMENT_PLAN_ARCHIVED.md` for historical reference only.

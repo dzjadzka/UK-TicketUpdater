@@ -33,8 +33,7 @@ const DEVICE_PROFILES = {
   },
   desktop_firefox: {
     name: 'desktop_firefox',
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0',
     viewport: { width: 1440, height: 900 },
     locale: 'de-DE,de',
     timezone: 'Europe/Berlin'

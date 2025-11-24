@@ -38,9 +38,7 @@ describe('job handlers', () => {
 
       await handlers.checkBaseTicket();
 
-      expect(setBaseTicketState).toHaveBeenCalledWith(
-        expect.objectContaining({ baseTicketHash: 'def' })
-      );
+      expect(setBaseTicketState).toHaveBeenCalledWith(expect.objectContaining({ baseTicketHash: 'def' }));
       expect(queue.enqueue).toHaveBeenCalledWith('downloadTicketsForAllUsers');
     });
   });
@@ -80,7 +78,11 @@ describe('job handlers', () => {
           geolocation_longitude: 20
         })
       };
-      const profile = buildDeviceProfile({ deviceProfile: '123e4567-e89b-12d3-a456-426614174000', id: 'u1' }, db, 'desktop_chrome');
+      const profile = buildDeviceProfile(
+        { deviceProfile: '123e4567-e89b-12d3-a456-426614174000', id: 'u1' },
+        db,
+        'desktop_chrome'
+      );
 
       expect(profile.proxy_url).toBe('http://proxy.local:8080');
       expect(profile.geolocation_latitude).toBe(10);

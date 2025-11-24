@@ -8,14 +8,15 @@ This document provides a comprehensive information architecture for the UK-Ticke
 
 ### User Roles
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| **User** | Standard registered user | - View/update own profile and credentials<br>- Manage UK ticket credentials<br>- Create/manage custom device profiles<br>- View own ticket history<br>- Download own tickets<br>- Opt in/out of auto-download |
-| **Admin** | System administrator | - All user permissions<br>- View all users<br>- Manage user accounts (enable/disable/delete)<br>- Update user credentials<br>- Generate invite tokens<br>- Trigger manual download jobs<br>- View system observability data<br>- Access job logs and error reports |
+| Role      | Description              | Permissions                                                                                                                                                                                                                                                        |
+| --------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **User**  | Standard registered user | - View/update own profile and credentials<br>- Manage UK ticket credentials<br>- Create/manage custom device profiles<br>- View own ticket history<br>- Download own tickets<br>- Opt in/out of auto-download                                                      |
+| **Admin** | System administrator     | - All user permissions<br>- View all users<br>- Manage user accounts (enable/disable/delete)<br>- Update user credentials<br>- Generate invite tokens<br>- Trigger manual download jobs<br>- View system observability data<br>- Access job logs and error reports |
 
 ### Core User Flows
 
 #### 1. New User Registration Flow
+
 ```
 1. Admin generates invite token → /admin/invites (POST)
 2. User receives invite link with token
@@ -28,6 +29,7 @@ This document provides a comprehensive information architecture for the UK-Ticke
 ```
 
 #### 2. Existing User Login Flow
+
 ```
 1. User visits login page → /login
 2. User enters email and password
@@ -37,6 +39,7 @@ This document provides a comprehensive information architecture for the UK-Ticke
 ```
 
 #### 3. Ticket Download Flow
+
 ```
 User initiated:
 1. User navigates to dashboard → /dashboard
@@ -54,6 +57,7 @@ Automatic:
 ```
 
 #### 4. Credential Management Flow
+
 ```
 1. User navigates to settings → /settings
 2. User views masked UK credentials → /me/credentials (GET)
@@ -64,6 +68,7 @@ Automatic:
 ```
 
 #### 5. Device Profile Management Flow
+
 ```
 1. User navigates to device profiles → /device-profiles
 2. User views list of custom profiles → /device-profiles (GET)
@@ -74,6 +79,7 @@ Automatic:
 ```
 
 #### 6. Admin User Management Flow
+
 ```
 1. Admin navigates to admin overview → /admin/overview
 2. Admin views system stats and recent errors → /admin/overview (GET)
@@ -86,6 +92,7 @@ Automatic:
 ```
 
 #### 7. Admin Invite Management Flow
+
 ```
 1. Admin navigates to admin overview → /admin/overview
 2. Admin clicks "Create Invite"
@@ -97,6 +104,7 @@ Automatic:
 ```
 
 #### 8. Admin Job Trigger Flow
+
 ```
 1. Admin navigates to admin overview → /admin/overview
 2. Admin clicks "Check Base Ticket Now" → /admin/jobs/check-base-ticket (POST)
@@ -111,159 +119,165 @@ Automatic:
 
 ### Public Pages (No Authentication Required)
 
-| Page | URL | Purpose | API Endpoints | Key UI Elements | States |
-|------|-----|---------|--------------|-----------------|--------|
-| **Login** | `/login` | User authentication | `POST /auth/login` | - Email input<br>- Password input<br>- Login button<br>- "Register" link | **Loading**: Disable form, show spinner<br>**Error**: Show error message (invalid credentials, account disabled)<br>**Success**: Redirect to dashboard |
+| Page         | URL                              | Purpose                                 | API Endpoints         | Key UI Elements                                                                                                                                 | States                                                                                                                                                                     |
+| ------------ | -------------------------------- | --------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Login**    | `/login`                         | User authentication                     | `POST /auth/login`    | - Email input<br>- Password input<br>- Login button<br>- "Register" link                                                                        | **Loading**: Disable form, show spinner<br>**Error**: Show error message (invalid credentials, account disabled)<br>**Success**: Redirect to dashboard                     |
 | **Register** | `/register?token=<invite_token>` | New user registration with invite token | `POST /auth/register` | - Invite token (pre-filled from URL)<br>- Email input<br>- Password input<br>- Locale selector<br>- Auto-download checkbox<br>- Register button | **Loading**: Disable form, show spinner<br>**Error**: Show error message (invalid token, token expired, email exists, weak password)<br>**Success**: Redirect to dashboard |
 
 ### User Pages (Authentication Required)
 
-| Page | URL | Purpose | API Endpoints | Key UI Elements | States |
-|------|-----|---------|--------------|-----------------|--------|
-| **Dashboard** | `/dashboard` | User home page with ticket status and quick actions | `GET /me`<br>`GET /me/credentials`<br>`GET /me/tickets` | - Welcome message with user email<br>- Credential status card (configured/not configured)<br>- Latest ticket info (version, date)<br>- Auto-download status indicator<br>- Quick action buttons (Update Credentials, View Tickets)<br>- Recent activity feed | **Loading**: Show skeleton loaders<br>**Empty**: Show onboarding prompts if no credentials<br>**Error**: Show error banner with retry<br>**Success**: Display all data with real-time status |
-| **Settings** | `/settings` | Manage UK credentials and auto-download | `GET /me/credentials`<br>`PUT /me/credentials`<br>`DELETE /me` | - Profile section (email, locale, role)<br>- UK credentials form (number masked, password hidden)<br>- Auto-download toggle<br>- Save button<br>- Last login status (success/error)<br>- Delete account button (with confirmation) | **Loading**: Disable form during save<br>**Empty**: Show "No credentials" if not configured<br>**Error**: Show validation/save errors inline<br>**Success**: Show success toast, update masked values |
-| **Device Profiles** | `/device-profiles` | Create and manage custom device profiles | `GET /device-profiles`<br>`POST /device-profiles`<br>`PUT /device-profiles/:id`<br>`DELETE /device-profiles/:id` | - Preset profiles info section<br>- Custom profiles list table<br>- "Create Profile" button<br>- Profile form modal (name, user agent, viewport, locale, timezone, proxy, geolocation)<br>- Edit/Delete actions per profile | **Loading**: Show table skeleton<br>**Empty**: Show "No custom profiles" message with create CTA<br>**Error**: Show error in modal for validation/save failures<br>**Success**: Update table, close modal, show success toast |
-| **Tickets** | `/tickets` (redirects to `/me/tickets`) | View ticket download history | `GET /me/tickets` | - Tickets table (version, date, status)<br>- Download links for successful tickets<br>- Error messages for failed downloads<br>- Filter by status (all/success/error)<br>- Sort by date<br>- Pagination | **Loading**: Show table skeleton<br>**Empty**: Show "No tickets yet" message<br>**Error**: Show error banner<br>**Success**: Display paginated table with filters |
-| **Profile** | `/profile` (or integrated in `/settings`) | View user profile information | `GET /me` | - Email (read-only)<br>- Role badge (user/admin)<br>- Locale (read-only, from JWT)<br>- Created date (read-only)<br>- Account status (read-only)<br>- Note: Editable fields are in Settings page | **Loading**: Show skeleton<br>**Error**: Show error banner<br>**Success**: Display profile data |
+| Page                | URL                                       | Purpose                                             | API Endpoints                                                                                                    | Key UI Elements                                                                                                                                                                                                                                              | States                                                                                                                                                                                                                        |
+| ------------------- | ----------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**       | `/dashboard`                              | User home page with ticket status and quick actions | `GET /me`<br>`GET /me/credentials`<br>`GET /me/tickets`                                                          | - Welcome message with user email<br>- Credential status card (configured/not configured)<br>- Latest ticket info (version, date)<br>- Auto-download status indicator<br>- Quick action buttons (Update Credentials, View Tickets)<br>- Recent activity feed | **Loading**: Show skeleton loaders<br>**Empty**: Show onboarding prompts if no credentials<br>**Error**: Show error banner with retry<br>**Success**: Display all data with real-time status                                  |
+| **Settings**        | `/settings`                               | Manage UK credentials and auto-download             | `GET /me/credentials`<br>`PUT /me/credentials`<br>`DELETE /me`                                                   | - Profile section (email, locale, role)<br>- UK credentials form (number masked, password hidden)<br>- Auto-download toggle<br>- Save button<br>- Last login status (success/error)<br>- Delete account button (with confirmation)                           | **Loading**: Disable form during save<br>**Empty**: Show "No credentials" if not configured<br>**Error**: Show validation/save errors inline<br>**Success**: Show success toast, update masked values                         |
+| **Device Profiles** | `/device-profiles`                        | Create and manage custom device profiles            | `GET /device-profiles`<br>`POST /device-profiles`<br>`PUT /device-profiles/:id`<br>`DELETE /device-profiles/:id` | - Preset profiles info section<br>- Custom profiles list table<br>- "Create Profile" button<br>- Profile form modal (name, user agent, viewport, locale, timezone, proxy, geolocation)<br>- Edit/Delete actions per profile                                  | **Loading**: Show table skeleton<br>**Empty**: Show "No custom profiles" message with create CTA<br>**Error**: Show error in modal for validation/save failures<br>**Success**: Update table, close modal, show success toast |
+| **Tickets**         | `/tickets` (redirects to `/me/tickets`)   | View ticket download history                        | `GET /me/tickets`                                                                                                | - Tickets table (version, date, status)<br>- Download links for successful tickets<br>- Error messages for failed downloads<br>- Filter by status (all/success/error)<br>- Sort by date<br>- Pagination                                                      | **Loading**: Show table skeleton<br>**Empty**: Show "No tickets yet" message<br>**Error**: Show error banner<br>**Success**: Display paginated table with filters                                                             |
+| **Profile**         | `/profile` (or integrated in `/settings`) | View user profile information                       | `GET /me`                                                                                                        | - Email (read-only)<br>- Role badge (user/admin)<br>- Locale (read-only, from JWT)<br>- Created date (read-only)<br>- Account status (read-only)<br>- Note: Editable fields are in Settings page                                                             | **Loading**: Show skeleton<br>**Error**: Show error banner<br>**Success**: Display profile data                                                                                                                               |
 
 ### Admin Pages (Admin Role Required)
 
-| Page | URL | Purpose | API Endpoints | Key UI Elements | States |
-|------|-----|---------|--------------|-----------------|--------|
-| **Admin Overview** | `/admin/overview` | System-wide dashboard with stats and quick actions | `GET /admin/overview`<br>`GET /admin/observability/errors`<br>`GET /admin/observability/job-summary`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket`<br>`POST /admin/jobs/check-base-ticket`<br>`POST /admin/jobs/download-all` | - User count cards (total, active, disabled, deleted)<br>- Login errors count<br>- Base ticket state (hash, last checked)<br>- Queue metrics (pending, running, completed, failed)<br>- Recent errors list (limit 10)<br>- Job summary (last 24h)<br>- Action buttons (Check Base Ticket, Download All, Create Invite)<br>- Quick links (Users, Invites) | **Loading**: Show skeleton for each section<br>**Error**: Show error per section (others still load)<br>**Success**: Display all metrics with auto-refresh option |
-| **Admin Users** | `/admin/users` | List and search all users | `GET /admin/users?q=<query>&status=<status>&errors=<true/false>` | - Search bar (email/ID)<br>- Status filter tabs (Active, Disabled, Deleted, All)<br>- Show errors only checkbox<br>- Users table (email, role, status, auto-download, last login status, created date)<br>- Actions per user (View, Edit, Disable, Delete)<br>- Pagination | **Loading**: Show table skeleton<br>**Empty**: Show "No users found" for filters<br>**Error**: Show error banner<br>**Success**: Display filtered/paginated table |
-| **Admin User Detail** | `/admin/users/:id` | Full user profile and management | `GET /admin/users/:id`<br>`PUT /admin/users/:id`<br>`DELETE /admin/users/:id`<br>`GET /tickets/:userId` | - User profile card (email, role, status, dates)<br>- Credential summary (masked UK number, last login status/error/date)<br>- Latest ticket info (version, date, status)<br>- Ticket statistics (total downloads, success rate)<br>- Full ticket history table<br>- Edit forms (UK credentials, auto-download, is_active)<br>- Action buttons (Save, Disable Account, Delete Account) | **Loading**: Show skeleton for sections<br>**Error**: Show error per section<br>**Success**: Display all data with inline editing |
-| **Admin Invites** | `/admin/invites` (or as modal/section in `/admin/overview`) | Manage invite tokens | `GET /admin/invites`<br>`POST /admin/invites`<br>`DELETE /admin/invites/:token` | - "Create Invite" button<br>- Invite creation form (expiration hours)<br>- Invites table (token, created by, expires at, used by, created date)<br>- Copy link button per invite<br>- Delete button per unused invite<br>- Status indicator (active/expired/used)<br>- Note: Can be implemented as standalone page or integrated in Admin Overview | **Loading**: Show table skeleton during fetch<br>**Empty**: Show "No invites" message<br>**Error**: Show error in form/delete action<br>**Success**: Update table, show success toast with copy-to-clipboard |
-| **Admin Observability** | `/admin/observability` | Detailed system monitoring and job logs | `GET /admin/observability/errors?limit=<n>`<br>`GET /admin/observability/job-summary?hours=<n>`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket` | - Time range selector (1h, 6h, 24h, 7d)<br>- Refresh button/auto-refresh toggle<br>- Error log table (timestamp, user, message, type)<br>- Job summary cards (total, success, failed, retries)<br>- Queue metrics (backend, pending, running, completed, failed, retries)<br>- Base ticket state (hash, effective from, last checked)<br>- Charts/graphs for job trends | **Loading**: Show section skeletons<br>**Empty**: Show "No errors/jobs in timeframe"<br>**Error**: Show error per section<br>**Success**: Display all data with real-time updates option |
+| Page                    | URL                                                         | Purpose                                            | API Endpoints                                                                                                                                                                                                                                                 | Key UI Elements                                                                                                                                                                                                                                                                                                                                                                        | States                                                                                                                                                                                                       |
+| ----------------------- | ----------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Admin Overview**      | `/admin/overview`                                           | System-wide dashboard with stats and quick actions | `GET /admin/overview`<br>`GET /admin/observability/errors`<br>`GET /admin/observability/job-summary`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket`<br>`POST /admin/jobs/check-base-ticket`<br>`POST /admin/jobs/download-all` | - User count cards (total, active, disabled, deleted)<br>- Login errors count<br>- Base ticket state (hash, last checked)<br>- Queue metrics (pending, running, completed, failed)<br>- Recent errors list (limit 10)<br>- Job summary (last 24h)<br>- Action buttons (Check Base Ticket, Download All, Create Invite)<br>- Quick links (Users, Invites)                               | **Loading**: Show skeleton for each section<br>**Error**: Show error per section (others still load)<br>**Success**: Display all metrics with auto-refresh option                                            |
+| **Admin Users**         | `/admin/users`                                              | List and search all users                          | `GET /admin/users?q=<query>&status=<status>&errors=<true/false>`                                                                                                                                                                                              | - Search bar (email/ID)<br>- Status filter tabs (Active, Disabled, Deleted, All)<br>- Show errors only checkbox<br>- Users table (email, role, status, auto-download, last login status, created date)<br>- Actions per user (View, Edit, Disable, Delete)<br>- Pagination                                                                                                             | **Loading**: Show table skeleton<br>**Empty**: Show "No users found" for filters<br>**Error**: Show error banner<br>**Success**: Display filtered/paginated table                                            |
+| **Admin User Detail**   | `/admin/users/:id`                                          | Full user profile and management                   | `GET /admin/users/:id`<br>`PUT /admin/users/:id`<br>`DELETE /admin/users/:id`<br>`GET /tickets/:userId`                                                                                                                                                       | - User profile card (email, role, status, dates)<br>- Credential summary (masked UK number, last login status/error/date)<br>- Latest ticket info (version, date, status)<br>- Ticket statistics (total downloads, success rate)<br>- Full ticket history table<br>- Edit forms (UK credentials, auto-download, is_active)<br>- Action buttons (Save, Disable Account, Delete Account) | **Loading**: Show skeleton for sections<br>**Error**: Show error per section<br>**Success**: Display all data with inline editing                                                                            |
+| **Admin Invites**       | `/admin/invites` (or as modal/section in `/admin/overview`) | Manage invite tokens                               | `GET /admin/invites`<br>`POST /admin/invites`<br>`DELETE /admin/invites/:token`                                                                                                                                                                               | - "Create Invite" button<br>- Invite creation form (expiration hours)<br>- Invites table (token, created by, expires at, used by, created date)<br>- Copy link button per invite<br>- Delete button per unused invite<br>- Status indicator (active/expired/used)<br>- Note: Can be implemented as standalone page or integrated in Admin Overview                                     | **Loading**: Show table skeleton during fetch<br>**Empty**: Show "No invites" message<br>**Error**: Show error in form/delete action<br>**Success**: Update table, show success toast with copy-to-clipboard |
+| **Admin Observability** | `/admin/observability`                                      | Detailed system monitoring and job logs            | `GET /admin/observability/errors?limit=<n>`<br>`GET /admin/observability/job-summary?hours=<n>`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket`                                                                                 | - Time range selector (1h, 6h, 24h, 7d)<br>- Refresh button/auto-refresh toggle<br>- Error log table (timestamp, user, message, type)<br>- Job summary cards (total, success, failed, retries)<br>- Queue metrics (backend, pending, running, completed, failed, retries)<br>- Base ticket state (hash, effective from, last checked)<br>- Charts/graphs for job trends                | **Loading**: Show section skeletons<br>**Empty**: Show "No errors/jobs in timeframe"<br>**Error**: Show error per section<br>**Success**: Display all data with real-time updates option                     |
 
 ### Shared Components
 
-| Component | Purpose | Props | States |
-|-----------|---------|-------|--------|
-| **Layout** | Main app layout with navigation | `children`, `hideNav` (for login/register) | - Show user menu with logout<br>- Highlight active nav item<br>- Show admin nav section only for admins |
-| **ProtectedRoute** | Route wrapper for authentication check | `children`, `adminOnly` | - Redirect to /login if not authenticated<br>- Show 403 if adminOnly and not admin |
-| **LoadingSpinner** | Reusable loading indicator | `size`, `message` | - Show/hide based on loading state |
-| **ErrorBanner** | Display error messages | `error`, `onRetry`, `onDismiss` | - Show error message with retry option<br>- Auto-dismiss after timeout |
-| **SuccessToast** | Show success feedback | `message`, `duration` | - Slide in from top/corner<br>- Auto-dismiss after duration |
-| **ConfirmDialog** | Confirmation modal for destructive actions | `title`, `message`, `onConfirm`, `onCancel` | - Show modal overlay<br>- Disable confirm during action |
-| **DataTable** | Reusable table with sorting/filtering/pagination | `columns`, `data`, `onSort`, `onFilter`, `onPageChange` | - Show loading skeleton<br>- Show empty state<br>- Handle pagination |
-| **FormField** | Reusable form input with validation | `label`, `type`, `value`, `onChange`, `error`, `required` | - Show validation errors<br>- Show required indicator |
+| Component          | Purpose                                          | Props                                                     | States                                                                                                  |
+| ------------------ | ------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Layout**         | Main app layout with navigation                  | `children`, `hideNav` (for login/register)                | - Show user menu with logout<br>- Highlight active nav item<br>- Show admin nav section only for admins |
+| **ProtectedRoute** | Route wrapper for authentication check           | `children`, `adminOnly`                                   | - Redirect to /login if not authenticated<br>- Show 403 if adminOnly and not admin                      |
+| **LoadingSpinner** | Reusable loading indicator                       | `size`, `message`                                         | - Show/hide based on loading state                                                                      |
+| **ErrorBanner**    | Display error messages                           | `error`, `onRetry`, `onDismiss`                           | - Show error message with retry option<br>- Auto-dismiss after timeout                                  |
+| **SuccessToast**   | Show success feedback                            | `message`, `duration`                                     | - Slide in from top/corner<br>- Auto-dismiss after duration                                             |
+| **ConfirmDialog**  | Confirmation modal for destructive actions       | `title`, `message`, `onConfirm`, `onCancel`               | - Show modal overlay<br>- Disable confirm during action                                                 |
+| **DataTable**      | Reusable table with sorting/filtering/pagination | `columns`, `data`, `onSort`, `onFilter`, `onPageChange`   | - Show loading skeleton<br>- Show empty state<br>- Handle pagination                                    |
+| **FormField**      | Reusable form input with validation              | `label`, `type`, `value`, `onChange`, `error`, `required` | - Show validation errors<br>- Show required indicator                                                   |
 
 ## API Endpoint Summary
 
 ### Authentication & User Management
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/auth/register` | POST | None | Register new user with invite token |
-| `/auth/login` | POST | None | Login with email/password |
-| `/auth/logout` | POST | JWT | Logout (client-side token removal) |
-| `/me` | GET | JWT | Get current user profile |
-| `/me/credentials` | GET | JWT | Get current user's UK credentials (masked) |
-| `/me/credentials` | PUT | JWT | Update UK credentials and auto-download |
-| `/me/tickets` | GET | JWT | List current user's tickets |
-| `/me` | DELETE | JWT | Soft delete current user account |
+| Endpoint          | Method | Auth | Description                                |
+| ----------------- | ------ | ---- | ------------------------------------------ |
+| `/auth/register`  | POST   | None | Register new user with invite token        |
+| `/auth/login`     | POST   | None | Login with email/password                  |
+| `/auth/logout`    | POST   | JWT  | Logout (client-side token removal)         |
+| `/me`             | GET    | JWT  | Get current user profile                   |
+| `/me/credentials` | GET    | JWT  | Get current user's UK credentials (masked) |
+| `/me/credentials` | PUT    | JWT  | Update UK credentials and auto-download    |
+| `/me/tickets`     | GET    | JWT  | List current user's tickets                |
+| `/me`             | DELETE | JWT  | Soft delete current user account           |
 
 ### Device Profiles
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/device-profiles` | GET | JWT | List user's custom device profiles |
-| `/device-profiles` | POST | JWT | Create new device profile |
-| `/device-profiles/:id` | PUT | JWT | Update device profile |
-| `/device-profiles/:id` | DELETE | JWT | Delete device profile |
+| Endpoint               | Method | Auth | Description                        |
+| ---------------------- | ------ | ---- | ---------------------------------- |
+| `/device-profiles`     | GET    | JWT  | List user's custom device profiles |
+| `/device-profiles`     | POST   | JWT  | Create new device profile          |
+| `/device-profiles/:id` | PUT    | JWT  | Update device profile              |
+| `/device-profiles/:id` | DELETE | JWT  | Delete device profile              |
 
 ### Admin - User Management
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/admin/users` | GET | JWT + Admin | List/search users with filters |
-| `/admin/users/:id` | GET | JWT + Admin | Get full user details |
-| `/admin/users/:id` | PUT | JWT + Admin | Update user credentials/flags |
-| `/admin/users/:id` | DELETE | JWT + Admin | Soft delete user |
+| Endpoint           | Method | Auth        | Description                    |
+| ------------------ | ------ | ----------- | ------------------------------ |
+| `/admin/users`     | GET    | JWT + Admin | List/search users with filters |
+| `/admin/users/:id` | GET    | JWT + Admin | Get full user details          |
+| `/admin/users/:id` | PUT    | JWT + Admin | Update user credentials/flags  |
+| `/admin/users/:id` | DELETE | JWT + Admin | Soft delete user               |
 
 ### Admin - Invite Management
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/admin/invites` | POST | JWT + Admin | Generate new invite token |
-| `/admin/invites` | GET | JWT + Admin | List all invite tokens |
-| `/admin/invites/:token` | DELETE | JWT + Admin | Delete invite token |
+| Endpoint                | Method | Auth        | Description               |
+| ----------------------- | ------ | ----------- | ------------------------- |
+| `/admin/invites`        | POST   | JWT + Admin | Generate new invite token |
+| `/admin/invites`        | GET    | JWT + Admin | List all invite tokens    |
+| `/admin/invites/:token` | DELETE | JWT + Admin | Delete invite token       |
 
 ### Admin - Jobs & Operations
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/admin/jobs/check-base-ticket` | POST | JWT + Admin | Trigger base ticket check |
-| `/admin/jobs/download-all` | POST | JWT + Admin | Trigger download for all users |
-| `/admin/overview` | GET | JWT + Admin | Get system overview stats |
+| Endpoint                        | Method | Auth        | Description                    |
+| ------------------------------- | ------ | ----------- | ------------------------------ |
+| `/admin/jobs/check-base-ticket` | POST   | JWT + Admin | Trigger base ticket check      |
+| `/admin/jobs/download-all`      | POST   | JWT + Admin | Trigger download for all users |
+| `/admin/overview`               | GET    | JWT + Admin | Get system overview stats      |
 
 ### Admin - Observability
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/admin/observability/errors` | GET | JWT + Admin | Get recent errors (limit query param) |
-| `/admin/observability/job-summary` | GET | JWT + Admin | Get job summary (hours query param) |
-| `/admin/observability/queue` | GET | JWT + Admin | Get queue metrics |
-| `/admin/observability/base-ticket` | GET | JWT + Admin | Get base ticket state |
+| Endpoint                           | Method | Auth        | Description                           |
+| ---------------------------------- | ------ | ----------- | ------------------------------------- |
+| `/admin/observability/errors`      | GET    | JWT + Admin | Get recent errors (limit query param) |
+| `/admin/observability/job-summary` | GET    | JWT + Admin | Get job summary (hours query param)   |
+| `/admin/observability/queue`       | GET    | JWT + Admin | Get queue metrics                     |
+| `/admin/observability/base-ticket` | GET    | JWT + Admin | Get base ticket state                 |
 
 ### Legacy/Admin Endpoints (Currently Admin-Only)
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/downloads` | POST | JWT + Admin | Trigger download for specific users |
-| `/history` | GET | JWT + Admin | Get download history (limit query param) |
-| `/tickets/:userId` | GET | JWT + Admin | Get tickets for specific user |
+| Endpoint           | Method | Auth        | Description                              |
+| ------------------ | ------ | ----------- | ---------------------------------------- |
+| `/downloads`       | POST   | JWT + Admin | Trigger download for specific users      |
+| `/history`         | GET    | JWT + Admin | Get download history (limit query param) |
+| `/tickets/:userId` | GET    | JWT + Admin | Get tickets for specific user            |
 
 ### Health & Metrics
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/health` | GET | None | Liveness check |
-| `/ready` | GET | None | Readiness check (DB + queue) |
-| `/metrics` | GET | None | Prometheus metrics |
+| Endpoint   | Method | Auth | Description                  |
+| ---------- | ------ | ---- | ---------------------------- |
+| `/health`  | GET    | None | Liveness check               |
+| `/ready`   | GET    | None | Readiness check (DB + queue) |
+| `/metrics` | GET    | None | Prometheus metrics           |
 
 ## UI States Reference
 
 ### Common States Across All Pages
 
-| State | Description | UI Treatment |
-|-------|-------------|--------------|
-| **Loading** | Data is being fetched or action is in progress | - Show skeleton loaders or spinners<br>- Disable interactive elements<br>- Show loading text |
-| **Empty** | No data available (first time or after filters) | - Show empty state illustration/icon<br>- Provide helpful message<br>- Show CTA to create/add data |
-| **Error** | Request failed or validation error | - Show error message with details<br>- Provide retry button<br>- Log error for debugging |
-| **Success** | Data loaded or action completed successfully | - Display data in appropriate format<br>- Show success toast for actions<br>- Enable all interactions |
+| State       | Description                                     | UI Treatment                                                                                          |
+| ----------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Loading** | Data is being fetched or action is in progress  | - Show skeleton loaders or spinners<br>- Disable interactive elements<br>- Show loading text          |
+| **Empty**   | No data available (first time or after filters) | - Show empty state illustration/icon<br>- Provide helpful message<br>- Show CTA to create/add data    |
+| **Error**   | Request failed or validation error              | - Show error message with details<br>- Provide retry button<br>- Log error for debugging              |
+| **Success** | Data loaded or action completed successfully    | - Display data in appropriate format<br>- Show success toast for actions<br>- Enable all interactions |
 
 ### Page-Specific States
 
 #### Dashboard States
+
 - **New User**: No credentials configured → Show onboarding card with setup CTA
 - **Credentials Configured, No Tickets**: Show "waiting for first download" message
 - **Auto-Download Disabled**: Show prompt to enable auto-download
 - **Recent Error**: Highlight last login error with fix suggestions
 
 #### Settings States
+
 - **First Time Setup**: Empty credentials → Show info about UK number/password
 - **Update Mode**: Existing credentials → Mask UK number, hide password, show last login status
 - **Save Success**: Show success message, update displayed values
 - **Delete Account Confirmation**: Show warning modal before deletion
 
 #### Device Profiles States
+
 - **No Custom Profiles**: Show preset info + create prompt
 - **Profile Form**: Validate fields in real-time, show examples for each field
 - **Delete Confirmation**: Show warning modal listing profile name
 
 #### Admin Users States
+
 - **Search Results**: Show count, highlight matching text
 - **Filter Applied**: Show active filter badge with clear option
 - **Errors Only**: Highlight users with login errors
 
 #### Admin User Detail States
+
 - **User Not Found**: Show 404 error with back link
 - **Deleted User**: Show warning banner, limit actions
 - **Inline Editing**: Show save/cancel buttons when form is dirty
 
 #### Admin Overview States
+
 - **Base Ticket Check Running**: Disable "Check Now" button, show progress
 - **Download All Running**: Disable button, show queued count
 - **No Recent Errors**: Show success message
@@ -271,9 +285,11 @@ Automatic:
 ## Implementation Status and Clarifications
 
 ### Current Implementation Status
+
 The frontend currently has a **partial implementation** of this architecture:
 
 **✅ Fully Implemented:**
+
 - Login and Register pages
 - Dashboard (basic version with credential status)
 - Settings page (credentials management with auto-download)
@@ -284,6 +300,7 @@ The frontend currently has a **partial implementation** of this architecture:
 - Protected routes (user and admin)
 
 **❌ Not Yet Implemented (Planned Features):**
+
 - Separate dedicated Tickets page (history shown in dashboard currently)
 - Standalone Profile page (profile data shown in Settings currently)
 - Dedicated Admin Invites page (invite functionality exists but may be integrated in Overview)
@@ -291,18 +308,22 @@ The frontend currently has a **partial implementation** of this architecture:
 - Advanced features: real-time updates, notifications, export functionality
 
 ### Design Flexibility
+
 This architecture document describes the **ideal state** of the UI. Some pages can be:
+
 - **Standalone pages**: Dedicated routes with full functionality
 - **Integrated sections**: Combined into existing pages to reduce navigation
 - **Modal dialogs**: Overlay forms for quick actions
 
 Examples:
+
 - **Tickets**: Can be standalone `/tickets` page OR integrated into dashboard
 - **Profile**: Can be standalone `/profile` page OR integrated into `/settings`
 - **Admin Invites**: Can be dedicated `/admin/invites` page OR modal/section in `/admin/overview`
 - **Admin Observability**: Can be dedicated `/admin/observability` page OR expanded metrics in `/admin/overview`
 
 The specific implementation approach should be decided based on:
+
 - User research and usage patterns
 - Navigation complexity
 - Screen real estate and responsive design considerations
@@ -310,6 +331,7 @@ The specific implementation approach should be decided based on:
 ## Notes for Implementation
 
 ### Authentication & Security
+
 - Store JWT in `localStorage` for persistence
 - Add token to all authenticated requests via axios interceptor
 - Redirect to `/login` on 401 responses
@@ -317,6 +339,7 @@ The specific implementation approach should be decided based on:
 - Implement CSRF protection for forms if needed
 
 ### User Experience
+
 - Use optimistic updates where appropriate (device profiles, settings)
 - Implement debounced search (300ms delay)
 - Add loading indicators for all async operations
@@ -325,6 +348,7 @@ The specific implementation approach should be decided based on:
 - Implement auto-refresh for dashboard/observability pages (every 30-60s)
 
 ### Accessibility
+
 - All forms must have proper labels and ARIA attributes
 - Error messages must be announced to screen readers
 - Keyboard navigation must work for all interactive elements
@@ -332,6 +356,7 @@ The specific implementation approach should be decided based on:
 - Focus indicators must be visible
 
 ### Performance
+
 - Lazy load admin pages (code splitting)
 - Implement virtual scrolling for large tables
 - Cache API responses where appropriate
@@ -339,6 +364,7 @@ The specific implementation approach should be decided based on:
 - Implement pagination for all lists (default 50 items per page)
 
 ### Mobile Responsiveness
+
 - All pages must be responsive (mobile-first approach)
 - Use hamburger menu for navigation on mobile
 - Tables should scroll horizontally or switch to card layout
@@ -346,6 +372,7 @@ The specific implementation approach should be decided based on:
 - Touch targets should be at least 44x44px
 
 ### Error Handling
+
 - Network errors: Show "Connection lost" message with retry
 - Validation errors: Show inline per field
 - Server errors: Show error code and user-friendly message
@@ -353,6 +380,7 @@ The specific implementation approach should be decided based on:
 - 404 Not Found: Show custom 404 page with navigation
 
 ### Future Enhancements
+
 - Add real-time updates via WebSocket or Server-Sent Events
 - Implement notification system for job completions
 - Add export functionality for ticket history (CSV/PDF)

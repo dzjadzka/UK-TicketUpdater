@@ -69,10 +69,7 @@ describe('index (DB-only)', () => {
 
       expect(createDatabase).toHaveBeenCalledWith(expect.stringContaining('test.db'));
       expect(mockDb.listActiveUsers).toHaveBeenCalled();
-      expect(downloadTickets).toHaveBeenCalledWith(
-        mockUsers,
-        expect.objectContaining({ db: mockDb })
-      );
+      expect(downloadTickets).toHaveBeenCalledWith(mockUsers, expect.objectContaining({ db: mockDb }));
       expect(mockDb.close).toHaveBeenCalled();
     });
 

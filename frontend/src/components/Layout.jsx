@@ -55,7 +55,7 @@ const Layout = () => {
           </div>
 
           <button
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             className="rounded-md p-2 text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:hidden"
@@ -71,9 +71,7 @@ const Layout = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   `text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'text-primary' 
-                      : 'text-muted-foreground hover:text-foreground'
+                    isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                   }`
                 }
               >
@@ -106,9 +104,7 @@ const Layout = () => {
                   onClick={() => setMenuOpen(false)}
                   className={({ isActive }) =>
                     `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'text-foreground hover:bg-accent'
+                      isActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'
                     }`
                   }
                 >
