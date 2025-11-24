@@ -20,6 +20,7 @@ RUN cd frontend && npm ci && npm run build
 # Copy source
 COPY src src
 COPY docs docs
+COPY scripts scripts
 COPY README.md README.md
 
 FROM node:18-alpine
@@ -31,10 +32,11 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/src src
 COPY --from=builder /app/docs docs
+COPY --from=builder /app/scripts scripts
 COPY --from=builder /app/frontend/dist frontend/dist
 COPY --from=builder /app/README.md README.md
 
 RUN mkdir -p data downloads config
 
 EXPOSE 3000
-CMD ["node", "src/server.js"]
+CMD ["node", "scripts/docker-entrypoint.js"]
