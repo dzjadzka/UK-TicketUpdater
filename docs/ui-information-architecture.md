@@ -41,7 +41,7 @@ This document provides a comprehensive information architecture for the UK-Ticke
 User initiated:
 1. User navigates to dashboard → /dashboard
 2. User clicks "Download Now" button
-3. System enqueues download job → /downloads (POST) [Admin only in current API]
+3. System enqueues download job → /downloads (POST) [Note: Currently admin-only endpoint; consider creating /me/download endpoint for user-initiated downloads]
 4. User sees "Queued" status
 5. Background job processes download
 6. User refreshes ticket history → /me/tickets (GET)
@@ -123,8 +123,8 @@ Automatic:
 | **Dashboard** | `/dashboard` | User home page with ticket status and quick actions | `GET /me`<br>`GET /me/credentials`<br>`GET /me/tickets` | - Welcome message with user email<br>- Credential status card (configured/not configured)<br>- Latest ticket info (version, date)<br>- Auto-download status indicator<br>- Quick action buttons (Update Credentials, View Tickets)<br>- Recent activity feed | **Loading**: Show skeleton loaders<br>**Empty**: Show onboarding prompts if no credentials<br>**Error**: Show error banner with retry<br>**Success**: Display all data with real-time status |
 | **Settings** | `/settings` | Manage UK credentials and auto-download | `GET /me/credentials`<br>`PUT /me/credentials`<br>`DELETE /me` | - Profile section (email, locale, role)<br>- UK credentials form (number masked, password hidden)<br>- Auto-download toggle<br>- Save button<br>- Last login status (success/error)<br>- Delete account button (with confirmation) | **Loading**: Disable form during save<br>**Empty**: Show "No credentials" if not configured<br>**Error**: Show validation/save errors inline<br>**Success**: Show success toast, update masked values |
 | **Device Profiles** | `/device-profiles` | Create and manage custom device profiles | `GET /device-profiles`<br>`POST /device-profiles`<br>`PUT /device-profiles/:id`<br>`DELETE /device-profiles/:id` | - Preset profiles info section<br>- Custom profiles list table<br>- "Create Profile" button<br>- Profile form modal (name, user agent, viewport, locale, timezone, proxy, geolocation)<br>- Edit/Delete actions per profile | **Loading**: Show table skeleton<br>**Empty**: Show "No custom profiles" message with create CTA<br>**Error**: Show error in modal for validation/save failures<br>**Success**: Update table, close modal, show success toast |
-| **Tickets** | `/tickets` or `/me/tickets` | View ticket download history | `GET /me/tickets` | - Tickets table (version, date, status)<br>- Download links for successful tickets<br>- Error messages for failed downloads<br>- Filter by status (all/success/error)<br>- Sort by date<br>- Pagination | **Loading**: Show table skeleton<br>**Empty**: Show "No tickets yet" message<br>**Error**: Show error banner<br>**Success**: Display paginated table with filters |
-| **Profile** | `/profile` or integrated in `/settings` | View and update user profile | `GET /me`<br>`PUT /me` (if profile editing is implemented) | - Email (read-only)<br>- Role badge (user/admin)<br>- Locale selector<br>- Created date<br>- Account status | **Loading**: Show skeleton<br>**Error**: Show error banner<br>**Success**: Display profile data |
+| **Tickets** | `/tickets` (redirects to `/me/tickets`) | View ticket download history | `GET /me/tickets` | - Tickets table (version, date, status)<br>- Download links for successful tickets<br>- Error messages for failed downloads<br>- Filter by status (all/success/error)<br>- Sort by date<br>- Pagination | **Loading**: Show table skeleton<br>**Empty**: Show "No tickets yet" message<br>**Error**: Show error banner<br>**Success**: Display paginated table with filters |
+| **Profile** | `/profile` (or integrated in `/settings`) | View user profile information | `GET /me` | - Email (read-only)<br>- Role badge (user/admin)<br>- Locale (read-only, from JWT)<br>- Created date (read-only)<br>- Account status (read-only)<br>- Note: Editable fields are in Settings page | **Loading**: Show skeleton<br>**Error**: Show error banner<br>**Success**: Display profile data |
 
 ### Admin Pages (Admin Role Required)
 
@@ -133,7 +133,7 @@ Automatic:
 | **Admin Overview** | `/admin/overview` | System-wide dashboard with stats and quick actions | `GET /admin/overview`<br>`GET /admin/observability/errors`<br>`GET /admin/observability/job-summary`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket`<br>`POST /admin/jobs/check-base-ticket`<br>`POST /admin/jobs/download-all` | - User count cards (total, active, disabled, deleted)<br>- Login errors count<br>- Base ticket state (hash, last checked)<br>- Queue metrics (pending, running, completed, failed)<br>- Recent errors list (limit 10)<br>- Job summary (last 24h)<br>- Action buttons (Check Base Ticket, Download All, Create Invite)<br>- Quick links (Users, Invites) | **Loading**: Show skeleton for each section<br>**Error**: Show error per section (others still load)<br>**Success**: Display all metrics with auto-refresh option |
 | **Admin Users** | `/admin/users` | List and search all users | `GET /admin/users?q=<query>&status=<status>&errors=<true/false>` | - Search bar (email/ID)<br>- Status filter tabs (Active, Disabled, Deleted, All)<br>- Show errors only checkbox<br>- Users table (email, role, status, auto-download, last login status, created date)<br>- Actions per user (View, Edit, Disable, Delete)<br>- Pagination | **Loading**: Show table skeleton<br>**Empty**: Show "No users found" for filters<br>**Error**: Show error banner<br>**Success**: Display filtered/paginated table |
 | **Admin User Detail** | `/admin/users/:id` | Full user profile and management | `GET /admin/users/:id`<br>`PUT /admin/users/:id`<br>`DELETE /admin/users/:id`<br>`GET /tickets/:userId` | - User profile card (email, role, status, dates)<br>- Credential summary (masked UK number, last login status/error/date)<br>- Latest ticket info (version, date, status)<br>- Ticket statistics (total downloads, success rate)<br>- Full ticket history table<br>- Edit forms (UK credentials, auto-download, is_active)<br>- Action buttons (Save, Disable Account, Delete Account) | **Loading**: Show skeleton for sections<br>**Error**: Show error per section<br>**Success**: Display all data with inline editing |
-| **Admin Invites** | `/admin/invites` or modal in `/admin/overview` | Manage invite tokens | `GET /admin/invites`<br>`POST /admin/invites`<br>`DELETE /admin/invites/:token` | - "Create Invite" button<br>- Invite creation form (expiration hours)<br>- Invites table (token, created by, expires at, used by, created date)<br>- Copy link button per invite<br>- Delete button per unused invite<br>- Status indicator (active/expired/used) | **Loading**: Show table skeleton during fetch<br>**Empty**: Show "No invites" message<br>**Error**: Show error in form/delete action<br>**Success**: Update table, show success toast with copy-to-clipboard |
+| **Admin Invites** | `/admin/invites` (or as modal/section in `/admin/overview`) | Manage invite tokens | `GET /admin/invites`<br>`POST /admin/invites`<br>`DELETE /admin/invites/:token` | - "Create Invite" button<br>- Invite creation form (expiration hours)<br>- Invites table (token, created by, expires at, used by, created date)<br>- Copy link button per invite<br>- Delete button per unused invite<br>- Status indicator (active/expired/used)<br>- Note: Can be implemented as standalone page or integrated in Admin Overview | **Loading**: Show table skeleton during fetch<br>**Empty**: Show "No invites" message<br>**Error**: Show error in form/delete action<br>**Success**: Update table, show success toast with copy-to-clipboard |
 | **Admin Observability** | `/admin/observability` | Detailed system monitoring and job logs | `GET /admin/observability/errors?limit=<n>`<br>`GET /admin/observability/job-summary?hours=<n>`<br>`GET /admin/observability/queue`<br>`GET /admin/observability/base-ticket` | - Time range selector (1h, 6h, 24h, 7d)<br>- Refresh button/auto-refresh toggle<br>- Error log table (timestamp, user, message, type)<br>- Job summary cards (total, success, failed, retries)<br>- Queue metrics (backend, pending, running, completed, failed, retries)<br>- Base ticket state (hash, effective from, last checked)<br>- Charts/graphs for job trends | **Loading**: Show section skeletons<br>**Empty**: Show "No errors/jobs in timeframe"<br>**Error**: Show error per section<br>**Success**: Display all data with real-time updates option |
 
 ### Shared Components
@@ -267,6 +267,45 @@ Automatic:
 - **Base Ticket Check Running**: Disable "Check Now" button, show progress
 - **Download All Running**: Disable button, show queued count
 - **No Recent Errors**: Show success message
+
+## Implementation Status and Clarifications
+
+### Current Implementation Status
+The frontend currently has a **partial implementation** of this architecture:
+
+**✅ Fully Implemented:**
+- Login and Register pages
+- Dashboard (basic version with credential status)
+- Settings page (credentials management with auto-download)
+- Device Profiles (full CRUD operations)
+- Admin Overview (system stats and job triggers)
+- Admin Users (list and detail views)
+- Authentication flow with JWT
+- Protected routes (user and admin)
+
+**❌ Not Yet Implemented (Planned Features):**
+- Separate dedicated Tickets page (history shown in dashboard currently)
+- Standalone Profile page (profile data shown in Settings currently)
+- Dedicated Admin Invites page (invite functionality exists but may be integrated in Overview)
+- Comprehensive Admin Observability dashboard (basic metrics in Overview)
+- Advanced features: real-time updates, notifications, export functionality
+
+### Design Flexibility
+This architecture document describes the **ideal state** of the UI. Some pages can be:
+- **Standalone pages**: Dedicated routes with full functionality
+- **Integrated sections**: Combined into existing pages to reduce navigation
+- **Modal dialogs**: Overlay forms for quick actions
+
+Examples:
+- **Tickets**: Can be standalone `/tickets` page OR integrated into dashboard
+- **Profile**: Can be standalone `/profile` page OR integrated into `/settings`
+- **Admin Invites**: Can be dedicated `/admin/invites` page OR modal/section in `/admin/overview`
+- **Admin Observability**: Can be dedicated `/admin/observability` page OR expanded metrics in `/admin/overview`
+
+The specific implementation approach should be decided based on:
+- User research and usage patterns
+- Navigation complexity
+- Screen real estate and responsive design considerations
 
 ## Notes for Implementation
 

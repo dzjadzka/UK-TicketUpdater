@@ -174,9 +174,9 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 
 ## Current Frontend Status
 
-✅ **Implemented**:
+### ✅ Implemented Features:
 - Login/Register pages
-- Dashboard (basic)
+- Dashboard (basic with credential status)
 - Settings (credentials management)
 - Device Profiles (full CRUD)
 - Admin Overview (stats + job triggers)
@@ -184,15 +184,22 @@ Dashboard → Device Profiles → Create custom profile → Configure (viewport,
 - Auth flow + JWT handling
 - Protected routes (user/admin)
 
-❌ **Not Yet Implemented** (as of this analysis):
-- Tickets history page (separate from dashboard)
-- Profile page (separate from settings)
-- Admin Invites page (separate view)
-- Admin Observability page (detailed monitoring)
-- Full ticket download history with pagination
-- Real-time updates (WebSocket/SSE)
-- Notification system
-- Export functionality
+### ❌ Planned Features (Not Yet Implemented):
+These are described in the architecture as **ideal state** features that can be added incrementally:
+
+- **Separate Tickets page**: Currently, ticket history is shown in dashboard. A dedicated page would provide more advanced features (filtering, sorting, pagination, detailed views).
+- **Standalone Profile page**: Profile data is currently integrated in Settings. A separate page could be added for consistency or simplified navigation.
+- **Dedicated Admin Invites page**: Invite functionality exists via API. UI can be a standalone page or remain integrated in Admin Overview as modal/section.
+- **Comprehensive Admin Observability dashboard**: Basic metrics shown in Admin Overview. A dedicated page could add advanced monitoring, charts, and real-time job tracking.
+- **Advanced features**: Real-time updates (WebSocket/SSE), notification system, export functionality (CSV/PDF), bulk actions.
+
+### Implementation Flexibility
+The architecture describes pages that can be implemented as:
+- **Standalone pages**: Full dedicated routes (e.g., `/tickets`, `/profile`, `/admin/invites`)
+- **Integrated sections**: Combined into existing pages to reduce clicks (e.g., Profile in Settings)
+- **Modal overlays**: Quick actions without page navigation (e.g., Create Invite modal in Admin Overview)
+
+Choose the approach based on user needs, navigation complexity, and responsive design requirements.
 
 ## Next Steps for Frontend Development
 
