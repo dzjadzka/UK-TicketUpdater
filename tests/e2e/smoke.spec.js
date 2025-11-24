@@ -8,7 +8,13 @@ const registerNewUser = async (page, email) => {
   await page.fill('#invite', inviteToken);
   await page.fill('#email', email);
   await page.fill('#password', 'UserPass123!');
-  await page.click('text=Create account');
+  
+  // Submit the form by pressing Enter on the password field
+  await page.locator('#password').press('Enter');
+  
+  // Wait for navigation to dashboard
+  await page.waitForURL(/.*\/dashboard.*/, { timeout: 10000 });
+  
   await expect(page.getByText(/Your ticket history/i)).toBeVisible();
   await expect(page.getByText(/No tickets yet/i)).toBeVisible();
 };

@@ -1,40 +1,69 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e4]:
-  - generic [ref=e5]:
-    - heading "UK Ticket Center" [level=1] [ref=e7]
-    - paragraph [ref=e8]: Automated ticket management for university students
-  - generic [ref=e9]:
-    - generic [ref=e10]:
-      - heading "Create your account" [level=3] [ref=e11]
-      - paragraph [ref=e12]: Enter your invite token and credentials to get started
-    - generic [ref=e13]:
-      - generic [ref=e14]:
-        - generic [ref=e15]:
-          - generic [ref=e16]: Invite token *
-          - textbox "Invite token required" [ref=e17]:
-            - /placeholder: Paste your invite token
-            - text: e2e-invite-token
-        - generic [ref=e18]:
-          - generic [ref=e19]: Email address *
-          - textbox "Email address required" [ref=e20]:
-            - /placeholder: you@example.com
-            - text: e2e-1764014907562@example.com
-        - generic [ref=e21]:
-          - generic [ref=e22]: Password *
-          - textbox "Password required" [ref=e23]:
-            - /placeholder: Create a strong password
-            - text: UserPass123!
-          - paragraph [ref=e24]: Password must be at least 8 characters with a letter and number
-        - generic [ref=e26] [cursor=pointer]:
-          - checkbox "Enable automatic downloads Your tickets will be fetched automatically" [checked] [ref=e27]
-          - generic [ref=e28]:
-            - paragraph [ref=e29]: Enable automatic downloads
-            - paragraph [ref=e30]: Your tickets will be fetched automatically
-        - button "Create account" [active] [ref=e32]
-      - generic [ref=e33]:
-        - text: Already have an account?
-        - link "Sign in" [ref=e34] [cursor=pointer]:
-          - /url: /login
+- generic [ref=e3]:
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - link "UK Ticket Center" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+      - button "Open navigation menu" [ref=e11]
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Settings
+        - heading "Credentials & Automation" [level=1] [ref=e17]
+        - paragraph [ref=e18]: Update your university login, control automatic downloads, and manage your account.
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - heading "UK credentials" [level=2] [ref=e23]
+              - paragraph [ref=e24]: Your UK number is masked. Update the password whenever it changes.
+            - generic [ref=e25]: Auto-download on
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - term [ref=e28]: UK number
+              - definition [ref=e29]: Not set
+            - generic [ref=e30]:
+              - term [ref=e31]: Password
+              - definition [ref=e32]: Not set
+            - generic [ref=e33]:
+              - term [ref=e34]: Auto-download
+              - definition [ref=e35]: Enabled
+            - generic [ref=e36]:
+              - term [ref=e37]: Last updated
+              - definition [ref=e38]: Never
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: UK number
+              - textbox "UK number" [ref=e42]:
+                - /placeholder: Enter or update your UK number
+                - text: "12345678"
+              - paragraph [ref=e43]: We'll mask and store your number securely.
+            - generic [ref=e44]:
+              - generic [ref=e45]: UK password
+              - textbox "UK password" [ref=e46]:
+                - /placeholder: Enter a new password
+                - text: secret-password
+              - alert [ref=e47]: Password must contain at least one letter and one number
+            - generic [ref=e48]:
+              - checkbox "Enable automatic downloads Allow the system to refresh your ticket automatically." [checked] [ref=e49]
+              - generic [ref=e50]:
+                - paragraph [ref=e51]: Enable automatic downloads
+                - paragraph [ref=e52]: Allow the system to refresh your ticket automatically.
+            - button "Save changes" [active] [ref=e53]
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - img [ref=e56]
+            - generic [ref=e58]:
+              - paragraph [ref=e59]: Delete account
+              - paragraph [ref=e60]: This action removes your profile and stored credentials.
+          - generic [ref=e61]:
+            - paragraph [ref=e62]: Type DELETE to confirm. You will be signed out immediately.
+            - textbox "DELETE" [ref=e63]
+          - button "Delete my account" [disabled] [ref=e64]
 ```
