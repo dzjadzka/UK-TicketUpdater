@@ -175,6 +175,8 @@ See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance 
 
 ### Architecture & Design
 - [**Architecture Overview**](docs/architecture.md) - System components, data flows, and technology stack
+- [**UI Information Architecture**](docs/ui-information-architecture.md) - Complete web UI specification with user flows, page layouts, and API mappings
+- [**UI Architecture Quick Reference**](docs/ui-architecture-summary.md) - Condensed UI guide for developers
 - [Database Schema](docs/db-schema.md) - Table definitions and relationships
 - [Operations Guide](docs/operations.md) - Deployment, monitoring, and operational procedures
 
