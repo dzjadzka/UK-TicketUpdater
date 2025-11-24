@@ -47,6 +47,7 @@ describe('Frontend UI flows', () => {
 
   it('logs in and redirects to the dashboard', async () => {
     mocks.getTicketsMock.mockResolvedValue({ data: { tickets: [] } });
+    mocks.getCredentialsMock.mockResolvedValue({ data: { credential: null } });
     mocks.loginMock.mockResolvedValue({ data: { token: 'abc', user: { id: '1', email: 'person@example.com' } } });
 
     window.history.pushState({}, '', '/login');
@@ -57,13 +58,14 @@ describe('Frontend UI flows', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/your ticket history/i)).toBeInTheDocument();
+      expect(screen.getByText(/recent tickets/i)).toBeInTheDocument();
     });
   });
 
   it('renders ticket history rows on the dashboard', async () => {
     setAuthenticatedUser();
     mocks.getProfileMock.mockResolvedValue({ data: { user: { id: '1', email: 'user@example.com' } } });
+    mocks.getCredentialsMock.mockResolvedValue({ data: { credential: { uk_number_masked: '******1234', has_password: true } } });
     mocks.getTicketsMock.mockResolvedValue({
       data: {
         tickets: [
@@ -89,7 +91,7 @@ describe('Frontend UI flows', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('Winter 24/25')).toBeInTheDocument();
+      expect(screen.getAllByText('Winter 24/25')).toHaveLength(2);
       expect(screen.getByText('Spring 25')).toBeInTheDocument();
     });
   });
