@@ -91,7 +91,7 @@ describe('Frontend UI flows', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('Winter 24/25').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Winter 24/25')).toHaveLength(2);
       expect(screen.getByText('Spring 25')).toBeInTheDocument();
     });
   });
