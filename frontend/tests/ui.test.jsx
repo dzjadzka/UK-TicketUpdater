@@ -53,7 +53,7 @@ describe('Frontend UI flows', () => {
     window.history.pushState({}, '', '/login');
     render(<App />);
 
-    await userEvent.type(screen.getByLabelText(/email address/i), 'person@example.com');
+    await userEvent.type(screen.getByLabelText(/email or username/i), 'person@example.com');
     await userEvent.type(screen.getByLabelText(/password/i), 'password123');
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 

@@ -21,6 +21,24 @@ export const validateEmail = (email) => {
 };
 
 /**
+ * Validate login identifier (email or username)
+ * More permissive than validateEmail - allows non-email usernames like 'admin'
+ * @param {string} login
+ * @returns {{valid: boolean, error: string}}
+ */
+export const validateLogin = (login) => {
+  if (!login || login.trim() === '') {
+    return { valid: false, error: 'Login is required' };
+  }
+
+  if (login.length < 2) {
+    return { valid: false, error: 'Login must be at least 2 characters' };
+  }
+
+  return { valid: true, error: '' };
+};
+
+/**
  * Validate password strength
  * Requires: min 8 characters, at least one letter and one number
  * @param {string} password

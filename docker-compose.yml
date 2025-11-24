@@ -3,17 +3,23 @@ services:
   app:
     build: .
     image: uk-ticket-updater:latest
-    environment:
-      - PORT=3000
-      - DB_PATH=/app/data/app.db
-      - OUTPUT_ROOT=/app/downloads
-      - JOB_QUEUE_BACKEND=persistent
-      - JWT_SECRET=0da2b0094d92744d2b6df55e1565988fe4dbf0458ea40a260b71f42d7bf56f5f
-      - ENCRYPTION_KEY=fba8e68b205c00e857e9f509dc9b097045aabfb63504913de19710997125fba7
-      - AUTH_RATE_LIMIT_MAX=300
+    env_file:
+      - stack.env
     volumes:
       - ./data:/app/data
       - ./downloads:/app/downloads
     ports:
       - '3000:3000'
-    command: ['node', 'src/server.js']
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

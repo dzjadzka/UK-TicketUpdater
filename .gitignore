@@ -14,3 +14,7 @@ test-results
 frontend/dist
 frontend/.env
 frontend/.env.local
+
+# Docker/Portainer stack environment (contains secrets)
+stack.env
+.env

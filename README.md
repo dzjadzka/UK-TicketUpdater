@@ -182,6 +182,38 @@ See [`docs/operations.md`](docs/operations.md) for detailed deployment guidance 
 - Run locally: `docker-compose up --build` (serves API on `localhost:3000`, mounts `./data` and `./downloads`).
 - Configure via environment variables listed above; `JOB_QUEUE_BACKEND=persistent` is recommended for containers so jobs survive restarts.
 
+### Portainer Stack Deployment
+
+This repository is ready for deployment via Portainer stacks:
+
+1. **Prepare environment file:**
+
+   ```bash
+   cp stack.env.example stack.env
+   ```
+
+2. **Configure secrets in `stack.env`:**
+   - Generate secure values for `JWT_SECRET` and `ENCRYPTION_KEY`:
+     ```bash
+     openssl rand -hex 32
+     ```
+   - Set `TICKET_ADMIN_USERNAME` and `TICKET_ADMIN_PASSWORD` for base ticket monitoring
+   - Adjust other settings as needed
+
+3. **Deploy via Portainer:**
+   - In Portainer, navigate to **Stacks** → **Add stack**
+   - Choose **Upload** or **Repository** method
+   - If using Repository, point to this repo's `docker-compose.yml`
+   - Upload or paste your `stack.env` contents in the **Environment variables** section
+   - Click **Deploy the stack**
+
+4. **Verify deployment:**
+   - Health endpoint: `http://<host>:3000/health`
+   - Readiness endpoint: `http://<host>:3000/ready`
+   - Metrics endpoint: `http://<host>:3000/metrics`
+
+> **Note:** The `stack.env` file contains secrets and is excluded from version control via `.gitignore`.
+
 ## Testing and linting
 
 - Run unit/integration tests: `npm test` (runs ESLint first via `pretest`)
