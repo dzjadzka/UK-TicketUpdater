@@ -27,9 +27,11 @@ test.describe.serial('Happy-path smoke tests', () => {
     await page.goto('/settings');
     await expect(page.getByText(/Credentials & Automation/i)).toBeVisible();
     await page.fill('#uk-number', '12345678');
-    await page.fill('#uk-password', 'secret-password');
+    await page.fill('#uk-password', 'SecretPass123');
     await page.getByLabel('Enable automatic downloads').check();
-    await page.click('text=Save changes');
+    
+    // Submit form by pressing Enter
+    await page.locator('#uk-password').press('Enter');
     await expect(page.getByText(/Credentials saved successfully/i)).toBeVisible();
   });
 
