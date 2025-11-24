@@ -60,18 +60,18 @@ const Tickets = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Tickets</p>
-        <h1 className="text-4xl font-bold text-foreground">Download History</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mb-1.5">Tickets</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Download History</h1>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           Complete history of all your ticket downloads
         </p>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-top-3 duration-500">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Status Filter */}
@@ -80,6 +80,7 @@ const Tickets = () => {
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('all')}
+                className="transition-all hover:shadow-md"
               >
                 All ({statusCounts.all})
               </Button>
@@ -87,6 +88,7 @@ const Tickets = () => {
                 variant={filter === 'success' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('success')}
+                className="transition-all hover:shadow-md"
               >
                 Success ({statusCounts.success})
               </Button>
@@ -94,6 +96,7 @@ const Tickets = () => {
                 variant={filter === 'error' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('error')}
+                className="transition-all hover:shadow-md"
               >
                 Errors ({statusCounts.error})
               </Button>
@@ -101,6 +104,7 @@ const Tickets = () => {
                 variant={filter === 'pending' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('pending')}
+                className="transition-all hover:shadow-md"
               >
                 Pending ({statusCounts.pending})
               </Button>
@@ -114,7 +118,7 @@ const Tickets = () => {
                 placeholder="Search tickets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow hover:shadow-sm"
               />
             </div>
           </div>
@@ -123,29 +127,31 @@ const Tickets = () => {
 
       {/* Tickets List */}
       {loading ? (
-        <Card>
+        <Card className="animate-in fade-in duration-300">
           <CardContent className="flex min-h-[400px] items-center justify-center">
             <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+              <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
               <p className="mt-4 text-sm text-muted-foreground">Loading tickets...</p>
             </div>
           </CardContent>
         </Card>
       ) : error ? (
-        <Card className="border-destructive">
+        <Card className="border-destructive/50 animate-in fade-in duration-300">
           <CardContent className="py-8 text-center">
             <p className="text-destructive">{error}</p>
-            <Button onClick={fetchTickets} variant="outline" size="sm" className="mt-4">
+            <Button onClick={fetchTickets} variant="outline" size="sm" className="mt-4 hover:shadow-md transition-shadow">
               Try Again
             </Button>
           </CardContent>
         </Card>
       ) : filteredTickets.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FunnelIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No tickets found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+        <Card className="animate-in fade-in duration-300">
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+              <FunnelIcon className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+            <h3 className="text-lg font-semibold">No tickets found</h3>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
               {searchTerm || filter !== 'all'
                 ? 'Try adjusting your filters or search term'
                 : 'When your account downloads a ticket, it will appear here'}
@@ -153,9 +159,9 @@ const Tickets = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>
+        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">
               {filteredTickets.length} {filteredTickets.length === 1 ? 'Ticket' : 'Tickets'}
             </CardTitle>
             <CardDescription>
@@ -166,15 +172,16 @@ const Tickets = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="divide-y divide-border">
-              {filteredTickets.map((ticket) => (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTickets.map((ticket, index) => (
                 <div
                   key={ticket.id}
-                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="group flex flex-col gap-3 rounded-lg border bg-card p-4 hover:border-primary/50 hover:shadow-lg transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h4 className="font-semibold">{ticket.version || 'N/A'}</h4>
+                    <div className="flex items-center gap-2.5 flex-wrap mb-2">
+                      <h4 className="font-semibold text-foreground truncate">{ticket.version || 'N/A'}</h4>
                       <Badge variant={
                         ticket.status === 'success' ? 'success' : 
                         ticket.status === 'error' ? 'destructive' : 
@@ -183,28 +190,32 @@ const Tickets = () => {
                         {ticket.status || 'pending'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground">
                       {ticket.downloaded_at 
                         ? new Date(ticket.downloaded_at).toLocaleString()
                         : 'Download pending'
                       }
                     </p>
                     {ticket.error_message && (
-                      <div className="mt-2 rounded-md bg-destructive/10 px-3 py-2">
-                        <p className="text-xs text-destructive">{ticket.error_message}</p>
+                      <div className="mt-2 rounded-md bg-destructive/10 px-2.5 py-1.5">
+                        <p className="text-xs text-destructive line-clamp-2">{ticket.error_message}</p>
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-auto">
                     {ticket.download_url ? (
-                      <Button size="sm" asChild>
-                        <a href={ticket.download_url} className="gap-2" download>
+                      <Button 
+                        size="sm" 
+                        asChild
+                        className="w-full gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-[1.02]"
+                      >
+                        <a href={ticket.download_url} download>
                           <ArrowDownTrayIcon className="h-4 w-4" />
                           Download
                         </a>
                       </Button>
                     ) : (
-                      <Button size="sm" variant="outline" disabled>
+                      <Button size="sm" variant="outline" disabled className="w-full">
                         Not Available
                       </Button>
                     )}
