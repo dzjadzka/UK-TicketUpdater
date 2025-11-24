@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Tickets from './pages/Tickets';
 import Settings from './pages/Settings';
 import DeviceProfiles from './pages/DeviceProfiles';
 import AdminLayout from './admin/AdminLayout';
@@ -27,6 +28,7 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/tickets" element={<Tickets />} />
             <Route path="/device-profiles" element={<DeviceProfiles />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

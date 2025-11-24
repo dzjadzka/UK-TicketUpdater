@@ -1,26 +1,29 @@
 import { useEffect, useState } from 'react';
-import { ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ArrowDownTrayIcon, CheckCircleIcon, XCircleIcon, ClockIcon, TicketIcon } from '@heroicons/react/24/outline';
 import { userAPI } from '../services/api';
-
-const statusStyles = {
-  success: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-  error: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
-  pending: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
-};
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [tickets, setTickets] = useState([]);
+  const [credentials, setCredentials] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchTickets = async () => {
+  const fetchData = async () => {
     setError('');
     try {
-      const response = await userAPI.getTickets();
-      setTickets(response.data.tickets || []);
+      const [ticketsRes, credentialsRes] = await Promise.all([
+        userAPI.getTickets(),
+        userAPI.getCredentials()
+      ]);
+      setTickets(ticketsRes.data.tickets || []);
+      setCredentials(credentialsRes.data.credential);
     } catch (err) {
-      setError(err.response?.data?.error || 'Unable to load your tickets right now.');
+      setError(err.response?.data?.error || 'Unable to load your data right now.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -28,101 +31,211 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetchData();
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchTickets();
+    fetchData();
   };
 
+  const latestTicket = tickets.length > 0 ? tickets[0] : null;
+  const successCount = tickets.filter(t => t.status === 'success').length;
+  const errorCount = tickets.filter(t => t.status === 'error').length;
+
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Dashboard</p>
-          <h1 className="text-3xl font-bold text-slate-900">Your ticket history</h1>
-          <p className="text-sm text-slate-600">
-            Review past downloads, check their status, and re-download tickets when available.
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mb-1.5">Dashboard</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Welcome back</h1>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            Here's an overview of your ticket activity
           </p>
         </div>
-        <button
+        <Button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+          variant="outline"
+          size="sm"
+          className="gap-2 hover:shadow-md transition-all duration-200"
+          aria-label={refreshing ? "Refreshing dashboard data" : "Refresh dashboard data"}
         >
-          <ArrowPathIcon className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           Refresh
-        </button>
-      </header>
+        </Button>
+      </div>
 
+      {/* Stats Cards */}
+      {!loading && !error && (
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-3 duration-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credentials Status</CardTitle>
+              {credentials ? (
+                <CheckCircleIcon className="h-5 w-5 text-primary" />
+              ) : (
+                <XCircleIcon className="h-5 w-5 text-destructive" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight">
+                {credentials ? 'Configured' : 'Not Set'}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {credentials ? (
+                  <>Auto-download: {credentials.auto_download_enabled ? 'Enabled' : 'Disabled'}</>
+                ) : (
+                  <Link to="/settings" className="text-primary hover:underline font-medium">Configure now →</Link>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-75">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Downloads</CardTitle>
+              <ArrowDownTrayIcon className="h-5 w-5 text-muted-foreground/60" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight">{tickets.length}</div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <span className="text-green-600 font-medium">{successCount} successful</span> · <span className="text-red-600 font-medium">{errorCount} failed</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150 sm:col-span-2 lg:col-span-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Latest Ticket</CardTitle>
+              <ClockIcon className="h-5 w-5 text-muted-foreground/60" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight">
+                {latestTicket ? latestTicket.version || 'N/A' : 'None'}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {latestTicket?.downloaded_at 
+                  ? new Date(latestTicket.downloaded_at).toLocaleDateString()
+                  : 'No downloads yet'
+                }
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Content */}
       {loading ? (
-        <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-600">
-          Loading your tickets…
-        </div>
+        <Card className="animate-in fade-in duration-300">
+          <CardContent className="flex min-h-[300px] items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+              <p className="mt-4 text-sm text-muted-foreground">Loading your data...</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
-          {error}
-        </div>
-      ) : tickets.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
-          <p className="text-lg font-semibold text-slate-900">No tickets yet</p>
-          <p className="mt-2 text-sm text-slate-600">
-            When your account downloads a ticket, it will show up here with a download link.
-          </p>
-        </div>
+        <Card className="border-destructive/50 animate-in fade-in duration-300">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <XCircleIcon className="h-5 w-5 text-destructive mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-destructive">Error loading data</h3>
+                <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                <Button onClick={handleRefresh} variant="outline" size="sm" className="mt-3 hover:shadow-md transition-shadow">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Ticket</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Downloaded</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {tickets.map((ticket) => (
-                  <tr key={ticket.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
-                      {ticket.version || 'N/A'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
-                      {ticket.downloaded_at ? new Date(ticket.downloaded_at).toLocaleString() : 'Pending'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          statusStyles[ticket.status] || statusStyles.pending
-                        }`}
-                      >
-                        {ticket.status || 'pending'}
-                      </span>
+        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">Recent Tickets</CardTitle>
+                <CardDescription className="mt-1.5">
+                  Your latest ticket downloads
+                  {tickets.length > 5 && (
+                    <Link to="/tickets" className="text-primary hover:underline ml-2 font-medium inline-flex items-center">
+                      View all →
+                    </Link>
+                  )}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {tickets.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                  <ArrowDownTrayIcon className="h-8 w-8 text-muted-foreground/60" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">No tickets yet</h3>
+                <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  When your account downloads a ticket, it will appear here. Make sure your credentials are configured.
+                </p>
+                {!credentials && (
+                  <Link to="/settings">
+                    <Button className="mt-6 shadow-md hover:shadow-lg transition-all">
+                      Configure Credentials
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tickets.slice(0, 5).map((ticket, index) => (
+                  <div
+                    key={ticket.id}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                    className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-card p-4 hover:border-primary/50 hover:shadow-md transition-all duration-200 animate-in fade-in slide-in-from-left-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <p className="font-semibold text-foreground truncate">
+                          {ticket.version || 'N/A'}
+                        </p>
+                        <Badge variant={
+                          ticket.status === 'success' ? 'success' : 
+                          ticket.status === 'error' ? 'destructive' : 
+                          'warning'
+                        }>
+                          {ticket.status || 'pending'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        {ticket.downloaded_at 
+                          ? new Date(ticket.downloaded_at).toLocaleString()
+                          : 'Pending'
+                        }
+                      </p>
                       {ticket.error_message && (
-                        <p className="mt-1 text-xs text-rose-600">{ticket.error_message}</p>
+                        <p className="text-xs text-destructive mt-1.5 line-clamp-1">{ticket.error_message}</p>
                       )}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm">
-                      {ticket.download_url ? (
-                        <a
-                          href={ticket.download_url}
-                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                    </div>
+                    {ticket.download_url && (
+                      <a href={ticket.download_url} aria-label={`Download ticket ${ticket.version || ticket.id}`}>
+                        <Button 
+                          size="sm"
+                          className="shrink-0 gap-2 shadow-sm hover:shadow-md transition-all group-hover:scale-105"
+                          aria-hidden="true"
+                          tabIndex={-1}
                         >
-                          <ArrowDownTrayIcon className="h-4 w-4" />
-                          Download
-                        </a>
-                      ) : (
-                        <span className="text-slate-500">Not available</span>
-                      )}
-                    </td>
-                  </tr>
+                          <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+                          <span className="hidden sm:inline">Download</span>
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

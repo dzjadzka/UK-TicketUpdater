@@ -3,6 +3,7 @@ import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { userAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { validateUKNumber, validatePassword } from '../utils/validation';
 
 const Settings = () => {
   const [ukNumber, setUkNumber] = useState('');
@@ -13,10 +14,12 @@ const Settings = () => {
   const [lastUpdated, setLastUpdated] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [touched, setTouched] = useState({ ukNumber: false, ukPassword: false });
   const navigate = useNavigate();
   const { logout, refreshUser } = useAuth();
 
@@ -41,13 +44,61 @@ const Settings = () => {
     fetchCredentials();
   }, []);
 
+  const validateForm = () => {
+    const errors = {};
+    
+    if (ukNumber) {
+      const ukNumberValidation = validateUKNumber(ukNumber);
+      if (!ukNumberValidation.valid) {
+        errors.ukNumber = ukNumberValidation.error;
+      }
+    }
+
+    if (ukPassword) {
+      const passwordValidation = validatePassword(ukPassword);
+      if (!passwordValidation.valid) {
+        errors.ukPassword = passwordValidation.error;
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true });
+    validateForm();
+  };
+
+  const handleUkNumberChange = (e) => {
+    setUkNumber(e.target.value);
+    if (touched.ukNumber) {
+      validateForm();
+    }
+  };
+
+  const handleUkPasswordChange = (e) => {
+    setUkPassword(e.target.value);
+    if (touched.ukPassword) {
+      validateForm();
+    }
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
     setError('');
     setSuccess('');
 
+    // Mark all fields as touched
+    setTouched({ ukNumber: true, ukPassword: true });
+
     if (!ukNumber && !ukPassword) {
       setError('Provide a UK number or password to update your credentials.');
+      return;
+    }
+
+    // Validate form
+    if (!validateForm()) {
       return;
     }
 
@@ -63,7 +114,9 @@ const Settings = () => {
       setMaskedNumber(credential.uk_number_masked);
       setHasPassword(credential.has_password);
       setLastUpdated(credential.updated_at || '');
+      setUkNumber('');
       setUkPassword('');
+      setTouched({ ukNumber: false, ukPassword: false });
       await refreshUser();
       setSuccess('Credentials saved successfully.');
     } catch (err) {
@@ -130,7 +183,7 @@ const Settings = () => {
               </div>
             </dl>
 
-            <form className="mt-6 space-y-4" onSubmit={handleSave}>
+            <form className="mt-6 space-y-4" onSubmit={handleSave} noValidate>
               <div>
                 <label className="block text-sm font-medium text-slate-700" htmlFor="uk-number">
                   UK number
@@ -138,12 +191,21 @@ const Settings = () => {
                 <input
                   id="uk-number"
                   type="text"
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`mt-2 w-full rounded-lg border ${touched.ukNumber && validationErrors.ukNumber ? 'border-rose-500' : 'border-slate-200'} px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500`}
                   placeholder="Enter or update your UK number"
                   value={ukNumber}
-                  onChange={(e) => setUkNumber(e.target.value)}
+                  onChange={handleUkNumberChange}
+                  onBlur={() => handleBlur('ukNumber')}
+                  aria-invalid={touched.ukNumber && validationErrors.ukNumber ? 'true' : 'false'}
+                  aria-describedby={touched.ukNumber && validationErrors.ukNumber ? 'uk-number-error' : 'uk-number-help'}
                 />
-                <p className="mt-1 text-xs text-slate-500">We'll mask and store your number securely.</p>
+                {touched.ukNumber && validationErrors.ukNumber ? (
+                  <p id="uk-number-error" className="mt-1 text-xs text-rose-600" role="alert">
+                    {validationErrors.ukNumber}
+                  </p>
+                ) : (
+                  <p id="uk-number-help" className="mt-1 text-xs text-slate-500">We'll mask and store your number securely.</p>
+                )}
               </div>
 
               <div>
@@ -153,12 +215,21 @@ const Settings = () => {
                 <input
                   id="uk-password"
                   type="password"
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`mt-2 w-full rounded-lg border ${touched.ukPassword && validationErrors.ukPassword ? 'border-rose-500' : 'border-slate-200'} px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500`}
                   placeholder="Enter a new password"
                   value={ukPassword}
-                  onChange={(e) => setUkPassword(e.target.value)}
+                  onChange={handleUkPasswordChange}
+                  onBlur={() => handleBlur('ukPassword')}
+                  aria-invalid={touched.ukPassword && validationErrors.ukPassword ? 'true' : 'false'}
+                  aria-describedby={touched.ukPassword && validationErrors.ukPassword ? 'uk-password-error' : 'uk-password-help'}
                 />
-                <p className="mt-1 text-xs text-slate-500">We never display your password. Save to replace it.</p>
+                {touched.ukPassword && validationErrors.ukPassword ? (
+                  <p id="uk-password-error" className="mt-1 text-xs text-rose-600" role="alert">
+                    {validationErrors.ukPassword}
+                  </p>
+                ) : (
+                  <p id="uk-password-help" className="mt-1 text-xs text-slate-500">We never display your password. Save to replace it.</p>
+                )}
               </div>
 
               <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
