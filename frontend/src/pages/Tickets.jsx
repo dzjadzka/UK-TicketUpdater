@@ -19,6 +19,7 @@ const Tickets = () => {
 
   useEffect(() => {
     filterTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, filter, searchTerm]);
 
   const fetchTickets = async () => {

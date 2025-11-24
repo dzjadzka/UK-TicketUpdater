@@ -156,7 +156,7 @@ const Dashboard = () => {
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl">Recent Tickets</CardTitle>
+                <CardTitle className="text-xl">Your ticket history</CardTitle>
                 <CardDescription className="mt-1.5">
                   Your latest ticket downloads
                   {tickets.length > 5 && (

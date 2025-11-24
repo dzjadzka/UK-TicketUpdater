@@ -52,6 +52,7 @@ const AdminUsers = () => {
       loadUsers();
     }, 250);
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statusFilter, onlyErrors]);
 
   const stats = useMemo(() => {

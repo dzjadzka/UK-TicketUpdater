@@ -8,13 +8,18 @@ RUN npm ci --omit=dev
 
 # Frontend deps and build
 COPY frontend/package*.json frontend/
+COPY frontend/src frontend/src
+COPY frontend/public frontend/public
+COPY frontend/index.html frontend/
+COPY frontend/vite.config.js frontend/
+COPY frontend/postcss.config.js frontend/
+COPY frontend/tailwind.config.js frontend/
+COPY frontend/eslint.config.js frontend/
 RUN cd frontend && npm ci && npm run build
 
 # Copy source
 COPY src src
-COPY config config
 COPY docs docs
-COPY frontend/dist frontend/dist
 COPY README.md README.md
 
 FROM node:18-alpine
@@ -25,12 +30,11 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/src src
-COPY --from=builder /app/config config
 COPY --from=builder /app/docs docs
 COPY --from=builder /app/frontend/dist frontend/dist
 COPY --from=builder /app/README.md README.md
 
-RUN mkdir -p data downloads
+RUN mkdir -p data downloads config
 
 EXPOSE 3000
 CMD ["node", "src/server.js"]

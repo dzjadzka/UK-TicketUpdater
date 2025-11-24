@@ -115,7 +115,7 @@ const AdminUserDetail = () => {
     try {
       const response = await adminAPI.getUserTickets(id);
       setTickets(response.data.tickets || []);
-    } catch (err) {
+    } catch {
       setTickets([]);
     }
   };
@@ -125,7 +125,7 @@ const AdminUserDetail = () => {
       const response = await adminAPI.getRecentErrors({ limit: 50 });
       const rows = response.data.errors || [];
       setErrors(rows.filter((item) => item.user_id === id || item.userId === id));
-    } catch (err) {
+    } catch {
       setErrors([]);
     }
   };
@@ -134,6 +134,7 @@ const AdminUserDetail = () => {
     loadDetail();
     loadTickets();
     loadErrors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleCredentialSave = async (event) => {

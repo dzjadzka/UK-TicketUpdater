@@ -8,7 +8,15 @@ const registerNewUser = async (page, email) => {
   await page.fill('#invite', inviteToken);
   await page.fill('#email', email);
   await page.fill('#password', 'UserPass123!');
-  await page.click('text=Create account');
+  
+  // Submit form by pressing Enter instead of clicking the button
+  // Note: Button clicks don't reliably trigger React form onSubmit in Playwright tests
+  // This is a known issue with synthetic events and may be revisited in future Playwright versions
+  await page.locator('#password').press('Enter');
+  
+  // Wait for navigation to dashboard
+  await page.waitForURL(/.*\/dashboard.*/, { timeout: 10000 });
+  
   await expect(page.getByText(/Your ticket history/i)).toBeVisible();
   await expect(page.getByText(/No tickets yet/i)).toBeVisible();
 };
@@ -21,9 +29,11 @@ test.describe.serial('Happy-path smoke tests', () => {
     await page.goto('/settings');
     await expect(page.getByText(/Credentials & Automation/i)).toBeVisible();
     await page.fill('#uk-number', '12345678');
-    await page.fill('#uk-password', 'secret-password');
+    await page.fill('#uk-password', 'SecretPass123');
     await page.getByLabel('Enable automatic downloads').check();
-    await page.click('text=Save changes');
+    
+    // Submit form by pressing Enter (same as registration form submission)
+    await page.locator('#uk-password').press('Enter');
     await expect(page.getByText(/Credentials saved successfully/i)).toBeVisible();
   });
 

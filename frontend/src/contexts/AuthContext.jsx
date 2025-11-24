@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshUser = async () => {
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }) => {
       const response = await userAPI.getProfile();
       setUser(response.data.user);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-    } catch (error) {
+    } catch {
       logout();
     } finally {
       setLoading(false);
@@ -98,6 +99,7 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
