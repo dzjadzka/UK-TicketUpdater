@@ -4,17 +4,17 @@ import { TicketIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { validateEmail, validatePassword } from '../utils/validation';
+import { validateLogin, validatePassword } from '../utils/validation';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [touched, setTouched] = useState({ email: false, password: false });
+  const [touched, setTouched] = useState({ loginId: false, password: false });
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -25,9 +25,9 @@ const Login = () => {
   const validateForm = () => {
     const errors = {};
 
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.valid) {
-      errors.email = emailValidation.error;
+    const loginValidation = validateLogin(loginId);
+    if (!loginValidation.valid) {
+      errors.loginId = loginValidation.error;
     }
 
     const passwordValidation = validatePassword(password);
@@ -44,9 +44,9 @@ const Login = () => {
     validateForm();
   };
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-    if (touched.email) {
+  const handleLoginIdChange = (e) => {
+    setLoginId(e.target.value);
+    if (touched.loginId) {
       validateForm();
     }
   };
@@ -63,7 +63,7 @@ const Login = () => {
     setError('');
 
     // Mark all fields as touched
-    setTouched({ email: true, password: true });
+    setTouched({ loginId: true, password: true });
 
     // Validate form
     if (!validateForm()) {
@@ -72,7 +72,7 @@ const Login = () => {
 
     setLoading(true);
 
-    const result = await login(email, password);
+    const result = await login(loginId, password);
 
     if (result.success) {
       navigate('/dashboard');
@@ -104,27 +104,27 @@ const Login = () => {
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit} noValidate>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground" htmlFor="email">
-                  Email address{' '}
+                <label className="text-sm font-medium text-foreground" htmlFor="loginId">
+                  Email or username{' '}
                   <span className="text-destructive" aria-label="required">
                     *
                   </span>
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  className={`flex h-10 w-full rounded-md border ${touched.email && validationErrors.email ? 'border-destructive' : 'border-input'} bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={handleEmailChange}
-                  onBlur={() => handleBlur('email')}
+                  id="loginId"
+                  type="text"
+                  className={`flex h-10 w-full rounded-md border ${touched.loginId && validationErrors.loginId ? 'border-destructive' : 'border-input'} bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                  placeholder="you@example.com or admin"
+                  value={loginId}
+                  onChange={handleLoginIdChange}
+                  onBlur={() => handleBlur('loginId')}
                   required
-                  aria-invalid={touched.email && validationErrors.email ? 'true' : 'false'}
-                  aria-describedby={touched.email && validationErrors.email ? 'email-error' : undefined}
+                  aria-invalid={touched.loginId && validationErrors.loginId ? 'true' : 'false'}
+                  aria-describedby={touched.loginId && validationErrors.loginId ? 'loginId-error' : undefined}
                 />
-                {touched.email && validationErrors.email && (
-                  <p id="email-error" className="text-xs text-destructive" role="alert">
-                    {validationErrors.email}
+                {touched.loginId && validationErrors.loginId && (
+                  <p id="loginId-error" className="text-xs text-destructive" role="alert">
+                    {validationErrors.loginId}
                   </p>
                 )}
               </div>

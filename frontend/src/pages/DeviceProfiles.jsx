@@ -141,6 +141,9 @@ const DeviceProfiles = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this device profile? This action cannot be undone.')) {
+      return;
+    }
     setError('');
     setNotice('');
     try {
@@ -162,8 +165,16 @@ const DeviceProfiles = () => {
         </p>
       </header>
 
-      {error && <div className="alert alert-error text-sm">{error}</div>}
-      {notice && <div className="alert alert-success text-sm">{notice}</div>}
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
