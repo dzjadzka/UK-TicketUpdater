@@ -39,7 +39,7 @@ test.describe.serial('Happy-path smoke tests', () => {
 
   test('admin can see registered users', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('#email', 'admin@example.com');
+    await page.fill('#loginId', 'admin@example.com');
     await page.fill('#password', 'AdminPass123!');
     await page.getByRole('button', { name: /sign in/i }).click();
 
